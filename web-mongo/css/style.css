@@ -1104,7 +1104,23 @@ h1 {
 
 .toast.success { background: var(--success); }
 .toast.error { background: var(--danger); }
+.toast.info { background: #3b82f6; }
+.toast.warning { background: var(--warn); }
 .toast.show { transform: translateX(0); }
+
+/* Button press animation */
+.btn-pressed {
+  transform: scale(0.95) !important;
+  opacity: 0.8;
+}
+
+.btn {
+  transition: all 0.15s ease;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
 
 .connection-banner {
   position: fixed;

@@ -566,10 +566,26 @@ async function saveTempThreshold() {
 }
 
 async function silenceAlarm() {
+  // Only silence if alarm is actually active
+  const alarmCard = document.getElementById('alarmCard');
+  const isAlarmActive = alarmCard && alarmCard.classList.contains('alarm-active');
+  
+  if (!isAlarmActive) {
+    showToast('No active alarm to silence', 'info');
+    return;
+  }
+  
+  // Add button animation
+  const btn = event?.target?.closest('.btn');
+  if (btn) {
+    btn.classList.add('btn-pressed');
+    setTimeout(() => btn.classList.remove('btn-pressed'), 200);
+  }
+  
   stopAlarmSound();
   try {
     await api.sendCommand(CONFIG.DEVICE_ID, 'silence', true);
-    showToast('Alarm silenced');
+    showToast('Alarm silenced', 'success');
   } catch (error) {
     console.error('Silence alarm error:', error);
     showToast('Error: ' + error.message, 'error');
@@ -605,7 +621,15 @@ async function clearHistory() {
 function showToast(message, type = 'success') {
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}`;
+  
+  const icons = {
+    success: 'check-circle',
+    error: 'exclamation-circle',
+    info: 'info-circle',
+    warning: 'exclamation-triangle'
+  };
+  
+  toast.innerHTML = `<i class="fas fa-${icons[type] || 'check-circle'}"></i> ${message}`;
   document.body.appendChild(toast);
   
   setTimeout(() => toast.classList.add('show'), 10);
