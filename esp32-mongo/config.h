@@ -6,14 +6,14 @@
 #define WIFI_PASSWORD "Welcome2025"
 
 // Backend Server Configuration
-// For local development:
-#define API_HOST "192.168.68.122"  // Your computer's IP
-#define API_PORT 3000
+// For local development (comment these out for cloud):
+// #define API_HOST "192.168.68.122"  // Your computer's IP
+// #define API_PORT 3000
 
-// For production on Render.com (uncomment these and comment out local config above):
-// #define API_HOST "cloud-alarm.onrender.com"
-// #define API_PORT 443
-// #define USE_HTTPS true
+// For production on Render.com:
+#define API_HOST "cloud-alarm.onrender.com"
+#define API_PORT 443
+#define USE_HTTPS true
 
 #ifndef USE_HTTPS
 #define USE_HTTPS false

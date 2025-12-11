@@ -38,10 +38,15 @@ const api = {
 
   // Auth endpoints
   async register(email, password, displayName) {
-    return this.request('/api/auth/register', {
+    const data = await this.request('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, displayName })
     });
+    // If token returned, save it (auto-login)
+    if (data.token) {
+      this.setToken(data.token);
+    }
+    return data;
   },
 
   async login(email, password) {
