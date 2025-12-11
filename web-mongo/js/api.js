@@ -1,6 +1,8 @@
 // API Helper Functions
 const api = {
-  token: localStorage.getItem('authToken'),
+  get token() {
+    return localStorage.getItem('authToken');
+  },
 
   setToken(token) {
     this.token = token;

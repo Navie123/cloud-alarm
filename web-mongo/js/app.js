@@ -485,9 +485,11 @@ async function saveThreshold() {
   const value = parseInt(elements.thresholdSlider.value);
   try {
     await api.sendCommand(CONFIG.DEVICE_ID, 'threshold', value);
+    currentThreshold = value;
     showToast('Gas threshold saved: ' + value + '%');
   } catch (error) {
-    showToast('Error saving threshold', 'error');
+    console.error('Save threshold error:', error);
+    showToast('Error: ' + error.message, 'error');
   }
 }
 
@@ -495,9 +497,11 @@ async function saveTempThreshold() {
   const value = parseInt(elements.tempThresholdSlider.value);
   try {
     await api.sendCommand(CONFIG.DEVICE_ID, 'tempThreshold', value);
+    currentTempThreshold = value;
     showToast('Temp threshold saved: ' + value + '°C');
   } catch (error) {
-    showToast('Error saving temp threshold', 'error');
+    console.error('Save temp threshold error:', error);
+    showToast('Error: ' + error.message, 'error');
   }
 }
 
@@ -505,9 +509,10 @@ async function silenceAlarm() {
   stopAlarmSound();
   try {
     await api.sendCommand(CONFIG.DEVICE_ID, 'silence', true);
-    showToast('Silence command sent');
+    showToast('Alarm silenced');
   } catch (error) {
-    showToast('Error sending command', 'error');
+    console.error('Silence alarm error:', error);
+    showToast('Error: ' + error.message, 'error');
   }
 }
 
@@ -519,7 +524,8 @@ async function toggleSiren() {
     updateSirenUI();
     showToast('Siren ' + (newState ? 'enabled' : 'disabled'));
   } catch (error) {
-    showToast('Error toggling siren', 'error');
+    console.error('Toggle siren error:', error);
+    showToast('Error: ' + error.message, 'error');
   }
 }
 
