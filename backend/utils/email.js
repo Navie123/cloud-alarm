@@ -11,7 +11,11 @@ const transporter = nodemailer.createTransport({
 const sendVerificationEmail = async (email, token) => {
   const verifyUrl = `${process.env.FRONTEND_URL}/verify.html?token=${token}`;
   
-  await transporter.sendMail({
+  console.log('Sending verification email to:', email);
+  console.log('Verify URL:', verifyUrl);
+  console.log('Using EMAIL_USER:', process.env.EMAIL_USER);
+  
+  const result = await transporter.sendMail({
     from: `"Cloud Fire Alarm" <${process.env.EMAIL_USER}>`,
     to: email,
     subject: 'Verify Your Email - Cloud Fire Alarm',
@@ -33,6 +37,8 @@ const sendVerificationEmail = async (email, token) => {
       </div>
     `
   });
+  console.log('Verification email sent successfully to:', email);
+  return result;
 };
 
 const sendPasswordResetEmail = async (email, token) => {
