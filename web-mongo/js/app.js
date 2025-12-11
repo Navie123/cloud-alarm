@@ -384,23 +384,37 @@ function updateUI(data) {
   elements.threshVal.textContent = data.threshold || '--';
   
   // Only update gas threshold slider if user is not actively changing it
+  // OR if ESP32 now reports the value we saved (confirmation)
+  const incomingThreshold = data.threshold || 40;
   if (!userChangingThreshold) {
-    currentThreshold = data.threshold || 40;
+    currentThreshold = incomingThreshold;
     elements.thresholdSlider.value = currentThreshold;
     elements.sliderValue.textContent = currentThreshold + '%';
     const gasLevel = getGasLevel(currentThreshold);
     updateSliderColors(elements.thresholdSlider, elements.sliderValue, gasLevel);
+  } else if (incomingThreshold === parseInt(elements.thresholdSlider.value)) {
+    // ESP32 confirmed our value, clear the flag
+    userChangingThreshold = false;
+    clearTimeout(thresholdChangeTimeout);
+    currentThreshold = incomingThreshold;
   }
   
   elements.tempThreshVal.textContent = data.tempThreshold || '--';
   
   // Only update temp threshold slider if user is not actively changing it
+  // OR if ESP32 now reports the value we saved (confirmation)
+  const incomingTempThreshold = data.tempThreshold || 60;
   if (!userChangingTempThreshold) {
-    currentTempThreshold = data.tempThreshold || 60;
+    currentTempThreshold = incomingTempThreshold;
     elements.tempThresholdSlider.value = currentTempThreshold;
     elements.tempSliderValue.textContent = currentTempThreshold + '°C';
     const tempLevel = getTempLevel(currentTempThreshold);
     updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, tempLevel);
+  } else if (incomingTempThreshold === parseInt(elements.tempThresholdSlider.value)) {
+    // ESP32 confirmed our value, clear the flag
+    userChangingTempThreshold = false;
+    clearTimeout(tempThresholdChangeTimeout);
+    currentTempThreshold = incomingTempThreshold;
   }
   
   sirenEnabled = data.sirenEnabled !== false;
@@ -512,24 +526,36 @@ function renderHistory(history) {
 async function saveThreshold() {
   const value = parseInt(elements.thresholdSlider.value);
   try {
+    // Keep flag active longer after saving (10 seconds for ESP32 to apply and report back)
+    userChangingThreshold = true;
+    clearTimeout(thresholdChangeTimeout);
+    thresholdChangeTimeout = setTimeout(() => { userChangingThreshold = false; }, 10000);
+    
     await api.sendCommand(CONFIG.DEVICE_ID, 'threshold', value);
     currentThreshold = value;
     showToast('Gas threshold saved: ' + value + '%');
   } catch (error) {
     console.error('Save threshold error:', error);
     showToast('Error: ' + error.message, 'error');
+    userChangingThreshold = false;
   }
 }
 
 async function saveTempThreshold() {
   const value = parseInt(elements.tempThresholdSlider.value);
   try {
+    // Keep flag active longer after saving (10 seconds for ESP32 to apply and report back)
+    userChangingTempThreshold = true;
+    clearTimeout(tempThresholdChangeTimeout);
+    tempThresholdChangeTimeout = setTimeout(() => { userChangingTempThreshold = false; }, 10000);
+    
     await api.sendCommand(CONFIG.DEVICE_ID, 'tempThreshold', value);
     currentTempThreshold = value;
     showToast('Temp threshold saved: ' + value + '°C');
   } catch (error) {
     console.error('Save temp threshold error:', error);
     showToast('Error: ' + error.message, 'error');
+    userChangingTempThreshold = false;
   }
 }
 
