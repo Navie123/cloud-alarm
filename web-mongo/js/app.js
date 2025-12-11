@@ -14,6 +14,12 @@ let ws = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
+// Track if user is actively changing sliders (don't overwrite during this time)
+let userChangingThreshold = false;
+let userChangingTempThreshold = false;
+let thresholdChangeTimeout = null;
+let tempThresholdChangeTimeout = null;
+
 // DOM Elements
 const elements = {
   gasBar: document.getElementById('gasBar'),
@@ -250,6 +256,10 @@ function updateSliderColors(slider, valueDisplay, level) {
 // Threshold Slider
 function setupSlider() {
   elements.thresholdSlider?.addEventListener('input', (e) => {
+    userChangingThreshold = true;
+    clearTimeout(thresholdChangeTimeout);
+    thresholdChangeTimeout = setTimeout(() => { userChangingThreshold = false; }, 5000);
+    
     const value = parseInt(e.target.value);
     const level = getGasLevel(value);
     elements.sliderValue.textContent = value + '%';
@@ -266,6 +276,10 @@ function setupSlider() {
   
   const sideSlider = document.getElementById('sliderSide');
   sideSlider?.addEventListener('input', (e) => {
+    userChangingThreshold = true;
+    clearTimeout(thresholdChangeTimeout);
+    thresholdChangeTimeout = setTimeout(() => { userChangingThreshold = false; }, 5000);
+    
     const value = parseInt(e.target.value);
     const level = getGasLevel(value);
     const sideVal = document.getElementById('sliderValSide');
@@ -279,6 +293,10 @@ function setupSlider() {
   });
   
   elements.tempThresholdSlider?.addEventListener('input', (e) => {
+    userChangingTempThreshold = true;
+    clearTimeout(tempThresholdChangeTimeout);
+    tempThresholdChangeTimeout = setTimeout(() => { userChangingTempThreshold = false; }, 5000);
+    
     const value = parseInt(e.target.value);
     const level = getTempLevel(value);
     elements.tempSliderValue.textContent = value + '°C';
@@ -295,6 +313,10 @@ function setupSlider() {
   
   const tempSideSlider = document.getElementById('tempSliderSide');
   tempSideSlider?.addEventListener('input', (e) => {
+    userChangingTempThreshold = true;
+    clearTimeout(tempThresholdChangeTimeout);
+    tempThresholdChangeTimeout = setTimeout(() => { userChangingTempThreshold = false; }, 5000);
+    
     const value = parseInt(e.target.value);
     const level = getTempLevel(value);
     const tempSideVal = document.getElementById('tempSliderValSide');
@@ -360,20 +382,26 @@ function updateUI(data) {
   
   elements.voltVal.textContent = (data.voltage || 0).toFixed(2);
   elements.threshVal.textContent = data.threshold || '--';
-  currentThreshold = data.threshold || 40;
-  elements.thresholdSlider.value = currentThreshold;
-  elements.sliderValue.textContent = currentThreshold + '%';
   
-  const gasLevel = getGasLevel(currentThreshold);
-  updateSliderColors(elements.thresholdSlider, elements.sliderValue, gasLevel);
+  // Only update gas threshold slider if user is not actively changing it
+  if (!userChangingThreshold) {
+    currentThreshold = data.threshold || 40;
+    elements.thresholdSlider.value = currentThreshold;
+    elements.sliderValue.textContent = currentThreshold + '%';
+    const gasLevel = getGasLevel(currentThreshold);
+    updateSliderColors(elements.thresholdSlider, elements.sliderValue, gasLevel);
+  }
   
   elements.tempThreshVal.textContent = data.tempThreshold || '--';
-  currentTempThreshold = data.tempThreshold || 60;
-  elements.tempThresholdSlider.value = currentTempThreshold;
-  elements.tempSliderValue.textContent = currentTempThreshold + '°C';
   
-  const tempLevel = getTempLevel(currentTempThreshold);
-  updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, tempLevel);
+  // Only update temp threshold slider if user is not actively changing it
+  if (!userChangingTempThreshold) {
+    currentTempThreshold = data.tempThreshold || 60;
+    elements.tempThresholdSlider.value = currentTempThreshold;
+    elements.tempSliderValue.textContent = currentTempThreshold + '°C';
+    const tempLevel = getTempLevel(currentTempThreshold);
+    updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, tempLevel);
+  }
   
   sirenEnabled = data.sirenEnabled !== false;
   updateSirenUI();
@@ -655,22 +683,28 @@ function updateSidebarInfo(data) {
   if (lastUpdateSide) lastUpdateSide.textContent = data.timestamp || '--';
   if (heapSide) heapSide.textContent = ((data.heap || 0) / 1024).toFixed(1) + ' KB';
   
-  const sideSlider = document.getElementById('sliderSide');
-  const sideVal = document.getElementById('sliderValSide');
-  const gasThresh = data.threshold || 40;
-  if (sideSlider) sideSlider.value = gasThresh;
-  if (sideVal) {
-    sideVal.textContent = gasThresh + '%';
-    updateSliderColors(sideSlider, sideVal, getGasLevel(gasThresh));
+  // Only update sidebar gas slider if user is not actively changing it
+  if (!userChangingThreshold) {
+    const sideSlider = document.getElementById('sliderSide');
+    const sideVal = document.getElementById('sliderValSide');
+    const gasThresh = data.threshold || 40;
+    if (sideSlider) sideSlider.value = gasThresh;
+    if (sideVal) {
+      sideVal.textContent = gasThresh + '%';
+      updateSliderColors(sideSlider, sideVal, getGasLevel(gasThresh));
+    }
   }
   
-  const tempSideSlider = document.getElementById('tempSliderSide');
-  const tempSideVal = document.getElementById('tempSliderValSide');
-  const tempThresh = data.tempThreshold || 60;
-  if (tempSideSlider) tempSideSlider.value = tempThresh;
-  if (tempSideVal) {
-    tempSideVal.textContent = tempThresh + '°C';
-    updateSliderColors(tempSideSlider, tempSideVal, getTempLevel(tempThresh));
+  // Only update sidebar temp slider if user is not actively changing it
+  if (!userChangingTempThreshold) {
+    const tempSideSlider = document.getElementById('tempSliderSide');
+    const tempSideVal = document.getElementById('tempSliderValSide');
+    const tempThresh = data.tempThreshold || 60;
+    if (tempSideSlider) tempSideSlider.value = tempThresh;
+    if (tempSideVal) {
+      tempSideVal.textContent = tempThresh + '°C';
+      updateSliderColors(tempSideSlider, tempSideVal, getTempLevel(tempThresh));
+    }
   }
 }
 
