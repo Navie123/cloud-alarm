@@ -145,8 +145,14 @@ async function registerUser() {
 
   try {
     const data = await api.register(email, password, name);
-    // Show verification screen - user needs to verify email
-    showVerificationScreen(email);
+    // If token returned, log in directly (auto-verified)
+    if (data.token) {
+      currentUser = data.user;
+      showMainApp();
+      updateUserDisplay();
+    } else {
+      showVerificationScreen(email);
+    }
   } catch (error) {
     console.error('Registration error:', error);
     errorEl.textContent = error.message;
