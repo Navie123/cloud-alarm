@@ -268,13 +268,31 @@ function showLoginScreen() {
 // Update user display
 function updateUserDisplay() {
   const userInfoEl = document.getElementById('userInfo');
-  if (userInfoEl && currentUser) {
+  const greetTextEl = document.getElementById('greetText');
+  
+  if (currentUser) {
     const name = currentUser.displayName || currentUser.email.split('@')[0];
+    const firstName = name.split(' ')[0]; // Get first name only
     const initial = name.charAt(0).toUpperCase();
-    userInfoEl.innerHTML = `
-      <div class="user-avatar">${initial}</div>
-      <div class="user-name">${name}</div>
-    `;
+    
+    // Update sidebar user info
+    if (userInfoEl) {
+      userInfoEl.innerHTML = `
+        <div class="user-avatar">${initial}</div>
+        <div class="user-name">${name}</div>
+      `;
+    }
+    
+    // Update greeting with time-based message and user's name
+    if (greetTextEl) {
+      const hour = new Date().getHours();
+      let greeting = 'Hello';
+      if (hour < 12) greeting = 'Good Morning';
+      else if (hour < 18) greeting = 'Good Afternoon';
+      else greeting = 'Good Evening';
+      
+      greetTextEl.textContent = `${greeting}, ${firstName}!`;
+    }
   }
 }
 
