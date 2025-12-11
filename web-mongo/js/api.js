@@ -137,5 +137,13 @@ const api = {
       method: 'POST',
       body: JSON.stringify({ endpoint })
     });
+  },
+
+  // SMS settings
+  async updatePhone(phoneNumber, smsEnabled) {
+    return this.request('/api/auth/phone', {
+      method: 'PUT',
+      body: JSON.stringify({ phoneNumber, smsEnabled })
+    });
   }
 };

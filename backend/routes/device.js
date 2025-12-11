@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Device = require('../models/Device');
 const AlarmHistory = require('../models/AlarmHistory');
+const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 const { sendPushNotification } = require('../utils/push');
+const { sendAlarmSMS } = require('../utils/sms');
 
 // Get device data
 router.get('/:deviceId', auth, async (req, res) => {
@@ -79,6 +81,20 @@ router.post('/:deviceId/data', async (req, res) => {
         tag: 'fire-alarm',
         requireInteraction: true
       });
+
+      // Send SMS to users with SMS enabled
+      const usersWithSMS = await User.find({ 
+        smsEnabled: true, 
+        phoneNumber: { $exists: true, $ne: '' }
+      });
+      
+      for (const user of usersWithSMS) {
+        await sendAlarmSMS(user.phoneNumber, {
+          trigger,
+          gas: data.gas,
+          temperature: data.temperature
+        });
+      }
     }
 
     // Broadcast to WebSocket clients

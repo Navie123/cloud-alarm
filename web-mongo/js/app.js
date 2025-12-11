@@ -694,9 +694,61 @@ function updateSidebarInfo(data) {
   }
 }
 
+// ============ SMS Settings ============
+async function loadSmsSettings() {
+  try {
+    const data = await api.getMe();
+    if (data.user) {
+      const phoneInput = document.getElementById('phoneNumberInput');
+      const smsCheckbox = document.getElementById('smsEnabledCheckbox');
+      if (phoneInput) phoneInput.value = data.user.phoneNumber || '';
+      if (smsCheckbox) smsCheckbox.checked = data.user.smsEnabled || false;
+      updateSmsStatus(data.user.smsEnabled, data.user.phoneNumber);
+    }
+  } catch (error) {
+    console.error('Failed to load SMS settings:', error);
+  }
+}
+
+function updateSmsStatus(enabled, phone) {
+  const statusEl = document.getElementById('smsStatus');
+  if (!statusEl) return;
+  
+  if (enabled && phone) {
+    statusEl.innerHTML = '<i class="fas fa-check-circle" style="color: #22c55e;"></i> SMS alerts enabled for ' + phone;
+  } else if (phone && !enabled) {
+    statusEl.innerHTML = '<i class="fas fa-pause-circle" style="color: #f59e0b;"></i> SMS alerts disabled';
+  } else {
+    statusEl.innerHTML = '<i class="fas fa-info-circle"></i> Enter your phone number to receive SMS alerts';
+  }
+}
+
+async function saveSmsSettings() {
+  const phoneInput = document.getElementById('phoneNumberInput');
+  const smsCheckbox = document.getElementById('smsEnabledCheckbox');
+  
+  const phoneNumber = phoneInput?.value?.trim() || '';
+  const smsEnabled = smsCheckbox?.checked || false;
+  
+  if (smsEnabled && !phoneNumber) {
+    showToast('Please enter your phone number', 'error');
+    return;
+  }
+  
+  try {
+    const result = await api.updatePhone(phoneNumber, smsEnabled);
+    showToast('SMS settings saved!');
+    updateSmsStatus(result.smsEnabled, result.phoneNumber);
+  } catch (error) {
+    console.error('Save SMS settings error:', error);
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
 // Override showMainApp to initialize app after login
 const originalShowMainApp = showMainApp;
 showMainApp = function() {
   originalShowMainApp();
   initializeApp();
+  loadSmsSettings();
 };

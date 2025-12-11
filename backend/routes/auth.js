@@ -268,9 +268,39 @@ router.get('/me', auth, async (req, res) => {
       id: req.user._id,
       email: req.user.email,
       displayName: req.user.displayName,
-      emailVerified: req.user.emailVerified
+      emailVerified: req.user.emailVerified,
+      phoneNumber: req.user.phoneNumber || '',
+      smsEnabled: req.user.smsEnabled || false
     }
   });
+});
+
+// Update phone number and SMS settings
+router.put('/phone', auth, async (req, res) => {
+  try {
+    const { phoneNumber, smsEnabled } = req.body;
+    
+    // Validate Philippine phone number format
+    if (phoneNumber) {
+      const cleaned = phoneNumber.replace(/\s|-/g, '');
+      if (!/^(\+?63|0)?9\d{9}$/.test(cleaned)) {
+        return res.status(400).json({ error: 'Invalid Philippine phone number. Use format: 09xxxxxxxxx' });
+      }
+    }
+
+    req.user.phoneNumber = phoneNumber || '';
+    req.user.smsEnabled = smsEnabled === true;
+    await req.user.save();
+
+    res.json({ 
+      message: 'Phone settings updated',
+      phoneNumber: req.user.phoneNumber,
+      smsEnabled: req.user.smsEnabled
+    });
+  } catch (error) {
+    console.error('Phone update error:', error);
+    res.status(500).json({ error: 'Failed to update phone settings' });
+  }
 });
 
 module.exports = router;

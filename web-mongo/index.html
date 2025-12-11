@@ -379,6 +379,25 @@
           <i class="fas fa-bell"></i> Enable Push Notifications
         </button>
       </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fas fa-sms"></i> SMS Notifications</div>
+        <p style="color: var(--muted); margin-bottom: 15px;">Receive SMS alerts to your Philippine mobile number when alarm triggers</p>
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="color: var(--muted); font-size: 0.85rem; margin-bottom: 5px; display: block;">Phone Number</label>
+          <input type="tel" id="phoneNumberInput" class="sms-input" placeholder="09xxxxxxxxx" maxlength="13" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-size: 1rem;">
+        </div>
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label class="checkbox-wrapper" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+            <input type="checkbox" id="smsEnabledCheckbox" style="width: 18px; height: 18px; cursor: pointer;">
+            <span style="color: var(--text);">Enable SMS alerts</span>
+          </label>
+        </div>
+        <button class="btn btn-primary" onclick="saveSmsSettings()">
+          <i class="fas fa-save"></i> Save SMS Settings
+        </button>
+        <p id="smsStatus" style="color: var(--muted); font-size: 0.8rem; margin-top: 10px;"></p>
+      </div>
       
       <div class="card">
         <div class="card-title"><i class="fas fa-fire-flame-simple"></i> Gas Threshold</div>

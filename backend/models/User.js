@@ -5,6 +5,8 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String }, // Optional for Google OAuth users
   displayName: { type: String, required: true },
+  phoneNumber: { type: String, trim: true }, // Philippine mobile number for SMS alerts
+  smsEnabled: { type: Boolean, default: false }, // Enable/disable SMS notifications
   provider: { type: String, enum: ['local', 'google'], default: 'local' },
   googleId: { type: String, sparse: true },
   emailVerified: { type: Boolean, default: false },
