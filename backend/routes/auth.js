@@ -38,28 +38,25 @@ router.post('/register', async (req, res) => {
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // Create user (auto-verified for easier signup)
+    // Create user
     const user = new User({
       email,
       password,
       displayName,
       provider: 'local',
-      emailVerified: true  // Auto-verify for now
+      verificationToken,
+      verificationExpires
     });
     await user.save();
 
-    // Generate token and log user in immediately
-    const token = generateToken(user._id);
-    
+    // Send verification email (non-blocking - don't wait for it)
+    sendVerificationEmail(email, verificationToken).catch(err => {
+      console.error('Failed to send verification email:', err.message);
+    });
+
     res.status(201).json({ 
-      message: 'Registration successful!',
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        displayName: user.displayName,
-        emailVerified: user.emailVerified
-      }
+      message: 'Registration successful! Please check your email to verify your account.',
+      email 
     });
   } catch (error) {
     console.error('Registration error:', error);
