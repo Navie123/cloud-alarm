@@ -14,11 +14,9 @@ let ws = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
-// Track if user is actively changing sliders (don't overwrite during this time)
-let userChangingThreshold = false;
-let userChangingTempThreshold = false;
-let thresholdChangeTimeout = null;
-let tempThresholdChangeTimeout = null;
+// Track slider interaction - use mousedown/touchstart to detect active dragging
+let sliderActive = false;
+let tempSliderActive = false;
 
 // DOM Elements
 const elements = {
@@ -253,81 +251,69 @@ function updateSliderColors(slider, valueDisplay, level) {
   valueDisplay.classList.add(level);
 }
 
-// Threshold Slider
+// Threshold Slider - simplified with mousedown/mouseup tracking
 function setupSlider() {
-  elements.thresholdSlider?.addEventListener('input', (e) => {
-    userChangingThreshold = true;
-    clearTimeout(thresholdChangeTimeout);
-    thresholdChangeTimeout = setTimeout(() => { userChangingThreshold = false; }, 5000);
+  // Gas threshold slider
+  const setupGasSlider = (slider, valueEl) => {
+    if (!slider) return;
     
-    const value = parseInt(e.target.value);
-    const level = getGasLevel(value);
-    elements.sliderValue.textContent = value + '%';
-    updateSliderColors(elements.thresholdSlider, elements.sliderValue, level);
+    slider.addEventListener('mousedown', () => { sliderActive = true; });
+    slider.addEventListener('touchstart', () => { sliderActive = true; });
+    slider.addEventListener('mouseup', () => { sliderActive = false; });
+    slider.addEventListener('touchend', () => { sliderActive = false; });
     
-    const sideSlider = document.getElementById('sliderSide');
-    const sideVal = document.getElementById('sliderValSide');
-    if (sideSlider) {
-      sideSlider.value = value;
-      updateSliderColors(sideSlider, sideVal, level);
-    }
-    if (sideVal) sideVal.textContent = value + '%';
-  });
+    slider.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      const level = getGasLevel(value);
+      
+      // Update all gas threshold displays
+      elements.sliderValue.textContent = value + '%';
+      updateSliderColors(elements.thresholdSlider, elements.sliderValue, level);
+      
+      const sideSlider = document.getElementById('sliderSide');
+      const sideVal = document.getElementById('sliderValSide');
+      if (sideSlider && sideSlider !== slider) sideSlider.value = value;
+      if (sideVal) {
+        sideVal.textContent = value + '%';
+        if (sideSlider) updateSliderColors(sideSlider, sideVal, level);
+      }
+      if (elements.thresholdSlider !== slider) elements.thresholdSlider.value = value;
+    });
+  };
   
-  const sideSlider = document.getElementById('sliderSide');
-  sideSlider?.addEventListener('input', (e) => {
-    userChangingThreshold = true;
-    clearTimeout(thresholdChangeTimeout);
-    thresholdChangeTimeout = setTimeout(() => { userChangingThreshold = false; }, 5000);
-    
-    const value = parseInt(e.target.value);
-    const level = getGasLevel(value);
-    const sideVal = document.getElementById('sliderValSide');
-    
-    sideVal.textContent = value + '%';
-    updateSliderColors(sideSlider, sideVal, level);
-    
-    elements.thresholdSlider.value = value;
-    elements.sliderValue.textContent = value + '%';
-    updateSliderColors(elements.thresholdSlider, elements.sliderValue, level);
-  });
+  setupGasSlider(elements.thresholdSlider, elements.sliderValue);
+  setupGasSlider(document.getElementById('sliderSide'), document.getElementById('sliderValSide'));
   
-  elements.tempThresholdSlider?.addEventListener('input', (e) => {
-    userChangingTempThreshold = true;
-    clearTimeout(tempThresholdChangeTimeout);
-    tempThresholdChangeTimeout = setTimeout(() => { userChangingTempThreshold = false; }, 5000);
+  // Temp threshold slider
+  const setupTempSlider = (slider, valueEl) => {
+    if (!slider) return;
     
-    const value = parseInt(e.target.value);
-    const level = getTempLevel(value);
-    elements.tempSliderValue.textContent = value + '°C';
-    updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, level);
+    slider.addEventListener('mousedown', () => { tempSliderActive = true; });
+    slider.addEventListener('touchstart', () => { tempSliderActive = true; });
+    slider.addEventListener('mouseup', () => { tempSliderActive = false; });
+    slider.addEventListener('touchend', () => { tempSliderActive = false; });
     
-    const tempSideSlider = document.getElementById('tempSliderSide');
-    const tempSideVal = document.getElementById('tempSliderValSide');
-    if (tempSideSlider) {
-      tempSideSlider.value = value;
-      updateSliderColors(tempSideSlider, tempSideVal, level);
-    }
-    if (tempSideVal) tempSideVal.textContent = value + '°C';
-  });
+    slider.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      const level = getTempLevel(value);
+      
+      // Update all temp threshold displays
+      elements.tempSliderValue.textContent = value + '°C';
+      updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, level);
+      
+      const tempSideSlider = document.getElementById('tempSliderSide');
+      const tempSideVal = document.getElementById('tempSliderValSide');
+      if (tempSideSlider && tempSideSlider !== slider) tempSideSlider.value = value;
+      if (tempSideVal) {
+        tempSideVal.textContent = value + '°C';
+        if (tempSideSlider) updateSliderColors(tempSideSlider, tempSideVal, level);
+      }
+      if (elements.tempThresholdSlider !== slider) elements.tempThresholdSlider.value = value;
+    });
+  };
   
-  const tempSideSlider = document.getElementById('tempSliderSide');
-  tempSideSlider?.addEventListener('input', (e) => {
-    userChangingTempThreshold = true;
-    clearTimeout(tempThresholdChangeTimeout);
-    tempThresholdChangeTimeout = setTimeout(() => { userChangingTempThreshold = false; }, 5000);
-    
-    const value = parseInt(e.target.value);
-    const level = getTempLevel(value);
-    const tempSideVal = document.getElementById('tempSliderValSide');
-    
-    tempSideVal.textContent = value + '°C';
-    updateSliderColors(tempSideSlider, tempSideVal, level);
-    
-    elements.tempThresholdSlider.value = value;
-    elements.tempSliderValue.textContent = value + '°C';
-    updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, level);
-  });
+  setupTempSlider(elements.tempThresholdSlider, elements.tempSliderValue);
+  setupTempSlider(document.getElementById('tempSliderSide'), document.getElementById('tempSliderValSide'));
 }
 
 // Date/Time Display
@@ -383,38 +369,24 @@ function updateUI(data) {
   elements.voltVal.textContent = (data.voltage || 0).toFixed(2);
   elements.threshVal.textContent = data.threshold || '--';
   
-  // Only update gas threshold slider if user is not actively changing it
-  // OR if ESP32 now reports the value we saved (confirmation)
-  const incomingThreshold = data.threshold || 40;
-  if (!userChangingThreshold) {
-    currentThreshold = incomingThreshold;
+  // Only update gas threshold slider if user is NOT actively dragging it
+  if (!sliderActive) {
+    currentThreshold = data.threshold || 40;
     elements.thresholdSlider.value = currentThreshold;
     elements.sliderValue.textContent = currentThreshold + '%';
     const gasLevel = getGasLevel(currentThreshold);
     updateSliderColors(elements.thresholdSlider, elements.sliderValue, gasLevel);
-  } else if (incomingThreshold === parseInt(elements.thresholdSlider.value)) {
-    // ESP32 confirmed our value, clear the flag
-    userChangingThreshold = false;
-    clearTimeout(thresholdChangeTimeout);
-    currentThreshold = incomingThreshold;
   }
   
   elements.tempThreshVal.textContent = data.tempThreshold || '--';
   
-  // Only update temp threshold slider if user is not actively changing it
-  // OR if ESP32 now reports the value we saved (confirmation)
-  const incomingTempThreshold = data.tempThreshold || 60;
-  if (!userChangingTempThreshold) {
-    currentTempThreshold = incomingTempThreshold;
+  // Only update temp threshold slider if user is NOT actively dragging it
+  if (!tempSliderActive) {
+    currentTempThreshold = data.tempThreshold || 60;
     elements.tempThresholdSlider.value = currentTempThreshold;
     elements.tempSliderValue.textContent = currentTempThreshold + '°C';
     const tempLevel = getTempLevel(currentTempThreshold);
     updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, tempLevel);
-  } else if (incomingTempThreshold === parseInt(elements.tempThresholdSlider.value)) {
-    // ESP32 confirmed our value, clear the flag
-    userChangingTempThreshold = false;
-    clearTimeout(tempThresholdChangeTimeout);
-    currentTempThreshold = incomingTempThreshold;
   }
   
   sirenEnabled = data.sirenEnabled !== false;
@@ -526,36 +498,24 @@ function renderHistory(history) {
 async function saveThreshold() {
   const value = parseInt(elements.thresholdSlider.value);
   try {
-    // Keep flag active longer after saving (10 seconds for ESP32 to apply and report back)
-    userChangingThreshold = true;
-    clearTimeout(thresholdChangeTimeout);
-    thresholdChangeTimeout = setTimeout(() => { userChangingThreshold = false; }, 10000);
-    
     await api.sendCommand(CONFIG.DEVICE_ID, 'threshold', value);
     currentThreshold = value;
     showToast('Gas threshold saved: ' + value + '%');
   } catch (error) {
     console.error('Save threshold error:', error);
     showToast('Error: ' + error.message, 'error');
-    userChangingThreshold = false;
   }
 }
 
 async function saveTempThreshold() {
   const value = parseInt(elements.tempThresholdSlider.value);
   try {
-    // Keep flag active longer after saving (10 seconds for ESP32 to apply and report back)
-    userChangingTempThreshold = true;
-    clearTimeout(tempThresholdChangeTimeout);
-    tempThresholdChangeTimeout = setTimeout(() => { userChangingTempThreshold = false; }, 10000);
-    
     await api.sendCommand(CONFIG.DEVICE_ID, 'tempThreshold', value);
     currentTempThreshold = value;
     showToast('Temp threshold saved: ' + value + '°C');
   } catch (error) {
     console.error('Save temp threshold error:', error);
     showToast('Error: ' + error.message, 'error');
-    userChangingTempThreshold = false;
   }
 }
 
@@ -709,8 +669,8 @@ function updateSidebarInfo(data) {
   if (lastUpdateSide) lastUpdateSide.textContent = data.timestamp || '--';
   if (heapSide) heapSide.textContent = ((data.heap || 0) / 1024).toFixed(1) + ' KB';
   
-  // Only update sidebar gas slider if user is not actively changing it
-  if (!userChangingThreshold) {
+  // Only update sidebar gas slider if user is NOT actively dragging it
+  if (!sliderActive) {
     const sideSlider = document.getElementById('sliderSide');
     const sideVal = document.getElementById('sliderValSide');
     const gasThresh = data.threshold || 40;
@@ -721,8 +681,8 @@ function updateSidebarInfo(data) {
     }
   }
   
-  // Only update sidebar temp slider if user is not actively changing it
-  if (!userChangingTempThreshold) {
+  // Only update sidebar temp slider if user is NOT actively dragging it
+  if (!tempSliderActive) {
     const tempSideSlider = document.getElementById('tempSliderSide');
     const tempSideVal = document.getElementById('tempSliderValSide');
     const tempThresh = data.tempThreshold || 60;

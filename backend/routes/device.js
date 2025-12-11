@@ -34,10 +34,20 @@ router.post('/:deviceId/data', async (req, res) => {
     const wasAlarm = device.current?.alarm;
     const isAlarm = data.alarm;
 
-    // Update current data
+    // Use stored thresholds from DB if they exist (user-set values take priority)
+    // This prevents ESP32 from overwriting user's threshold settings
+    const storedThreshold = device.current?.threshold;
+    const storedTempThreshold = device.current?.tempThreshold;
+    const storedSirenEnabled = device.current?.sirenEnabled;
+
+    // Update current data but preserve user-set thresholds
     device.current = {
       ...device.current,
       ...data,
+      // Keep the stored threshold if it exists and differs from default
+      threshold: storedThreshold !== undefined ? storedThreshold : (data.threshold || 40),
+      tempThreshold: storedTempThreshold !== undefined ? storedTempThreshold : (data.tempThreshold || 60),
+      sirenEnabled: storedSirenEnabled !== undefined ? storedSirenEnabled : (data.sirenEnabled !== false),
       timestamp: new Date().toLocaleString()
     };
     device.lastSeen = new Date();
@@ -119,9 +129,21 @@ router.post('/:deviceId/command', auth, async (req, res) => {
       device = new Device({ deviceId });
     }
 
-    // Set command
+    // Set command for ESP32 to fetch
     if (!device.commands) device.commands = {};
     device.commands[command] = value;
+    
+    // Also update the stored value in device.current immediately
+    // This ensures the UI shows the new value right away
+    if (!device.current) device.current = {};
+    if (command === 'threshold') {
+      device.current.threshold = value;
+    } else if (command === 'tempThreshold') {
+      device.current.tempThreshold = value;
+    } else if (command === 'sirenEnabled') {
+      device.current.sirenEnabled = value;
+    }
+    
     await device.save();
 
     // Broadcast command to WebSocket (for ESP32 if connected via WS)
