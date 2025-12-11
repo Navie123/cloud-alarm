@@ -1,5 +1,9 @@
 // API Helper Functions
 const api = {
+  get baseUrl() {
+    return CONFIG.API_URL;
+  },
+  
   get token() {
     return localStorage.getItem('authToken');
   },

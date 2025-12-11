@@ -387,14 +387,60 @@
           <label style="color: var(--muted); font-size: 0.85rem; margin-bottom: 5px; display: block;">Phone Number</label>
           <input type="tel" id="phoneNumberInput" class="sms-input" placeholder="09xxxxxxxxx" maxlength="13" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-size: 1rem;">
         </div>
-        <div class="form-group" style="margin-bottom: 15px; display: flex; align-items: center; gap: 12px;">
-          <input type="checkbox" id="smsEnabledCheckbox" style="width: 20px; height: 20px; cursor: pointer; accent-color: #ff5722;">
-          <label for="smsEnabledCheckbox" style="color: var(--text); cursor: pointer; font-size: 1rem;">Enable SMS alerts</label>
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; display: block;">ENABLE SMS ALERTS</label>
+          <label class="toggle-switch" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+            <input type="checkbox" id="smsEnabledCheckbox" style="width: 22px; height: 22px; cursor: pointer; accent-color: #ff5722; border: 2px solid #ff5722; border-radius: 4px;">
+            <span style="color: var(--text); font-size: 0.95rem;">Enable SMS alerts when alarm triggers</span>
+          </label>
         </div>
-        <button class="btn btn-primary" onclick="saveSmsSettings()">
-          <i class="fas fa-save"></i> Save SMS Settings
-        </button>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-primary" onclick="saveSmsSettings()">
+            <i class="fas fa-save"></i> Save SMS Settings
+          </button>
+          <button class="btn btn-secondary" onclick="testSms()" style="background: #666;">
+            <i class="fas fa-paper-plane"></i> Test SMS
+          </button>
+        </div>
         <p id="smsStatus" style="color: var(--muted); font-size: 0.8rem; margin-top: 10px;"></p>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><i class="fas fa-volume-high"></i> Alarm Sound</div>
+        <p style="color: var(--muted); margin-bottom: 15px;">Choose the alarm sound that plays when an alert triggers</p>
+        <div class="sound-options" style="display: flex; flex-direction: column; gap: 10px;">
+          <label class="sound-option" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; border: 2px solid var(--border); cursor: pointer; transition: all 0.2s;">
+            <input type="radio" name="alarmSound" value="911.mp3" checked style="width: 18px; height: 18px; accent-color: #ff5722;">
+            <span style="flex: 1; color: var(--text);">🚨 Classic Siren</span>
+            <button type="button" class="btn-preview" onclick="previewSound('911.mp3')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #444; color: white; cursor: pointer; font-size: 0.8rem;">
+              <i class="fas fa-play"></i> Preview
+            </button>
+          </label>
+          <label class="sound-option" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; border: 2px solid var(--border); cursor: pointer; transition: all 0.2s;">
+            <input type="radio" name="alarmSound" value="alarm-buzzer.mp3" style="width: 18px; height: 18px; accent-color: #ff5722;">
+            <span style="flex: 1; color: var(--text);">🔔 Buzzer Alert</span>
+            <button type="button" class="btn-preview" onclick="previewSound('alarm-buzzer.mp3')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #444; color: white; cursor: pointer; font-size: 0.8rem;">
+              <i class="fas fa-play"></i> Preview
+            </button>
+          </label>
+          <label class="sound-option" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; border: 2px solid var(--border); cursor: pointer; transition: all 0.2s;">
+            <input type="radio" name="alarmSound" value="alarm-bell.mp3" style="width: 18px; height: 18px; accent-color: #ff5722;">
+            <span style="flex: 1; color: var(--text);">🔥 Fire Bell</span>
+            <button type="button" class="btn-preview" onclick="previewSound('alarm-bell.mp3')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #444; color: white; cursor: pointer; font-size: 0.8rem;">
+              <i class="fas fa-play"></i> Preview
+            </button>
+          </label>
+          <label class="sound-option" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; border: 2px solid var(--border); cursor: pointer; transition: all 0.2s;">
+            <input type="radio" name="alarmSound" value="alarm-urgent.mp3" style="width: 18px; height: 18px; accent-color: #ff5722;">
+            <span style="flex: 1; color: var(--text);">⚠️ Urgent Beep</span>
+            <button type="button" class="btn-preview" onclick="previewSound('alarm-urgent.mp3')" style="padding: 6px 12px; border-radius: 6px; border: none; background: #444; color: white; cursor: pointer; font-size: 0.8rem;">
+              <i class="fas fa-play"></i> Preview
+            </button>
+          </label>
+        </div>
+        <button class="btn btn-primary" onclick="saveAlarmSound()" style="margin-top: 15px;">
+          <i class="fas fa-save"></i> Save Sound
+        </button>
       </div>
       
       <div class="card">

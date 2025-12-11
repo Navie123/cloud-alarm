@@ -45,7 +45,8 @@ function initGoogleSignIn() {
   script.onload = () => {
     google.accounts.id.initialize({
       client_id: CONFIG.GOOGLE_CLIENT_ID,
-      callback: handleGoogleCallback
+      callback: handleGoogleCallback,
+      use_fedcm_for_prompt: true  // Enable FedCM for future compatibility
     });
   };
   document.head.appendChild(script);

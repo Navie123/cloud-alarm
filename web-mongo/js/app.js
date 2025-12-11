@@ -10,6 +10,8 @@ let audioEnabled = false;
 let alarmAudio = null;
 let isPlaying = false;
 let historyData = [];
+let selectedAlarmSound = localStorage.getItem('alarmSound') || '911.mp3';
+let previewAudio = null;
 let ws = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -143,7 +145,7 @@ async function loadInitialData() {
 
 // ============ Audio Functions ============
 function enableAudio() {
-  alarmAudio = new Audio('911.mp3');
+  alarmAudio = new Audio(selectedAlarmSound);
   alarmAudio.loop = false;
   alarmAudio.volume = 1.0;
   alarmAudio.preload = 'auto';
@@ -158,13 +160,13 @@ function enableAudio() {
   
   audioEnabled = true;
   document.getElementById('audioPrompt').classList.add('hidden');
-  console.log('Audio enabled');
+  console.log('Audio enabled with sound:', selectedAlarmSound);
 }
 
 function playAlarmSound() {
   if (!sirenEnabled || !audioEnabled || isPlaying) return;
-  if (!alarmAudio) {
-    alarmAudio = new Audio('911.mp3');
+  if (!alarmAudio || alarmAudio.src !== location.origin + '/' + selectedAlarmSound) {
+    alarmAudio = new Audio(selectedAlarmSound);
     alarmAudio.loop = false;
     alarmAudio.volume = 1.0;
     alarmAudio.onended = function() {
@@ -187,6 +189,50 @@ function stopAlarmSound() {
   alarmAudio.pause();
   alarmAudio.currentTime = 0;
   isPlaying = false;
+}
+
+// Sound picker functions
+function previewSound(soundFile) {
+  // Stop any existing preview
+  if (previewAudio) {
+    previewAudio.pause();
+    previewAudio = null;
+  }
+  
+  previewAudio = new Audio(soundFile);
+  previewAudio.volume = 1.0;
+  previewAudio.play().catch(e => console.log('Preview error:', e));
+  
+  // Auto-stop after 3 seconds
+  setTimeout(() => {
+    if (previewAudio) {
+      previewAudio.pause();
+      previewAudio = null;
+    }
+  }, 3000);
+}
+
+function saveAlarmSound() {
+  const selected = document.querySelector('input[name="alarmSound"]:checked');
+  if (selected) {
+    selectedAlarmSound = selected.value;
+    localStorage.setItem('alarmSound', selectedAlarmSound);
+    
+    // Update the current alarm audio if it exists
+    if (alarmAudio) {
+      alarmAudio.src = selectedAlarmSound;
+      alarmAudio.load();
+    }
+    
+    showToast('Alarm sound saved!');
+  }
+}
+
+function loadAlarmSoundSetting() {
+  const saved = localStorage.getItem('alarmSound') || '911.mp3';
+  selectedAlarmSound = saved;
+  const radio = document.querySelector(`input[name="alarmSound"][value="${saved}"]`);
+  if (radio) radio.checked = true;
 }
 
 // ============ Sidebar Functions ============
@@ -745,10 +791,44 @@ async function saveSmsSettings() {
   }
 }
 
+async function testSms() {
+  const phoneInput = document.getElementById('phoneNumberInput');
+  const phoneNumber = phoneInput?.value?.trim() || '';
+  
+  if (!phoneNumber) {
+    showToast('Please enter and save your phone number first', 'error');
+    return;
+  }
+  
+  showToast('Sending test SMS...');
+  
+  try {
+    const response = await fetch(`${api.baseUrl}/api/auth/test-sms`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${api.token}`
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      showToast('Test SMS sent! Check your phone.');
+    } else {
+      showToast('SMS failed: ' + result.error, 'error');
+    }
+  } catch (error) {
+    console.error('Test SMS error:', error);
+    showToast('Error sending test SMS', 'error');
+  }
+}
+
 // Override showMainApp to initialize app after login
 const originalShowMainApp = showMainApp;
 showMainApp = function() {
   originalShowMainApp();
   initializeApp();
   loadSmsSettings();
+  loadAlarmSoundSetting();
 };

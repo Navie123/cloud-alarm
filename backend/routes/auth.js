@@ -5,6 +5,7 @@ const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const { auth, generateToken } = require('../middleware/auth');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/email');
+const { sendSMS } = require('../utils/sms');
 
 // Initialize Google OAuth client
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -38,29 +39,46 @@ router.post('/register', async (req, res) => {
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // Create user - auto-verified since email service is unreliable on free tier
+    // Create user with verification token
     const user = new User({
       email,
       password,
       displayName,
       provider: 'local',
-      emailVerified: true  // Auto-verify for now
+      emailVerified: false,
+      verificationToken,
+      verificationExpires
     });
     await user.save();
 
-    // Generate token and log user in immediately
-    const token = generateToken(user._id);
-
-    res.status(201).json({ 
-      message: 'Registration successful!',
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        displayName: user.displayName,
-        emailVerified: user.emailVerified
-      }
-    });
+    // Try to send verification email
+    try {
+      await sendVerificationEmail(email, verificationToken);
+      res.status(201).json({ 
+        message: 'Registration successful! Please check your email to verify your account.',
+        needsVerification: true,
+        email: user.email
+      });
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      // Auto-verify if email fails (fallback)
+      user.emailVerified = true;
+      user.verificationToken = undefined;
+      user.verificationExpires = undefined;
+      await user.save();
+      
+      const token = generateToken(user._id);
+      res.status(201).json({ 
+        message: 'Registration successful!',
+        token,
+        user: {
+          id: user._id,
+          email: user.email,
+          displayName: user.displayName,
+          emailVerified: user.emailVerified
+        }
+      });
+    }
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ error: 'Registration failed' });
@@ -300,6 +318,27 @@ router.put('/phone', auth, async (req, res) => {
   } catch (error) {
     console.error('Phone update error:', error);
     res.status(500).json({ error: 'Failed to update phone settings' });
+  }
+});
+
+// Test SMS endpoint
+router.post('/test-sms', auth, async (req, res) => {
+  try {
+    const phoneNumber = req.user.phoneNumber;
+    if (!phoneNumber) {
+      return res.status(400).json({ error: 'No phone number saved. Please save your phone number first.' });
+    }
+    
+    const result = await sendSMS(phoneNumber, '🔥 Test SMS from Fire Alarm System. If you received this, SMS is working!');
+    
+    if (result.success) {
+      res.json({ message: 'Test SMS sent!', data: result.data });
+    } else {
+      res.status(500).json({ error: 'SMS failed: ' + (result.error?.message || JSON.stringify(result.error)) });
+    }
+  } catch (error) {
+    console.error('Test SMS error:', error);
+    res.status(500).json({ error: 'Failed to send test SMS' });
   }
 });
 
