@@ -1,33 +1,17 @@
-const nodemailer = require('nodemailer');
+// Email Utility using Resend (works with Render free tier)
+const { Resend } = require('resend');
 
-// Create transporter with better error handling
-let transporter;
-try {
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-  console.log('[Email] Transporter configured with:', process.env.EMAIL_USER);
-} catch (err) {
-  console.error('[Email] Failed to create transporter:', err);
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendVerificationEmail = async (email, token) => {
-  if (!transporter) {
-    throw new Error('Email transporter not configured');
-  }
-  
   const verifyUrl = `${process.env.FRONTEND_URL}/verify.html?token=${token}`;
   
   console.log('[Email] Sending verification email to:', email);
   console.log('[Email] Verify URL:', verifyUrl);
   
   try {
-    const result = await transporter.sendMail({
-      from: `"Cloud Fire Alarm" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: 'Cloud Fire Alarm <onboarding@resend.dev>',
       to: email,
       subject: 'Verify Your Email - Cloud Fire Alarm',
       html: `
@@ -49,8 +33,14 @@ const sendVerificationEmail = async (email, token) => {
         </div>
       `
     });
-    console.log('[Email] Verification email sent successfully to:', email);
-    return result;
+
+    if (error) {
+      console.error('[Email] Resend error:', error);
+      throw new Error(error.message);
+    }
+
+    console.log('[Email] Verification email sent successfully to:', email, 'ID:', data?.id);
+    return data;
   } catch (error) {
     console.error('[Email] Failed to send verification email:', error.message);
     throw error;
@@ -58,18 +48,14 @@ const sendVerificationEmail = async (email, token) => {
 };
 
 const sendPasswordResetEmail = async (email, token) => {
-  if (!transporter) {
-    throw new Error('Email transporter not configured');
-  }
-  
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${token}`;
   
   console.log('[Email] Sending password reset email to:', email);
   console.log('[Email] Reset URL:', resetUrl);
   
   try {
-    const result = await transporter.sendMail({
-      from: `"Cloud Fire Alarm" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: 'Cloud Fire Alarm <onboarding@resend.dev>',
       to: email,
       subject: 'Reset Your Password - Cloud Fire Alarm',
       html: `
@@ -91,8 +77,14 @@ const sendPasswordResetEmail = async (email, token) => {
         </div>
       `
     });
-    console.log('[Email] Password reset email sent successfully to:', email);
-    return result;
+
+    if (error) {
+      console.error('[Email] Resend error:', error);
+      throw new Error(error.message);
+    }
+
+    console.log('[Email] Password reset email sent successfully to:', email, 'ID:', data?.id);
+    return data;
   } catch (error) {
     console.error('[Email] Failed to send password reset email:', error.message);
     throw error;
