@@ -32,6 +32,14 @@ router.post('/register', async (req, res) => {
     // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      // If user exists but not verified, tell them to verify or resend
+      if (!existingUser.emailVerified) {
+        return res.status(400).json({ 
+          error: 'Email already registered but not verified. Please check your email or request a new verification link.',
+          needsVerification: true,
+          email: existingUser.email
+        });
+      }
       return res.status(400).json({ error: 'Email already registered' });
     }
 
@@ -51,32 +59,21 @@ router.post('/register', async (req, res) => {
     });
     await user.save();
 
-    // Try to send verification email
+    // Send verification email (required)
     try {
       await sendVerificationEmail(email, verificationToken);
       res.status(201).json({ 
-        message: 'Registration successful! Please check your email to verify your account.',
+        message: 'Registration successful! Please check your email to verify your account. You must verify your email before you can log in.',
         needsVerification: true,
         email: user.email
       });
     } catch (emailError) {
       console.error('Failed to send verification email:', emailError);
-      // Auto-verify if email fails (fallback)
-      user.emailVerified = true;
-      user.verificationToken = undefined;
-      user.verificationExpires = undefined;
-      await user.save();
-      
-      const token = generateToken(user._id);
-      res.status(201).json({ 
-        message: 'Registration successful!',
-        token,
-        user: {
-          id: user._id,
-          email: user.email,
-          displayName: user.displayName,
-          emailVerified: user.emailVerified
-        }
+      // Delete user if email fails - they must try again
+      await User.deleteOne({ _id: user._id });
+      res.status(500).json({ 
+        error: 'Failed to send verification email. Please try registering again.',
+        details: 'Email service is temporarily unavailable'
       });
     }
   } catch (error) {
@@ -192,6 +189,15 @@ router.post('/google', async (req, res) => {
     let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
     if (user) {
+      // Check if user exists but hasn't verified email (local account)
+      if (!user.emailVerified && user.provider === 'local') {
+        return res.status(403).json({ 
+          error: 'Please verify your email first before using Google sign-in',
+          needsVerification: true,
+          email: user.email
+        });
+      }
+      
       // Update Google ID if user registered with email first
       if (!user.googleId) {
         user.googleId = googleId;
@@ -200,7 +206,7 @@ router.post('/google', async (req, res) => {
         await user.save();
       }
     } else {
-      // Create new user
+      // Create new user with Google - auto-verified since Google verified the email
       user = new User({
         email,
         displayName: name,

@@ -127,21 +127,48 @@ void connectWiFi() {
 }
 
 void readSensors() {
-  // Read MQ2 gas sensor
+  // Read MQ2 gas sensor - simple and fast
   int gasRaw = analogRead(MQ2_PIN);
   gasPercent = map(gasRaw, 0, 4095, 0, 100);
   gasPercent = constrain(gasPercent, 0, 100);
   
-  // Read HDC1080
-  temperature = hdc1080.readTemperature();
-  humidity = hdc1080.readHumidity();
+  // Read HDC1080 with error checking
+  // 125°C and 100% humidity indicate I2C communication errors (0xFFFF)
+  float newTemp = hdc1080.readTemperature();
+  float newHum = hdc1080.readHumidity();
+  
+  // Validate readings - HDC1080 returns 125°C on I2C error
+  bool validReading = true;
+  if (newTemp >= 124.0 || newTemp < -40.0) {
+    Serial.println("WARNING: Invalid temperature reading (I2C error), keeping previous value");
+    validReading = false;
+  }
+  if (newHum > 100.0 || newHum < 0.0) {
+    Serial.println("WARNING: Invalid humidity reading (I2C error), keeping previous value");
+    validReading = false;
+  }
+  
+  // Only update if readings are valid
+  if (validReading) {
+    temperature = newTemp;
+    humidity = newHum;
+  } else {
+    // Try reinitializing the sensor on error
+    static unsigned long lastReinit = 0;
+    if (millis() - lastReinit > 5000) {
+      Serial.println("Reinitializing HDC1080...");
+      hdc1080.begin(0x40);
+      lastReinit = millis();
+    }
+  }
   
   // Read voltage (ESP32 internal)
   voltage = analogRead(35) * (3.3 / 4095.0) * 2; // Assuming voltage divider
   
   // Debug output
-  Serial.printf("Gas: %.1f%%, Temp: %.1f°C, Hum: %.1f%%, V: %.2fV\n",
-                gasPercent, temperature, humidity, voltage);
+  Serial.printf("Gas: %.1f%%, Temp: %.1f°C, Hum: %.1f%%, V: %.2fV%s\n",
+                gasPercent, temperature, humidity, voltage,
+                validReading ? "" : " [CACHED]");
 }
 
 void updateAlarmState() {

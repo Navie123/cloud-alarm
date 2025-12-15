@@ -1,4 +1,4 @@
-// API Helper Functions
+// API Helper Functions - Household Auth System
 const api = {
   get baseUrl() {
     return CONFIG.API_URL;
@@ -8,12 +8,25 @@ const api = {
     return localStorage.getItem('authToken');
   },
 
-  setToken(token) {
-    this.token = token;
+  get role() {
+    return localStorage.getItem('userRole') || 'viewer';
+  },
+
+  get isAdmin() {
+    return this.role === 'admin';
+  },
+
+  setAuth(token, role, deviceId, householdName) {
     if (token) {
       localStorage.setItem('authToken', token);
+      localStorage.setItem('userRole', role || 'viewer');
+      localStorage.setItem('deviceId', deviceId || '');
+      localStorage.setItem('householdName', householdName || 'My Home');
     } else {
       localStorage.removeItem('authToken');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('deviceId');
+      localStorage.removeItem('householdName');
     }
   },
 
@@ -36,70 +49,84 @@ const api = {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'Request failed');
+      throw new Error(data.error || data.message || 'Request failed');
     }
 
     return data;
   },
 
-  // Auth endpoints
-  async register(email, password, displayName) {
-    const data = await this.request('/api/auth/register', {
+  // Household Auth endpoints
+  async checkSetup(deviceId) {
+    return this.request(`/api/household/check/${deviceId}`);
+  },
+
+  async setup(deviceId, householdName, accessCode, adminPin) {
+    const data = await this.request('/api/household/setup', {
       method: 'POST',
-      body: JSON.stringify({ email, password, displayName })
+      body: JSON.stringify({ deviceId, householdName, accessCode, adminPin })
     });
-    // If token returned, save it (auto-login)
-    if (data.token) {
-      this.setToken(data.token);
-    }
+    this.setAuth(data.token, data.role, deviceId, data.householdName);
     return data;
   },
 
-  async login(email, password) {
-    const data = await this.request('/api/auth/login', {
+  async login(accessCode, adminPin = null) {
+    const data = await this.request('/api/household/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ accessCode, adminPin })
     });
-    this.setToken(data.token);
+    this.setAuth(data.token, data.role, data.deviceId, data.householdName);
     return data;
   },
 
-  async googleLogin(credential) {
-    const data = await this.request('/api/auth/google', {
+  async upgradeToAdmin(adminPin) {
+    const data = await this.request('/api/household/upgrade', {
       method: 'POST',
-      body: JSON.stringify({ credential })
+      body: JSON.stringify({ adminPin })
     });
-    this.setToken(data.token);
+    localStorage.setItem('userRole', 'admin');
     return data;
-  },
-
-  async resendVerification(email) {
-    return this.request('/api/auth/resend-verification', {
-      method: 'POST',
-      body: JSON.stringify({ email })
-    });
-  },
-
-  async forgotPassword(email) {
-    return this.request('/api/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ email })
-    });
-  },
-
-  async resetPassword(token, password) {
-    return this.request('/api/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({ token, password })
-    });
   },
 
   async getMe() {
-    return this.request('/api/auth/me');
+    return this.request('/api/household/me');
   },
 
-  logout() {
-    this.setToken(null);
+  async logout() {
+    try {
+      await this.request('/api/household/logout', { method: 'POST' });
+    } catch (e) {
+      // Ignore logout errors
+    }
+    this.setAuth(null);
+  },
+
+  // Admin-only settings
+  async changeAccessCode(newAccessCode) {
+    return this.request('/api/household/access-code', {
+      method: 'PUT',
+      body: JSON.stringify({ newAccessCode })
+    });
+  },
+
+  async changeAdminPin(currentPin, newPin) {
+    return this.request('/api/household/admin-pin', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPin, newPin })
+    });
+  },
+
+  async updateHouseholdName(name) {
+    return this.request('/api/household/name', {
+      method: 'PUT',
+      body: JSON.stringify({ name })
+    });
+  },
+
+  async updateSmsSettings(phoneNumber, enabled) {
+    return this.request('/api/household/sms', {
+      method: 'PUT',
+      body: JSON.stringify({ phoneNumber, enabled })
+    });
   },
 
   // Device endpoints
@@ -111,6 +138,12 @@ const api = {
     return this.request(`/api/device/${deviceId}/command`, {
       method: 'POST',
       body: JSON.stringify({ command, value })
+    });
+  },
+
+  async silenceAlarm(deviceId) {
+    return this.request(`/api/device/${deviceId}/silence`, {
+      method: 'POST'
     });
   },
 
@@ -140,14 +173,6 @@ const api = {
     return this.request('/api/push/unsubscribe', {
       method: 'POST',
       body: JSON.stringify({ endpoint })
-    });
-  },
-
-  // SMS settings
-  async updatePhone(phoneNumber, smsEnabled) {
-    return this.request('/api/auth/phone', {
-      method: 'PUT',
-      body: JSON.stringify({ phoneNumber, smsEnabled })
     });
   }
 };

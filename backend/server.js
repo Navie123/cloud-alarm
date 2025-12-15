@@ -8,6 +8,7 @@ const expressWs = require('express-ws');
 const authRoutes = require('./routes/auth');
 const deviceRoutes = require('./routes/device');
 const pushRoutes = require('./routes/push');
+const { router: householdRoutes } = require('./routes/household');
 const { configurePush } = require('./utils/push');
 
 const app = express();
@@ -127,6 +128,7 @@ setInterval(() => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/household', householdRoutes);
 app.use('/api/device', deviceRoutes);
 app.use('/api/push', pushRoutes);
 

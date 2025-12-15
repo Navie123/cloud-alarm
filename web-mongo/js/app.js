@@ -584,7 +584,7 @@ async function silenceAlarm() {
   
   stopAlarmSound();
   try {
-    await api.sendCommand(CONFIG.DEVICE_ID, 'silence', true);
+    await api.silenceAlarm(CONFIG.DEVICE_ID);
     showToast('Alarm silenced', 'success');
   } catch (error) {
     console.error('Silence alarm error:', error);
@@ -764,87 +764,30 @@ function updateSidebarInfo(data) {
   }
 }
 
-// ============ SMS Settings ============
-async function loadSmsSettings() {
-  try {
-    const data = await api.getMe();
-    if (data.user) {
-      const phoneInput = document.getElementById('phoneNumberInput');
-      const smsCheckbox = document.getElementById('smsEnabledCheckbox');
-      if (phoneInput) phoneInput.value = data.user.phoneNumber || '';
-      if (smsCheckbox) smsCheckbox.checked = data.user.smsEnabled || false;
-      updateSmsStatus(data.user.smsEnabled, data.user.phoneNumber);
-    }
-  } catch (error) {
-    console.error('Failed to load SMS settings:', error);
-  }
-}
-
-function updateSmsStatus(enabled, phone) {
-  const statusEl = document.getElementById('smsStatus');
-  if (!statusEl) return;
-  
-  if (enabled && phone) {
-    statusEl.innerHTML = '<i class="fas fa-check-circle" style="color: #22c55e;"></i> SMS alerts enabled for ' + phone;
-  } else if (phone && !enabled) {
-    statusEl.innerHTML = '<i class="fas fa-pause-circle" style="color: #f59e0b;"></i> SMS alerts disabled';
-  } else {
-    statusEl.innerHTML = '<i class="fas fa-info-circle"></i> Enter your phone number to receive SMS alerts';
-  }
-}
-
+// ============ SMS Settings (Admin Only) ============
 async function saveSmsSettings() {
+  if (!isAdmin) {
+    showToast('Admin access required', 'error');
+    return;
+  }
+  
   const phoneInput = document.getElementById('phoneNumberInput');
   const smsCheckbox = document.getElementById('smsEnabledCheckbox');
   
   const phoneNumber = phoneInput?.value?.trim() || '';
-  const smsEnabled = smsCheckbox?.checked || false;
+  const enabled = smsCheckbox?.checked || false;
   
-  if (smsEnabled && !phoneNumber) {
+  if (enabled && !phoneNumber) {
     showToast('Please enter your phone number', 'error');
     return;
   }
   
   try {
-    const result = await api.updatePhone(phoneNumber, smsEnabled);
+    await api.updateSmsSettings(phoneNumber, enabled);
     showToast('SMS settings saved!');
-    updateSmsStatus(result.smsEnabled, result.phoneNumber);
   } catch (error) {
     console.error('Save SMS settings error:', error);
     showToast('Error: ' + error.message, 'error');
-  }
-}
-
-async function testSms() {
-  const phoneInput = document.getElementById('phoneNumberInput');
-  const phoneNumber = phoneInput?.value?.trim() || '';
-  
-  if (!phoneNumber) {
-    showToast('Please enter and save your phone number first', 'error');
-    return;
-  }
-  
-  showToast('Sending test SMS...');
-  
-  try {
-    const response = await fetch(`${api.baseUrl}/api/auth/test-sms`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${api.token}`
-      }
-    });
-    
-    const result = await response.json();
-    
-    if (response.ok) {
-      showToast('Test SMS sent! Check your phone.');
-    } else {
-      showToast('SMS failed: ' + result.error, 'error');
-    }
-  } catch (error) {
-    console.error('Test SMS error:', error);
-    showToast('Error sending test SMS', 'error');
   }
 }
 
@@ -853,6 +796,53 @@ const originalShowMainApp = showMainApp;
 showMainApp = function() {
   originalShowMainApp();
   initializeApp();
-  loadSmsSettings();
   loadAlarmSoundSetting();
 };
+
+// ============ Security Settings (Admin Only) ============
+async function changeAccessCode() {
+  if (!isAdmin) {
+    showToast('Admin access required', 'error');
+    return;
+  }
+  
+  const newCode = prompt('Enter new 6-digit access code for family members:');
+  if (!newCode) return;
+  
+  if (!/^\d{6}$/.test(newCode)) {
+    showToast('Access code must be exactly 6 digits', 'error');
+    return;
+  }
+  
+  try {
+    await api.changeAccessCode(newCode);
+    showToast('Access code updated! Share the new code with family members.');
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+async function changeAdminPin() {
+  if (!isAdmin) {
+    showToast('Admin access required', 'error');
+    return;
+  }
+  
+  const currentPin = prompt('Enter current admin PIN:');
+  if (!currentPin) return;
+  
+  const newPin = prompt('Enter new 4-digit admin PIN:');
+  if (!newPin) return;
+  
+  if (!/^\d{4}$/.test(newPin)) {
+    showToast('Admin PIN must be exactly 4 digits', 'error');
+    return;
+  }
+  
+  try {
+    await api.changeAdminPin(currentPin, newPin);
+    showToast('Admin PIN updated!');
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
