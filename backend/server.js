@@ -21,7 +21,9 @@ app.use(cors({
 app.use(express.json());
 
 // Serve static frontend files
-app.use(express.static(path.join(__dirname, '../web-mongo')));
+const webMongoPath = path.resolve(__dirname, '../web-mongo');
+console.log('Serving static files from:', webMongoPath);
+app.use(express.static(webMongoPath));
 
 // Configure push notifications
 configurePush();
@@ -138,7 +140,7 @@ app.get('/api/health', (req, res) => {
 // Serve frontend for all non-API routes (SPA support)
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api') && !req.path.startsWith('/ws')) {
-    res.sendFile(path.join(__dirname, '../web-mongo/index.html'));
+    res.sendFile(path.resolve(__dirname, '../web-mongo/index.html'));
   }
 });
 
