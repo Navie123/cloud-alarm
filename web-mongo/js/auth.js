@@ -78,12 +78,23 @@ async function registerUser() {
     return;
   }
 
-  if (password.length < 6) {
-    errorEl.textContent = 'Password must be at least 6 characters';
+  if (password.length < 8) {
+    errorEl.textContent = 'Password must be at least 8 characters';
+    return;
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    errorEl.textContent = 'Password must contain at least one uppercase letter';
+    return;
+  }
+
+  if (!/[0-9]/.test(password)) {
+    errorEl.textContent = 'Password must contain at least one number';
     return;
   }
 
   errorEl.textContent = '';
+  errorEl.className = 'error-message';
   if (registerBtn) {
     registerBtn.disabled = true;
     registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
@@ -91,11 +102,23 @@ async function registerUser() {
 
   try {
     const data = await api.register(name, email, password);
-    currentUser = data.user;
-    showMainApp();
-    updateUserDisplay();
+    
+    // Check if email verification is required
+    if (data.needsVerification) {
+      errorEl.className = 'success-message';
+      errorEl.textContent = data.message || 'Registration successful! Please check your email to verify your account.';
+      // Clear form
+      document.getElementById('nameInput').value = '';
+      document.getElementById('regEmailInput').value = '';
+      document.getElementById('regPasswordInput').value = '';
+    } else if (data.user) {
+      currentUser = data.user;
+      showMainApp();
+      updateUserDisplay();
+    }
   } catch (error) {
     console.error('Register error:', error);
+    errorEl.className = 'error-message';
     errorEl.textContent = error.message;
   } finally {
     if (registerBtn) {

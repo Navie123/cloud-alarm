@@ -45,9 +45,11 @@ const api = {
   async register(name, email, password) {
     const data = await this.request('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password })
+      body: JSON.stringify({ displayName: name, email, password })
     });
-    this.setAuth(data.token);
+    if (data.token) {
+      this.setAuth(data.token);
+    }
     return data;
   },
 
