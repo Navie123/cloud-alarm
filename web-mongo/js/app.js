@@ -16,7 +16,7 @@ let ws = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
-// Track slider interaction - use mousedown/touchstart to detect active dragging
+// Track slider interaction
 let sliderActive = false;
 let tempSliderActive = false;
 
@@ -49,7 +49,6 @@ const elements = {
   sirenText: document.getElementById('sirenText'),
   deviceId: document.getElementById('deviceId'),
   lastUpdate: document.getElementById('lastUpdate'),
-  heapInfo: document.getElementById('heapInfo'),
   connectionStatus: document.getElementById('connectionStatus')
 };
 
@@ -58,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupTabs();
   setupSlider();
   setupDateTime();
-  setupGreeting();
 });
 
 // Called after successful login
@@ -83,10 +81,7 @@ function connectWebSocket() {
     setConnected(true);
     reconnectAttempts = 0;
     
-    // Clear any existing ping interval
     if (pingInterval) clearInterval(pingInterval);
-    
-    // Send ping every 25 seconds to keep connection alive
     pingInterval = setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'ping' }));
@@ -99,8 +94,6 @@ function connectWebSocket() {
       const message = JSON.parse(event.data);
       if (message.type === 'data') {
         updateUI(message.data);
-      } else if (message.type === 'pong') {
-        // Keep-alive response
       }
     } catch (error) {
       console.error('WebSocket message error:', error);
@@ -111,17 +104,14 @@ function connectWebSocket() {
     console.log('WebSocket disconnected');
     setConnected(false);
     
-    // Clear ping interval
     if (pingInterval) {
       clearInterval(pingInterval);
       pingInterval = null;
     }
     
-    // Reconnect with exponential backoff
     if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
       const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
       reconnectAttempts++;
-      console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
       setTimeout(connectWebSocket, delay);
     }
   };
@@ -131,7 +121,6 @@ function connectWebSocket() {
   };
 }
 
-// Load initial device data via REST API
 async function loadInitialData() {
   try {
     const device = await api.getDevice(CONFIG.DEVICE_ID);
@@ -160,7 +149,6 @@ function enableAudio() {
   
   audioEnabled = true;
   document.getElementById('audioPrompt').classList.add('hidden');
-  console.log('Audio enabled with sound:', selectedAlarmSound);
 }
 
 function playAlarmSound() {
@@ -191,50 +179,6 @@ function stopAlarmSound() {
   isPlaying = false;
 }
 
-// Sound picker functions
-function previewSound(soundFile) {
-  // Stop any existing preview
-  if (previewAudio) {
-    previewAudio.pause();
-    previewAudio = null;
-  }
-  
-  previewAudio = new Audio(soundFile);
-  previewAudio.volume = 1.0;
-  previewAudio.play().catch(e => console.log('Preview error:', e));
-  
-  // Auto-stop after 3 seconds
-  setTimeout(() => {
-    if (previewAudio) {
-      previewAudio.pause();
-      previewAudio = null;
-    }
-  }, 3000);
-}
-
-function saveAlarmSound() {
-  const selected = document.querySelector('input[name="alarmSound"]:checked');
-  if (selected) {
-    selectedAlarmSound = selected.value;
-    localStorage.setItem('alarmSound', selectedAlarmSound);
-    
-    // Update the current alarm audio if it exists
-    if (alarmAudio) {
-      alarmAudio.src = selectedAlarmSound;
-      alarmAudio.load();
-    }
-    
-    showToast('Alarm sound saved!');
-  }
-}
-
-function loadAlarmSoundSetting() {
-  const saved = localStorage.getItem('alarmSound') || '911.mp3';
-  selectedAlarmSound = saved;
-  const radio = document.querySelector(`input[name="alarmSound"][value="${saved}"]`);
-  if (radio) radio.checked = true;
-}
-
 // ============ Sidebar Functions ============
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
@@ -246,14 +190,6 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
   document.body.classList.remove('sidebar-open');
-}
-
-function toggleFullscreen() {
-  document.body.classList.toggle('fullscreen');
-  const btn = document.getElementById('fullscreenBtn');
-  if (btn) {
-    btn.querySelector('i').className = document.body.classList.contains('fullscreen') ? 'fas fa-compress' : 'fas fa-expand';
-  }
 }
 
 // Tab Navigation
@@ -297,9 +233,7 @@ function updateSliderColors(slider, valueDisplay, level) {
   valueDisplay.classList.add(level);
 }
 
-// Threshold Slider - simplified with mousedown/mouseup tracking
 function setupSlider() {
-  // Gas threshold slider
   const setupGasSlider = (slider, valueEl) => {
     if (!slider) return;
     
@@ -312,7 +246,6 @@ function setupSlider() {
       const value = parseInt(e.target.value);
       const level = getGasLevel(value);
       
-      // Update all gas threshold displays
       elements.sliderValue.textContent = value + '%';
       updateSliderColors(elements.thresholdSlider, elements.sliderValue, level);
       
@@ -330,7 +263,6 @@ function setupSlider() {
   setupGasSlider(elements.thresholdSlider, elements.sliderValue);
   setupGasSlider(document.getElementById('sliderSide'), document.getElementById('sliderValSide'));
   
-  // Temp threshold slider
   const setupTempSlider = (slider, valueEl) => {
     if (!slider) return;
     
@@ -343,56 +275,21 @@ function setupSlider() {
       const value = parseInt(e.target.value);
       const level = getTempLevel(value);
       
-      // Update all temp threshold displays
       elements.tempSliderValue.textContent = value + '°C';
       updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, level);
-      
-      const tempSideSlider = document.getElementById('tempSliderSide');
-      const tempSideVal = document.getElementById('tempSliderValSide');
-      if (tempSideSlider && tempSideSlider !== slider) tempSideSlider.value = value;
-      if (tempSideVal) {
-        tempSideVal.textContent = value + '°C';
-        if (tempSideSlider) updateSliderColors(tempSideSlider, tempSideVal, level);
-      }
-      if (elements.tempThresholdSlider !== slider) elements.tempThresholdSlider.value = value;
     });
   };
   
   setupTempSlider(elements.tempThresholdSlider, elements.tempSliderValue);
-  setupTempSlider(document.getElementById('tempSliderSide'), document.getElementById('tempSliderValSide'));
 }
 
-// Date/Time Display
 function setupDateTime() {
   function update() {
     const now = new Date();
     document.getElementById('currentTime').textContent = now.toLocaleTimeString();
-    document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    });
   }
   update();
   setInterval(update, 1000);
-}
-
-function setupGreeting() {
-  const hour = new Date().getHours();
-  const icon = document.getElementById('greetIcon');
-  const text = document.getElementById('greetText');
-  
-  if (hour < 12) {
-    icon.className = 'fas fa-sun greeting-icon morning';
-    text.textContent = 'Good Morning!';
-  } else if (hour < 17) {
-    icon.className = 'fas fa-sun greeting-icon afternoon';
-    text.textContent = 'Good Afternoon!';
-  } else if (hour < 20) {
-    icon.className = 'fas fa-cloud-sun greeting-icon evening';
-    text.textContent = 'Good Evening!';
-  } else {
-    icon.className = 'fas fa-moon greeting-icon night';
-    text.textContent = 'Good Night!';
-  }
 }
 
 // Update UI with sensor data
@@ -415,7 +312,6 @@ function updateUI(data) {
   elements.voltVal.textContent = (data.voltage || 0).toFixed(2);
   elements.threshVal.textContent = data.threshold || '--';
   
-  // Only update gas threshold slider if user is NOT actively dragging it
   if (!sliderActive) {
     currentThreshold = data.threshold || 40;
     elements.thresholdSlider.value = currentThreshold;
@@ -426,7 +322,6 @@ function updateUI(data) {
   
   elements.tempThreshVal.textContent = data.tempThreshold || '--';
   
-  // Only update temp threshold slider if user is NOT actively dragging it
   if (!tempSliderActive) {
     currentTempThreshold = data.tempThreshold || 60;
     elements.tempThresholdSlider.value = currentTempThreshold;
@@ -442,7 +337,6 @@ function updateUI(data) {
   
   elements.deviceId.textContent = CONFIG.DEVICE_ID;
   elements.lastUpdate.textContent = data.timestamp || '--';
-  elements.heapInfo.textContent = ((data.heap || 0) / 1024).toFixed(1) + ' KB';
   elements.connectionStatus.textContent = 'Connected';
   elements.deviceStatus.textContent = 'Online';
   elements.deviceStatus.classList.add('online');
@@ -465,11 +359,6 @@ function updateAlarmState(isAlarm, tempWarning) {
     elements.sirenOverlay.classList.remove('active');
     document.body.classList.remove('alarm-mode');
     stopAlarmSound();
-  }
-  
-  elements.alarmCard.classList.remove('temp-warning', 'temp-high', 'temp-critical');
-  if (tempWarning && tempWarning !== 'normal') {
-    elements.alarmCard.classList.add('temp-' + tempWarning);
   }
 }
 
@@ -498,7 +387,6 @@ function updateSirenUI() {
   if (!sirenEnabled) stopAlarmSound();
 }
 
-// Load alarm history
 async function loadHistory() {
   try {
     const history = await api.getHistory(CONFIG.DEVICE_ID);
@@ -548,7 +436,6 @@ async function saveThreshold() {
     currentThreshold = value;
     showToast('Gas threshold saved: ' + value + '%');
   } catch (error) {
-    console.error('Save threshold error:', error);
     showToast('Error: ' + error.message, 'error');
   }
 }
@@ -560,34 +447,16 @@ async function saveTempThreshold() {
     currentTempThreshold = value;
     showToast('Temp threshold saved: ' + value + '°C');
   } catch (error) {
-    console.error('Save temp threshold error:', error);
     showToast('Error: ' + error.message, 'error');
   }
 }
 
 async function silenceAlarm() {
-  // Only silence if alarm is actually active
-  const alarmCard = document.getElementById('alarmCard');
-  const isAlarmActive = alarmCard && alarmCard.classList.contains('alarm-active');
-  
-  if (!isAlarmActive) {
-    showToast('No active alarm to silence', 'info');
-    return;
-  }
-  
-  // Add button animation
-  const btn = event?.target?.closest('.btn');
-  if (btn) {
-    btn.classList.add('btn-pressed');
-    setTimeout(() => btn.classList.remove('btn-pressed'), 200);
-  }
-  
   stopAlarmSound();
   try {
     await api.silenceAlarm(CONFIG.DEVICE_ID);
-    showToast('Alarm silenced', 'success');
+    showToast('Alarm silenced');
   } catch (error) {
-    console.error('Silence alarm error:', error);
     showToast('Error: ' + error.message, 'error');
   }
 }
@@ -600,7 +469,6 @@ async function toggleSiren() {
     updateSirenUI();
     showToast('Siren ' + (newState ? 'enabled' : 'disabled'));
   } catch (error) {
-    console.error('Toggle siren error:', error);
     showToast('Error: ' + error.message, 'error');
   }
 }
@@ -621,15 +489,7 @@ async function clearHistory() {
 function showToast(message, type = 'success') {
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  
-  const icons = {
-    success: 'check-circle',
-    error: 'exclamation-circle',
-    info: 'info-circle',
-    warning: 'exclamation-triangle'
-  };
-  
-  toast.innerHTML = `<i class="fas fa-${icons[type] || 'check-circle'}"></i> ${message}`;
+  toast.innerHTML = `<i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${message}`;
   document.body.appendChild(toast);
   
   setTimeout(() => toast.classList.add('show'), 10);
@@ -639,7 +499,6 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
-// PDF Export (same as before)
 function exportPDF() {
   if (!historyData || historyData.length === 0) {
     showToast('No history to export', 'error');
@@ -658,10 +517,6 @@ function exportPDF() {
   doc.setFontSize(11);
   doc.setFont(undefined, 'normal');
   doc.text('Alarm History Report', 15, 19);
-  doc.setFontSize(9);
-  doc.setTextColor(240, 240, 240);
-  doc.text('Generated: ' + new Date().toLocaleString(), pageW - 15, 12, 'right');
-  doc.text('Total Alarms: ' + historyData.length, pageW - 15, 19, 'right');
   
   let y = 38;
   doc.setFillColor(245, 245, 245);
@@ -674,7 +529,6 @@ function exportPDF() {
   doc.text('Trigger', 120, y);
   doc.text('Gas Level', 165, y);
   doc.text('Temperature', 215, y);
-  doc.text('Status', 270, y);
   
   y += 10;
   doc.setFont(undefined, 'normal');
@@ -686,108 +540,27 @@ function exportPDF() {
       y = 20;
     }
     
-    const rowColor = i % 2 === 0 ? [255, 255, 255] : [250, 250, 250];
-    doc.setFillColor(...rowColor);
-    doc.rect(15, y - 5, pageW - 30, 9, 'F');
-    
     doc.setTextColor(40, 40, 40);
     doc.text(String(i + 1), 20, y);
     doc.text(h.timestamp || '--', 35, y);
-    
-    let triggerText = h.trigger || 'unknown';
-    let triggerColor = [100, 100, 100];
-    if (h.trigger === 'gas') { triggerText = 'Gas Detected'; triggerColor = [245, 158, 11]; }
-    else if (h.trigger === 'temperature') { triggerText = 'High Temperature'; triggerColor = [239, 68, 68]; }
-    else if (h.trigger === 'both') { triggerText = 'Gas + Temperature'; triggerColor = [220, 38, 38]; }
-    
-    doc.setTextColor(...triggerColor);
-    doc.setFont(undefined, 'bold');
-    doc.text(triggerText, 120, y);
-    
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(40, 40, 40);
+    doc.text(h.trigger || 'unknown', 120, y);
     doc.text((h.gas?.toFixed(1) || '--') + '%', 165, y);
-    
-    const tempColor = h.temperature >= 65 ? [220, 38, 38] : h.temperature >= 60 ? [245, 158, 11] : [100, 100, 100];
-    doc.setTextColor(...tempColor);
     doc.text((h.temperature?.toFixed(1) || '--') + '°C', 215, y);
-    
-    doc.setTextColor(220, 38, 38);
-    doc.setFont(undefined, 'bold');
-    doc.text('ALARM', 270, y);
-    doc.setFont(undefined, 'normal');
     
     y += 9;
   });
-  
-  doc.setFillColor(50, 50, 50);
-  doc.rect(0, pageH - 12, pageW, 12, 'F');
-  doc.setFontSize(8);
-  doc.setTextColor(200, 200, 200);
-  doc.text('Cloud Fire Alarm System © ' + new Date().getFullYear(), 15, pageH - 5);
   
   doc.save('FireAlarm_History_' + new Date().toISOString().split('T')[0] + '.pdf');
   showToast('PDF exported successfully');
 }
 
 function updateSidebarInfo(data) {
-  const deviceIdSide = document.getElementById('deviceIdSide');
-  const lastUpdateSide = document.getElementById('lastUpdateSide');
-  const heapSide = document.getElementById('heapSide');
-  
-  if (deviceIdSide) deviceIdSide.textContent = CONFIG.DEVICE_ID;
-  if (lastUpdateSide) lastUpdateSide.textContent = data.timestamp || '--';
-  if (heapSide) heapSide.textContent = ((data.heap || 0) / 1024).toFixed(1) + ' KB';
-  
-  // Only update sidebar gas slider if user is NOT actively dragging it
   if (!sliderActive) {
     const sideSlider = document.getElementById('sliderSide');
     const sideVal = document.getElementById('sliderValSide');
     const gasThresh = data.threshold || 40;
     if (sideSlider) sideSlider.value = gasThresh;
-    if (sideVal) {
-      sideVal.textContent = gasThresh + '%';
-      updateSliderColors(sideSlider, sideVal, getGasLevel(gasThresh));
-    }
-  }
-  
-  // Only update sidebar temp slider if user is NOT actively dragging it
-  if (!tempSliderActive) {
-    const tempSideSlider = document.getElementById('tempSliderSide');
-    const tempSideVal = document.getElementById('tempSliderValSide');
-    const tempThresh = data.tempThreshold || 60;
-    if (tempSideSlider) tempSideSlider.value = tempThresh;
-    if (tempSideVal) {
-      tempSideVal.textContent = tempThresh + '°C';
-      updateSliderColors(tempSideSlider, tempSideVal, getTempLevel(tempThresh));
-    }
-  }
-}
-
-// ============ SMS Settings (Admin Only) ============
-async function saveSmsSettings() {
-  if (!isAdmin) {
-    showToast('Admin access required', 'error');
-    return;
-  }
-  
-  const phoneInput = document.getElementById('phoneNumberInput');
-  const smsCheckbox = document.getElementById('smsEnabledCheckbox');
-  
-  const phoneNumber = phoneInput?.value?.trim() || '';
-  const enabled = smsCheckbox?.checked || false;
-  
-  if (enabled && !phoneNumber) {
-    showToast('Please enter your phone number', 'error');
-    return;
-  }
-  
-  try {
-    await api.updateSmsSettings(phoneNumber, enabled);
-    showToast('SMS settings saved!');
-  } catch (error) {
-    console.error('Save SMS settings error:', error);
-    showToast('Error: ' + error.message, 'error');
+    if (sideVal) sideVal.textContent = gasThresh + '%';
   }
 }
 
@@ -796,53 +569,4 @@ const originalShowMainApp = showMainApp;
 showMainApp = function() {
   originalShowMainApp();
   initializeApp();
-  loadAlarmSoundSetting();
 };
-
-// ============ Security Settings (Admin Only) ============
-async function changeAccessCode() {
-  if (!isAdmin) {
-    showToast('Admin access required', 'error');
-    return;
-  }
-  
-  const newCode = prompt('Enter new 6-digit access code for family members:');
-  if (!newCode) return;
-  
-  if (!/^\d{6}$/.test(newCode)) {
-    showToast('Access code must be exactly 6 digits', 'error');
-    return;
-  }
-  
-  try {
-    await api.changeAccessCode(newCode);
-    showToast('Access code updated! Share the new code with family members.');
-  } catch (error) {
-    showToast('Error: ' + error.message, 'error');
-  }
-}
-
-async function changeAdminPin() {
-  if (!isAdmin) {
-    showToast('Admin access required', 'error');
-    return;
-  }
-  
-  const currentPin = prompt('Enter current admin PIN:');
-  if (!currentPin) return;
-  
-  const newPin = prompt('Enter new 4-digit admin PIN:');
-  if (!newPin) return;
-  
-  if (!/^\d{4}$/.test(newPin)) {
-    showToast('Admin PIN must be exactly 4 digits', 'error');
-    return;
-  }
-  
-  try {
-    await api.changeAdminPin(currentPin, newPin);
-    showToast('Admin PIN updated!');
-  } catch (error) {
-    showToast('Error: ' + error.message, 'error');
-  }
-}

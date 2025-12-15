@@ -1,4 +1,4 @@
-// API Helper Functions - Household Auth System
+// API Helper Functions
 const api = {
   get baseUrl() {
     return CONFIG.API_URL;
@@ -8,25 +8,11 @@ const api = {
     return localStorage.getItem('authToken');
   },
 
-  get role() {
-    return localStorage.getItem('userRole') || 'viewer';
-  },
-
-  get isAdmin() {
-    return this.role === 'admin';
-  },
-
-  setAuth(token, role, deviceId, householdName) {
+  setAuth(token) {
     if (token) {
       localStorage.setItem('authToken', token);
-      localStorage.setItem('userRole', role || 'viewer');
-      localStorage.setItem('deviceId', deviceId || '');
-      localStorage.setItem('householdName', householdName || 'My Home');
     } else {
       localStorage.removeItem('authToken');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('deviceId');
-      localStorage.removeItem('householdName');
     }
   },
 
@@ -55,78 +41,31 @@ const api = {
     return data;
   },
 
-  // Household Auth endpoints
-  async checkSetup(deviceId) {
-    return this.request(`/api/household/check/${deviceId}`);
-  },
-
-  async setup(deviceId, householdName, accessCode, adminPin) {
-    const data = await this.request('/api/household/setup', {
+  // Auth endpoints
+  async register(name, email, password) {
+    const data = await this.request('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ deviceId, householdName, accessCode, adminPin })
+      body: JSON.stringify({ name, email, password })
     });
-    this.setAuth(data.token, data.role, deviceId, data.householdName);
+    this.setAuth(data.token);
     return data;
   },
 
-  async login(accessCode, adminPin = null) {
-    const data = await this.request('/api/household/login', {
+  async login(email, password) {
+    const data = await this.request('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ accessCode, adminPin })
+      body: JSON.stringify({ email, password })
     });
-    this.setAuth(data.token, data.role, data.deviceId, data.householdName);
-    return data;
-  },
-
-  async upgradeToAdmin(adminPin) {
-    const data = await this.request('/api/household/upgrade', {
-      method: 'POST',
-      body: JSON.stringify({ adminPin })
-    });
-    localStorage.setItem('userRole', 'admin');
+    this.setAuth(data.token);
     return data;
   },
 
   async getMe() {
-    return this.request('/api/household/me');
+    return this.request('/api/auth/me');
   },
 
-  async logout() {
-    try {
-      await this.request('/api/household/logout', { method: 'POST' });
-    } catch (e) {
-      // Ignore logout errors
-    }
+  logout() {
     this.setAuth(null);
-  },
-
-  // Admin-only settings
-  async changeAccessCode(newAccessCode) {
-    return this.request('/api/household/access-code', {
-      method: 'PUT',
-      body: JSON.stringify({ newAccessCode })
-    });
-  },
-
-  async changeAdminPin(currentPin, newPin) {
-    return this.request('/api/household/admin-pin', {
-      method: 'PUT',
-      body: JSON.stringify({ currentPin, newPin })
-    });
-  },
-
-  async updateHouseholdName(name) {
-    return this.request('/api/household/name', {
-      method: 'PUT',
-      body: JSON.stringify({ name })
-    });
-  },
-
-  async updateSmsSettings(phoneNumber, enabled) {
-    return this.request('/api/household/sms', {
-      method: 'PUT',
-      body: JSON.stringify({ phoneNumber, enabled })
-    });
   },
 
   // Device endpoints

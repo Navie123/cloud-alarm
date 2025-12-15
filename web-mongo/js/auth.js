@@ -1,6 +1,5 @@
-// Authentication Module - Household Access System
-let currentHousehold = null;
-let isAdmin = false;
+// Authentication Module
+let currentUser = null;
 
 // Hide main app on load
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,12 +21,7 @@ async function checkAuthState() {
 
   try {
     const data = await api.getMe();
-    currentHousehold = {
-      name: data.householdName,
-      deviceId: data.deviceId,
-      role: data.role
-    };
-    isAdmin = data.isAdmin;
+    currentUser = data.user;
     showMainApp();
     updateUserDisplay();
   } catch (error) {
@@ -37,118 +31,84 @@ async function checkAuthState() {
   }
 }
 
-// Login with access code
+// Login with email/password
 async function loginUser() {
-  const accessCode = document.getElementById('accessCodeInput').value.trim();
-  const adminPin = document.getElementById('adminPinInput')?.value?.trim() || '';
+  const email = document.getElementById('emailInput').value.trim();
+  const password = document.getElementById('passwordInput').value;
   const errorEl = document.getElementById('loginError');
   const loginBtn = document.querySelector('#loginForm button[type="submit"]');
 
-  if (!accessCode || accessCode.length !== 6) {
-    errorEl.textContent = 'Please enter your 6-digit access code';
+  if (!email || !password) {
+    errorEl.textContent = 'Please enter email and password';
     return;
   }
 
   errorEl.textContent = '';
   if (loginBtn) {
     loginBtn.disabled = true;
-    loginBtn.textContent = 'Signing In...';
+    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
   }
 
   try {
-    const data = await api.login(accessCode, adminPin || null);
-    currentHousehold = {
-      name: data.householdName,
-      deviceId: data.deviceId,
-      role: data.role
-    };
-    isAdmin = data.role === 'admin';
+    const data = await api.login(email, password);
+    currentUser = data.user;
     showMainApp();
     updateUserDisplay();
-    console.log('Logged in as:', data.role);
   } catch (error) {
     console.error('Login error:', error);
     errorEl.textContent = error.message;
   } finally {
     if (loginBtn) {
       loginBtn.disabled = false;
-      loginBtn.textContent = 'Access Dashboard';
+      loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
     }
   }
 }
 
-// Setup new household
-async function setupHousehold() {
-  const deviceId = document.getElementById('setupDeviceId').value.trim();
-  const householdName = document.getElementById('setupHouseholdName').value.trim();
-  const accessCode = document.getElementById('setupAccessCode').value.trim();
-  const adminPin = document.getElementById('setupAdminPin').value.trim();
-  const errorEl = document.getElementById('setupError');
-  const setupBtn = document.querySelector('#setupForm button[type="submit"]');
+// Register new user
+async function registerUser() {
+  const name = document.getElementById('nameInput').value.trim();
+  const email = document.getElementById('regEmailInput').value.trim();
+  const password = document.getElementById('regPasswordInput').value;
+  const errorEl = document.getElementById('registerError');
+  const registerBtn = document.querySelector('#registerForm button[type="submit"]');
 
-  // Validation
-  if (!deviceId) {
-    errorEl.textContent = 'Device ID is required';
+  if (!name || !email || !password) {
+    errorEl.textContent = 'Please fill in all fields';
     return;
   }
-  if (!/^\d{6}$/.test(accessCode)) {
-    errorEl.textContent = 'Access code must be exactly 6 digits';
-    return;
-  }
-  if (!/^\d{4}$/.test(adminPin)) {
-    errorEl.textContent = 'Admin PIN must be exactly 4 digits';
+
+  if (password.length < 6) {
+    errorEl.textContent = 'Password must be at least 6 characters';
     return;
   }
 
   errorEl.textContent = '';
-  if (setupBtn) {
-    setupBtn.disabled = true;
-    setupBtn.textContent = 'Setting Up...';
+  if (registerBtn) {
+    registerBtn.disabled = true;
+    registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
   }
 
   try {
-    const data = await api.setup(deviceId, householdName || 'My Home', accessCode, adminPin);
-    currentHousehold = {
-      name: data.householdName,
-      deviceId: deviceId,
-      role: 'admin'
-    };
-    isAdmin = true;
+    const data = await api.register(name, email, password);
+    currentUser = data.user;
     showMainApp();
     updateUserDisplay();
-    showToast('Household setup complete! You are now the admin.');
   } catch (error) {
-    console.error('Setup error:', error);
+    console.error('Register error:', error);
     errorEl.textContent = error.message;
   } finally {
-    if (setupBtn) {
-      setupBtn.disabled = false;
-      setupBtn.textContent = 'Complete Setup';
+    if (registerBtn) {
+      registerBtn.disabled = false;
+      registerBtn.innerHTML = '<i class="fas fa-user-plus"></i> Register';
     }
-  }
-}
-
-// Upgrade to admin
-async function upgradeToAdmin() {
-  const adminPin = prompt('Enter Admin PIN to access settings:');
-  if (!adminPin) return;
-
-  try {
-    await api.upgradeToAdmin(adminPin);
-    isAdmin = true;
-    updateUserDisplay();
-    updateAdminUI();
-    showToast('Upgraded to admin access!');
-  } catch (error) {
-    showToast('Invalid admin PIN', 'error');
   }
 }
 
 // Logout
 function logout() {
   api.logout();
-  currentHousehold = null;
-  isAdmin = false;
+  currentUser = null;
   showLoginScreen();
   
   if (window.ws) {
@@ -159,29 +119,22 @@ function logout() {
 // Show/hide screens
 function showLogin() {
   document.getElementById('loginForm')?.classList.remove('hidden');
-  document.getElementById('setupForm')?.classList.add('hidden');
-  document.querySelector('.login-title').textContent = 'Access Dashboard';
-  document.querySelector('.login-subtitle').textContent = 'Enter your household access code';
+  document.getElementById('registerForm')?.classList.add('hidden');
+  document.querySelector('.login-title').textContent = 'Sign In';
+  document.querySelector('.login-subtitle').textContent = 'Access your fire alarm dashboard';
 }
 
-function showSetup() {
+function showRegister() {
   document.getElementById('loginForm')?.classList.add('hidden');
-  document.getElementById('setupForm')?.classList.remove('hidden');
-  document.querySelector('.login-title').textContent = 'Setup New Device';
-  document.querySelector('.login-subtitle').textContent = 'Configure your fire alarm system';
+  document.getElementById('registerForm')?.classList.remove('hidden');
+  document.querySelector('.login-title').textContent = 'Create Account';
+  document.querySelector('.login-subtitle').textContent = 'Register to monitor your fire alarm';
 }
 
 function showMainApp() {
   document.getElementById('loginScreen').style.cssText = 'display: none !important;';
   document.getElementById('mainApp').style.cssText = 'display: block !important;';
-  
-  // Update CONFIG with the device ID
-  if (currentHousehold?.deviceId) {
-    CONFIG.DEVICE_ID = currentHousehold.deviceId;
-  }
-  
   initPushNotifications();
-  updateAdminUI();
 }
 
 function showLoginScreen() {
@@ -189,25 +142,20 @@ function showLoginScreen() {
   document.getElementById('mainApp').style.cssText = 'display: none !important;';
 }
 
-// Update UI based on role
+// Update user display
 function updateUserDisplay() {
   const userInfoEl = document.getElementById('userInfo');
   const greetTextEl = document.getElementById('greetText');
-  const roleIndicator = document.getElementById('roleIndicator');
   
-  if (currentHousehold) {
-    const name = currentHousehold.name || 'My Home';
-    const role = isAdmin ? 'Admin' : 'Viewer';
-    
-    if (userInfoEl) {
-      userInfoEl.innerHTML = `
-        <div class="user-avatar"><i class="fas fa-home"></i></div>
-        <div class="user-details">
-          <div class="user-name">${name}</div>
-          <div class="user-role ${isAdmin ? 'admin' : 'viewer'}">${role}</div>
-        </div>
-      `;
-    }
+  if (currentUser && userInfoEl) {
+    const name = currentUser.name || 'User';
+    userInfoEl.innerHTML = `
+      <div class="user-avatar"><i class="fas fa-user"></i></div>
+      <div class="user-details">
+        <div class="user-name">${name}</div>
+        <div class="user-email">${currentUser.email || ''}</div>
+      </div>
+    `;
     
     if (greetTextEl) {
       const hour = new Date().getHours();
@@ -216,40 +164,12 @@ function updateUserDisplay() {
       else if (hour < 18) greeting = 'Good Afternoon';
       else greeting = 'Good Evening';
       
-      greetTextEl.textContent = `${greeting}!`;
-    }
-
-    if (roleIndicator) {
-      roleIndicator.textContent = role;
-      roleIndicator.className = `role-badge ${isAdmin ? 'admin' : 'viewer'}`;
+      greetTextEl.textContent = `${greeting}, ${name.split(' ')[0]}!`;
     }
   }
 }
 
-// Show/hide admin-only controls
-function updateAdminUI() {
-  const adminOnlyElements = document.querySelectorAll('.admin-only');
-  const viewerElements = document.querySelectorAll('.viewer-upgrade');
-  
-  adminOnlyElements.forEach(el => {
-    el.style.display = isAdmin ? '' : 'none';
-  });
-  
-  viewerElements.forEach(el => {
-    el.style.display = isAdmin ? 'none' : '';
-  });
-
-  // Disable admin-only inputs for viewers
-  const adminInputs = document.querySelectorAll('.admin-input');
-  adminInputs.forEach(input => {
-    input.disabled = !isAdmin;
-    if (!isAdmin) {
-      input.title = 'Admin access required';
-    }
-  });
-}
-
-// Toggle password/PIN visibility
+// Toggle password visibility
 function togglePassword(inputId, btn) {
   const input = document.getElementById(inputId);
   const icon = btn.querySelector('i');
