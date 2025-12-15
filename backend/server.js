@@ -139,9 +139,13 @@ app.get('/api/health', (req, res) => {
 
 // Serve frontend for all non-API routes (SPA support)
 app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api') && !req.path.startsWith('/ws')) {
-    res.sendFile(path.resolve(__dirname, '../web-mongo/index.html'));
+  // Skip API and WebSocket routes
+  if (req.path.startsWith('/api') || req.path.startsWith('/ws')) {
+    return res.status(404).json({ error: 'Not found' });
   }
+  const indexPath = path.resolve(__dirname, '../web-mongo/index.html');
+  console.log('Serving index.html from:', indexPath);
+  res.sendFile(indexPath);
 });
 
 // Connect to MongoDB and start server
