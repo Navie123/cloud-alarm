@@ -553,9 +553,14 @@ h1 {
 
 /* ========== CONTAINER ========== */
 .container {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px 28px;
+}
+
+/* Remove extra space at bottom */
+main.container {
+  padding-bottom: 30px;
 }
 
 .tab-content { display: none; animation: fadeIn 0.3s ease; }
@@ -2049,7 +2054,7 @@ body.fullscreen .minimize-btn { display: flex; }
 
 /* ========== IMPROVED HEADER ========== */
 header {
-  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+  background: var(--bg2);
   border-bottom: 1px solid var(--border);
   padding: 0;
 }
@@ -2059,8 +2064,10 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  gap: 20px;
+  padding: 20px 32px;
+  gap: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .header-row-brand {
@@ -2074,30 +2081,30 @@ header {
 .brand {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 
 .brand-icon {
-  width: 50px;
-  height: 50px;
+  width: 56px;
+  height: 56px;
   background: linear-gradient(135deg, var(--accent), var(--accent-light));
-  border-radius: 14px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.7rem;
   color: white;
-  box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4);
+  box-shadow: 0 4px 20px rgba(255, 87, 34, 0.4);
   animation: brandGlow 3s ease-in-out infinite;
 }
 
 @keyframes brandGlow {
-  0%, 100% { box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4); }
-  50% { box-shadow: 0 6px 25px rgba(255, 87, 34, 0.6); }
+  0%, 100% { box-shadow: 0 4px 20px rgba(255, 87, 34, 0.4); }
+  50% { box-shadow: 0 8px 30px rgba(255, 87, 34, 0.6); }
 }
 
 .brand-text h1 {
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--text);
   margin: 0;
@@ -2107,10 +2114,10 @@ header {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--muted);
-  margin-top: 4px;
-  padding: 4px 10px;
+  margin-top: 5px;
+  padding: 5px 12px;
   background: var(--bg);
   border-radius: 20px;
   border: 1px solid var(--border);
@@ -2128,41 +2135,44 @@ header {
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* PC: Hide date section (show time with date below) */
+/* PC: Hide date section */
 .header-date {
   display: none;
 }
 
-/* PC: Greeting section - center */
+/* PC: Greeting section - center with card background */
 .header-greeting {
   flex: 1;
   display: flex;
   justify-content: center;
+  max-width: 320px;
 }
 
 .greeting-card {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 20px;
-  background: transparent;
-  border: none;
+  padding: 14px 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 16px;
   transition: all 0.3s ease;
 }
 
 .greeting-card:hover {
-  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 87, 34, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
 
 .weather-icon {
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   transition: all 0.4s ease;
   flex-shrink: 0;
 }
@@ -2170,11 +2180,11 @@ header {
 .greeting-content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .greeting-text {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 600;
   color: var(--text);
 }
@@ -2184,16 +2194,21 @@ header {
   color: var(--muted);
 }
 
-/* PC: Time section - right with date below */
+/* PC: Time section - right side */
 .header-time {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   text-align: right;
+  padding: 10px 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  min-width: 120px;
 }
 
 .time-value {
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: 800;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -2202,19 +2217,18 @@ header {
 }
 
 .time-period {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--accent);
   text-transform: uppercase;
-  margin-left: 4px;
-  display: inline;
+  margin-top: 4px;
 }
 
-/* Weather icon themes */
+/* Weather icon themes - Updated colors */
 .weather-icon.morning {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
   color: white;
-  box-shadow: 0 4px 16px rgba(251, 191, 36, 0.4);
+  box-shadow: 0 4px 18px rgba(251, 191, 36, 0.45);
 }
 
 .weather-icon.morning i {
@@ -2229,7 +2243,7 @@ header {
 .weather-icon.afternoon {
   background: linear-gradient(135deg, #f97316, #ea580c);
   color: white;
-  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
+  box-shadow: 0 4px 18px rgba(249, 115, 22, 0.45);
 }
 
 .weather-icon.afternoon i {
@@ -2241,10 +2255,11 @@ header {
   50% { transform: scale(1.08); }
 }
 
+/* Evening - Changed from purple to warm sunset orange/coral */
 .weather-icon.evening {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  background: linear-gradient(135deg, #f97316, #dc2626);
   color: white;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+  box-shadow: 0 4px 18px rgba(249, 115, 22, 0.45);
 }
 
 .weather-icon.evening i {
@@ -2256,10 +2271,11 @@ header {
   50% { opacity: 0.85; }
 }
 
+/* Night - Deep blue with stars */
 .weather-icon.night {
-  background: linear-gradient(135deg, #1e3a5f, #0f172a);
+  background: linear-gradient(135deg, #1e40af, #1e3a8a);
   color: #fbbf24;
-  box-shadow: 0 4px 16px rgba(30, 58, 95, 0.4);
+  box-shadow: 0 4px 18px rgba(30, 64, 175, 0.45);
 }
 
 .weather-icon.night i {
@@ -2336,13 +2352,20 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24px 0 24px;
+  padding: 8px 32px;
   border-top: 1px solid var(--border);
   background: var(--bg);
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .header-nav .tabs {
   flex: 1;
+}
+
+.tab {
+  padding: 12px 20px;
+  font-size: 0.9rem;
 }
 
 .settings-btn {
