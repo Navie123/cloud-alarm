@@ -295,13 +295,22 @@ function setupDateTime() {
     // Update time display
     const timeEl = document.getElementById('currentTime');
     const periodEl = document.getElementById('timePeriod');
+    const dayEl = document.getElementById('currentDay');
     const dateEl = document.getElementById('currentDate');
     
     if (timeEl) timeEl.textContent = `${hour12}:${minutes}`;
     if (periodEl) periodEl.textContent = period;
+    
+    // Update day name (e.g., "Tuesday")
+    if (dayEl) {
+      const dayOptions = { weekday: 'long' };
+      dayEl.textContent = now.toLocaleDateString('en-US', dayOptions);
+    }
+    
+    // Update date (e.g., "Dec 16")
     if (dateEl) {
-      const options = { weekday: 'short', month: 'short', day: 'numeric' };
-      dateEl.textContent = now.toLocaleDateString('en-US', options);
+      const dateOptions = { month: 'short', day: 'numeric' };
+      dateEl.textContent = now.toLocaleDateString('en-US', dateOptions);
     }
     
     // Update greeting based on time of day

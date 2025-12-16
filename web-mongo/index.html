@@ -137,32 +137,40 @@
     
     <header>
       <div class="header-top">
-        <div class="brand">
-          <div class="brand-icon"><i class="fas fa-fire-flame-curved"></i></div>
-          <div class="brand-text">
-            <h1>Cloud Fire Alarm</h1>
-            <div id="status" class="status-badge"><i class="fas fa-spinner fa-spin"></i> Connecting...</div>
-          </div>
-        </div>
-        
-        <div class="header-greeting">
-          <div class="greeting-card">
-            <div class="weather-icon" id="weatherIcon">
-              <i class="fas fa-sun"></i>
-            </div>
-            <div class="greeting-content">
-              <span class="greeting-text" id="greetText">Good Morning!</span>
-              <span class="greeting-sub" id="greetSub">Have a great day</span>
+        <!-- Row 1: Brand centered -->
+        <div class="header-row-brand">
+          <div class="brand">
+            <div class="brand-icon"><i class="fas fa-fire-flame-curved"></i></div>
+            <div class="brand-text">
+              <h1>Cloud Fire Alarm</h1>
+              <div id="status" class="status-badge"><i class="fas fa-spinner fa-spin"></i> Connecting...</div>
             </div>
           </div>
         </div>
         
-        <div class="header-datetime">
-          <div class="time-display">
+        <!-- Row 2: Date | Greeting | Time -->
+        <div class="header-row-info">
+          <div class="header-date">
+            <span class="date-day" id="currentDay">Tuesday</span>
+            <span class="date-full" id="currentDate">Dec 16</span>
+          </div>
+          
+          <div class="header-greeting">
+            <div class="greeting-card">
+              <div class="weather-icon" id="weatherIcon">
+                <i class="fas fa-sun"></i>
+              </div>
+              <div class="greeting-content">
+                <span class="greeting-text" id="greetText">Good Morning!</span>
+                <span class="greeting-sub" id="greetSub">Have a great day</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="header-time">
             <span class="time-value" id="currentTime">--:--</span>
             <span class="time-period" id="timePeriod">--</span>
           </div>
-          <div class="date-display" id="currentDate">-- --- ----</div>
         </div>
       </div>
       
