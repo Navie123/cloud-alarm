@@ -1404,3 +1404,285 @@ body.fullscreen .minimize-btn { display: flex; }
   color: var(--muted);
   margin-top: 5px;
 }
+
+
+/* ========== SMS SETTINGS ========== */
+.sms-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sms-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sms-status {
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border-radius: 8px;
+  min-height: 36px;
+}
+
+.sms-status .success {
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sms-status .error {
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sms-status .info {
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ========== INPUT FIELD ========== */
+.input-field {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  background: var(--bg2);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.input-field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.15);
+}
+
+.input-field::placeholder {
+  color: #555;
+}
+
+/* ========== SOUND OPTIONS ========== */
+.sound-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.sound-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg2);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sound-option:hover {
+  border-color: var(--accent);
+  background: rgba(255, 87, 34, 0.08);
+}
+
+.sound-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.sound-option span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
+.sound-option span i {
+  color: var(--accent);
+  width: 20px;
+  text-align: center;
+}
+
+.sound-option:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(255, 87, 34, 0.12);
+}
+
+.sound-option:has(input:checked) span {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-preview {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-preview:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* ========== CARD SUBTITLE ========== */
+.card-subtitle {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+  margin-top: -8px;
+}
+
+/* ========== FULL WIDTH BUTTON ========== */
+.btn-full {
+  width: 100%;
+}
+
+/* ========== PUSH STATUS ========== */
+.push-status {
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+  min-height: 36px;
+}
+
+.push-status .success {
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.push-status .error {
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ========== CARD HEADER ========== */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.badge {
+  background: var(--accent);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* ========== PASSWORD HINT ========== */
+.password-hint {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-top: 6px;
+}
+
+/* ========== GOOGLE BUTTON ========== */
+.btn-google {
+  width: 100%;
+  padding: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: var(--bg2);
+  color: #ccc;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.25s ease;
+}
+
+.btn-google:hover {
+  background: var(--card);
+  border-color: #3a3a3a;
+}
+
+.btn-google svg {
+  flex-shrink: 0;
+}
+
+/* ========== USER EMAIL IN SIDEBAR ========== */
+.user-email {
+  font-size: 0.75rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ========== CLOSE BUTTON ========== */
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: var(--text);
+}
+
+/* ========== SIDEBAR USER SECTION ========== */
+.sidebar-user {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .sms-actions {
+    flex-direction: column;
+  }
+  
+  .sms-actions .btn {
+    width: 100%;
+  }
+  
+  .sound-option {
+    padding: 10px 12px;
+  }
+  
+  .sound-option span {
+    font-size: 0.85rem;
+  }
+  
+  .btn-preview {
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
+}
