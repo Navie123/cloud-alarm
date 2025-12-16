@@ -562,6 +562,108 @@ function updateSidebarInfo(data) {
     if (sideSlider) sideSlider.value = gasThresh;
     if (sideVal) sideVal.textContent = gasThresh + '%';
   }
+  
+  // Update sidebar system info
+  const sidebarStatus = document.getElementById('sidebarStatus');
+  const sidebarHeap = document.getElementById('sidebarHeap');
+  const sidebarLastUpdate = document.getElementById('sidebarLastUpdate');
+  const freeHeap = document.getElementById('freeHeap');
+  
+  if (sidebarStatus) sidebarStatus.textContent = isConnected ? 'Connected' : 'Disconnected';
+  if (sidebarHeap) sidebarHeap.textContent = data.heap ? Math.round(data.heap / 1024) + ' KB' : '-- KB';
+  if (sidebarLastUpdate) sidebarLastUpdate.textContent = data.timestamp || '--';
+  if (freeHeap) freeHeap.textContent = data.heap ? Math.round(data.heap / 1024) + ' KB' : '--';
+}
+
+// ============ SMS Functions ============
+async function saveSmsSettings() {
+  const phone = document.getElementById('phoneInput').value.trim();
+  const statusEl = document.getElementById('smsStatus');
+  
+  if (!phone) {
+    statusEl.innerHTML = '<span class="error"><i class="fas fa-exclamation-circle"></i> Please enter a phone number</span>';
+    return;
+  }
+  
+  try {
+    await api.request('/api/auth/phone', {
+      method: 'PUT',
+      body: JSON.stringify({ phoneNumber: phone, smsEnabled: true })
+    });
+    statusEl.innerHTML = '<span class="success"><i class="fas fa-check-circle"></i> SMS alerts enabled for ' + phone + '</span>';
+    showToast('SMS settings saved!');
+  } catch (error) {
+    statusEl.innerHTML = '<span class="error"><i class="fas fa-exclamation-circle"></i> ' + error.message + '</span>';
+  }
+}
+
+async function testSms() {
+  const statusEl = document.getElementById('smsStatus');
+  statusEl.innerHTML = '<span class="info"><i class="fas fa-spinner fa-spin"></i> Sending test SMS...</span>';
+  
+  try {
+    await api.request('/api/auth/test-sms', { method: 'POST' });
+    statusEl.innerHTML = '<span class="success"><i class="fas fa-check-circle"></i> Test SMS sent!</span>';
+    showToast('Test SMS sent!');
+  } catch (error) {
+    statusEl.innerHTML = '<span class="error"><i class="fas fa-exclamation-circle"></i> ' + error.message + '</span>';
+  }
+}
+
+async function loadUserPhone() {
+  try {
+    const data = await api.getMe();
+    if (data.user && data.user.phoneNumber) {
+      document.getElementById('phoneInput').value = data.user.phoneNumber;
+      if (data.user.smsEnabled) {
+        document.getElementById('smsStatus').innerHTML = '<span class="success"><i class="fas fa-check-circle"></i> SMS alerts enabled</span>';
+      }
+    }
+  } catch (error) {
+    console.log('Could not load phone settings');
+  }
+}
+
+// ============ Alarm Sound Functions ============
+function previewSound(soundFile) {
+  if (previewAudio) {
+    previewAudio.pause();
+    previewAudio.currentTime = 0;
+  }
+  previewAudio = new Audio(soundFile);
+  previewAudio.volume = 0.5;
+  previewAudio.play().catch(e => console.log('Preview error:', e));
+  
+  // Stop after 3 seconds
+  setTimeout(() => {
+    if (previewAudio) {
+      previewAudio.pause();
+      previewAudio.currentTime = 0;
+    }
+  }, 3000);
+}
+
+function saveAlarmSound() {
+  const selected = document.querySelector('input[name="alarmSound"]:checked');
+  if (selected) {
+    selectedAlarmSound = selected.value;
+    localStorage.setItem('alarmSound', selectedAlarmSound);
+    
+    // Update the alarm audio
+    if (alarmAudio) {
+      alarmAudio.src = selectedAlarmSound;
+      alarmAudio.load();
+    }
+    
+    showToast('Alarm sound saved: ' + selected.parentElement.querySelector('span').textContent.trim());
+  }
+}
+
+function loadAlarmSoundSetting() {
+  const saved = localStorage.getItem('alarmSound') || '911.mp3';
+  selectedAlarmSound = saved;
+  const radio = document.querySelector(`input[name="alarmSound"][value="${saved}"]`);
+  if (radio) radio.checked = true;
 }
 
 // Override showMainApp to initialize app after login
@@ -569,4 +671,6 @@ const originalShowMainApp = showMainApp;
 showMainApp = function() {
   originalShowMainApp();
   initializeApp();
+  loadUserPhone();
+  loadAlarmSoundSetting();
 };
