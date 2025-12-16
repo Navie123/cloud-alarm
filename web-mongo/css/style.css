@@ -2064,10 +2064,8 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 32px;
-  gap: 30px;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 18px 20px;
+  gap: 24px;
 }
 
 .header-row-brand {
@@ -2081,30 +2079,30 @@ header {
 .brand {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .brand-icon {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   background: linear-gradient(135deg, var(--accent), var(--accent-light));
-  border-radius: 16px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.7rem;
+  font-size: 1.6rem;
   color: white;
-  box-shadow: 0 4px 20px rgba(255, 87, 34, 0.4);
+  box-shadow: 0 4px 18px rgba(255, 87, 34, 0.4);
   animation: brandGlow 3s ease-in-out infinite;
 }
 
 @keyframes brandGlow {
-  0%, 100% { box-shadow: 0 4px 20px rgba(255, 87, 34, 0.4); }
-  50% { box-shadow: 0 8px 30px rgba(255, 87, 34, 0.6); }
+  0%, 100% { box-shadow: 0 4px 18px rgba(255, 87, 34, 0.4); }
+  50% { box-shadow: 0 6px 25px rgba(255, 87, 34, 0.55); }
 }
 
 .brand-text h1 {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--text);
   margin: 0;
@@ -2114,10 +2112,10 @@ header {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--muted);
-  margin-top: 5px;
-  padding: 5px 12px;
+  margin-top: 4px;
+  padding: 4px 10px;
   background: var(--bg);
   border-radius: 20px;
   border: 1px solid var(--border);
@@ -2140,39 +2138,36 @@ header {
   display: none;
 }
 
-/* PC: Greeting section - center with card background */
+/* PC: Greeting section - center, no border, blends with bg */
 .header-greeting {
   flex: 1;
   display: flex;
   justify-content: center;
-  max-width: 320px;
 }
 
 .greeting-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 24px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  gap: 12px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 14px;
   transition: all 0.3s ease;
 }
 
 .greeting-card:hover {
-  border-color: rgba(255, 87, 34, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .weather-icon {
-  width: 50px;
-  height: 50px;
+  width: 46px;
+  height: 46px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   transition: all 0.4s ease;
   flex-shrink: 0;
 }
@@ -2180,48 +2175,42 @@ header {
 .greeting-content {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .greeting-text {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--text);
 }
 
 .greeting-sub {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 
-/* PC: Time section - right side */
+/* PC: Time section - inline format "6:10 PM" */
 .header-time {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  text-align: right;
-  padding: 10px 20px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  min-width: 120px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
 }
 
 .time-value {
-  font-size: 2.2rem;
+  font-size: 2rem;
   font-weight: 800;
   color: var(--text);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -1px;
+  letter-spacing: -0.5px;
   line-height: 1;
 }
 
 .time-period {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  margin-top: 4px;
 }
 
 /* Weather icon themes - Updated colors */
@@ -2352,11 +2341,9 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 32px;
+  padding: 6px 20px;
   border-top: 1px solid var(--border);
   background: var(--bg);
-  max-width: 1400px;
-  margin: 0 auto;
 }
 
 .header-nav .tabs {
@@ -2364,8 +2351,8 @@ header {
 }
 
 .tab {
-  padding: 12px 20px;
-  font-size: 0.9rem;
+  padding: 10px 18px;
+  font-size: 0.88rem;
 }
 
 .settings-btn {
@@ -2399,10 +2386,10 @@ header {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 14px 24px;
+  padding: 14px 28px;
   background: var(--card);
   border: 1px solid var(--success);
-  border-radius: 14px;
+  border-radius: 12px;
   margin-bottom: 20px;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -2432,28 +2419,13 @@ header {
   z-index: 1;
 }
 
+/* PC: Hide the icon circle, only show text */
 .alarm-icon-wrap {
-  width: 44px;
-  height: 44px;
-  background: linear-gradient(135deg, var(--success), #16a34a);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  color: white;
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-  transition: all 0.3s ease;
-  flex-shrink: 0;
+  display: none;
 }
 
 .alarm-banner.alarm-active .alarm-icon-wrap {
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
-  background: linear-gradient(135deg, var(--danger), #dc2626);
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-  animation: iconPulse 0.6s ease-in-out infinite;
+  display: none;
 }
 
 @keyframes iconPulse {
@@ -2886,10 +2858,25 @@ header {
     border-radius: 12px;
   }
   
+  /* Mobile: Show the icon */
   .alarm-icon-wrap {
+    display: flex;
     width: 38px;
     height: 38px;
     font-size: 1rem;
+    background: linear-gradient(135deg, var(--success), #16a34a);
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 3px 10px rgba(34, 197, 94, 0.3);
+  }
+  
+  .alarm-banner.alarm-active .alarm-icon-wrap {
+    display: flex;
+    background: linear-gradient(135deg, var(--danger), #dc2626);
+    box-shadow: 0 3px 12px rgba(239, 68, 68, 0.4);
+    animation: iconPulse 0.6s ease-in-out infinite;
   }
   
   .alarm-title {
