@@ -689,6 +689,32 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
+// Format date to Philippines timezone (UTC+8)
+function formatDatePH(dateInput) {
+  if (!dateInput) return '--';
+  
+  let date;
+  if (typeof dateInput === 'string') {
+    date = new Date(dateInput);
+  } else {
+    date = new Date(dateInput);
+  }
+  
+  if (isNaN(date.getTime())) return dateInput;
+  
+  // Format in Philippines timezone
+  return date.toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+}
+
 function exportPDF() {
   if (!historyData || historyData.length === 0) {
     showToast('No history to export', 'error');
@@ -698,27 +724,30 @@ function exportPDF() {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'legal' });
   const pageW = 356, pageH = 216;
   
+  // Header
   doc.setFillColor(255, 87, 34);
-  doc.rect(0, 0, pageW, 25, 'F');
-  doc.setFontSize(24);
+  doc.rect(0, 0, pageW, 28, 'F');
+  doc.setFontSize(22);
   doc.setTextColor(255, 255, 255);
   doc.setFont(undefined, 'bold');
-  doc.text('CLOUD FIRE ALARM SYSTEM', 15, 12);
-  doc.setFontSize(11);
+  doc.text('CLOUD FIRE ALARM SYSTEM', 15, 13);
+  doc.setFontSize(10);
   doc.setFont(undefined, 'normal');
-  doc.text('Alarm History Report', 15, 19);
+  doc.text('Alarm History Report', 15, 20);
+  doc.text('Generated: ' + formatDatePH(new Date()), 15, 25);
   
-  let y = 38;
+  // Table header
+  let y = 42;
   doc.setFillColor(245, 245, 245);
   doc.rect(15, y - 6, pageW - 30, 8, 'F');
   doc.setFontSize(10);
   doc.setTextColor(60, 60, 60);
   doc.setFont(undefined, 'bold');
   doc.text('#', 20, y);
-  doc.text('Date & Time', 35, y);
-  doc.text('Trigger', 120, y);
-  doc.text('Gas Level', 165, y);
-  doc.text('Temperature', 215, y);
+  doc.text('Date & Time (PH)', 35, y);
+  doc.text('Trigger', 130, y);
+  doc.text('Gas Level', 175, y);
+  doc.text('Temperature', 225, y);
   
   y += 10;
   doc.setFont(undefined, 'normal');
@@ -730,17 +759,30 @@ function exportPDF() {
       y = 20;
     }
     
+    // Use createdAt for accurate time, fallback to timestamp
+    const displayTime = formatDatePH(h.createdAt || h.timestamp);
+    
     doc.setTextColor(40, 40, 40);
     doc.text(String(i + 1), 20, y);
-    doc.text(h.timestamp || '--', 35, y);
-    doc.text(h.trigger || 'unknown', 120, y);
-    doc.text((h.gas?.toFixed(1) || '--') + '%', 165, y);
-    doc.text((h.temperature?.toFixed(1) || '--') + '°C', 215, y);
+    doc.text(displayTime, 35, y);
+    doc.text((h.trigger || 'unknown').toUpperCase(), 130, y);
+    doc.text((h.gas?.toFixed(1) || '--') + '%', 175, y);
+    doc.text((h.temperature?.toFixed(1) || '--') + '°C', 225, y);
     
     y += 9;
   });
   
-  doc.save('FireAlarm_History_' + new Date().toISOString().split('T')[0] + '.pdf');
+  // Footer
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Page ${i} of ${totalPages}`, pageW - 30, pageH - 10);
+  }
+  
+  const filename = 'FireAlarm_History_' + new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }).replace(/\//g, '-') + '.pdf';
+  doc.save(filename);
   showToast('PDF exported successfully');
 }
 
