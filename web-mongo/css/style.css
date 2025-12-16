@@ -2278,86 +2278,126 @@ header {
 
 /* ========== IMPROVED MONITOR TAB ========== */
 .alarm-banner {
+  position: relative;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: 16px;
+  padding: 24px 20px;
+  background: linear-gradient(135deg, var(--card) 0%, var(--bg2) 100%);
+  border: 2px solid var(--success);
+  border-radius: 20px;
   margin-bottom: 20px;
-  transition: all 0.4s ease;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.alarm-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), transparent);
+  pointer-events: none;
 }
 
 .alarm-banner.alarm-active {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1));
-  border-color: rgba(239, 68, 68, 0.5);
-  animation: alarmBannerPulse 1s ease-in-out infinite;
+  border-color: var(--danger);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), var(--bg2));
 }
 
-@keyframes alarmBannerPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-  50% { transform: scale(1.01); box-shadow: 0 0 30px 5px rgba(239, 68, 68, 0.3); }
+.alarm-banner.alarm-active::before {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), transparent);
+}
+
+.alarm-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  z-index: 1;
 }
 
 .alarm-icon-wrap {
-  width: 56px;
-  height: 56px;
-  background: var(--success);
-  border-radius: 14px;
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, var(--success), #16a34a);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   color: white;
-  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
   transition: all 0.4s ease;
 }
 
 .alarm-banner.alarm-active .alarm-icon-wrap {
-  background: var(--danger);
-  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5);
-  animation: iconShake 0.5s ease-in-out infinite;
+  background: linear-gradient(135deg, var(--danger), #dc2626);
+  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.5);
+  animation: iconPulse 0.6s ease-in-out infinite;
 }
 
-@keyframes iconShake {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-5deg); }
-  75% { transform: rotate(5deg); }
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
-.alarm-info {
-  flex: 1;
+.alarm-text-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
 .alarm-title {
-  display: block;
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
   color: var(--text);
+  letter-spacing: 0.5px;
+}
+
+.alarm-banner.alarm-active .alarm-title {
+  color: var(--danger);
+  animation: textPulse 0.6s ease-in-out infinite;
+}
+
+@keyframes textPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .alarm-subtitle {
-  display: block;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--muted);
-  margin-top: 4px;
 }
 
-.alarm-indicator {
-  display: flex;
-  align-items: center;
+.alarm-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  border: 2px solid var(--success);
+  opacity: 0;
+  animation: pulseRing 2s ease-out infinite;
 }
 
-.indicator-dot {
-  width: 12px;
-  height: 12px;
-  background: var(--success);
-  border-radius: 50%;
-  animation: dotPulse 2s ease-in-out infinite;
+.alarm-banner.alarm-active .alarm-pulse {
+  border-color: var(--danger);
+  animation: pulseRing 1s ease-out infinite;
 }
 
-.alarm-banner.alarm-active .indicator-dot {
+@keyframes pulseRing {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(1.05); opacity: 0; }
+}
+
+/* Remove old styles */
+.alarm-indicator,
+.indicator-dot,
+.alarm-info {
+  display: none;
+}
+
+.alarm-banner.alarm-active .old-indicator-dot {
   background: var(--danger);
   animation: dotPulse 0.5s ease-in-out infinite;
 }

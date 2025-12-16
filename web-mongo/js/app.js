@@ -64,6 +64,7 @@ function initializeApp() {
   connectWebSocket();
   loadInitialData();
   loadHistory();
+  startHistoryAutoRefresh();
 }
 
 // ============ WebSocket Connection ============
@@ -450,14 +451,14 @@ function updateAlarmState(isAlarm, tempWarning) {
   const alarmCard = document.getElementById('alarmCard');
   const alarmIcon = document.getElementById('alarmIcon');
   const alarmText = document.getElementById('alarmText');
-  const alarmSubtitle = document.querySelector('.alarm-subtitle');
+  const alarmSubtitle = document.getElementById('alarmSubtitle');
   const sirenOverlay = document.getElementById('sirenOverlay');
   
   if (isAlarm) {
     if (alarmCard) alarmCard.classList.add('alarm-active');
     if (alarmIcon) alarmIcon.className = 'fas fa-triangle-exclamation';
     if (alarmText) alarmText.textContent = 'ALARM ACTIVE!';
-    if (alarmSubtitle) alarmSubtitle.textContent = 'Danger detected - take action immediately!';
+    if (alarmSubtitle) alarmSubtitle.textContent = 'Danger detected - take action now!';
     if (sirenOverlay) sirenOverlay.classList.add('active');
     document.body.classList.add('alarm-mode');
     playAlarmSound();
@@ -511,6 +512,8 @@ function updateSirenUI() {
   if (!sirenEnabled) stopAlarmSound();
 }
 
+let historyRefreshInterval = null;
+
 async function loadHistory() {
   try {
     const history = await api.getHistory(CONFIG.DEVICE_ID);
@@ -522,15 +525,74 @@ async function loadHistory() {
 
 function refreshHistory() {
   loadHistory();
+  showToast('History refreshed');
+}
+
+// Start auto-refresh for history (every 30 seconds)
+function startHistoryAutoRefresh() {
+  if (historyRefreshInterval) clearInterval(historyRefreshInterval);
+  historyRefreshInterval = setInterval(loadHistory, 30000);
+}
+
+function stopHistoryAutoRefresh() {
+  if (historyRefreshInterval) {
+    clearInterval(historyRefreshInterval);
+    historyRefreshInterval = null;
+  }
+}
+
+// Format timestamp to relative time
+function formatTimeAgo(timestamp) {
+  if (!timestamp) return '--';
+  
+  // Try to parse the timestamp
+  let date;
+  if (typeof timestamp === 'string') {
+    // Handle various formats
+    date = new Date(timestamp);
+    if (isNaN(date.getTime())) {
+      // Try parsing as local format
+      return timestamp; // Return as-is if can't parse
+    }
+  } else {
+    date = new Date(timestamp);
+  }
+  
+  const now = new Date();
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+  
+  if (diffSec < 60) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  
+  // Format as date for older entries
+  return date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
 function renderHistory(history) {
   historyData = history;
-  elements.historyCount.textContent = history.length;
-  elements.alarmCount.textContent = history.length;
+  
+  const historyCount = document.getElementById('historyCount');
+  const alarmCount = document.getElementById('alarmCount');
+  const historyList = document.getElementById('historyList');
+  
+  if (historyCount) historyCount.textContent = history.length;
+  if (alarmCount) alarmCount.textContent = history.length;
+  
+  if (!historyList) return;
   
   if (history.length === 0) {
-    elements.historyList.innerHTML = `
+    historyList.innerHTML = `
       <div class="empty-state">
         <i class="fas fa-check-circle"></i>
         <p>No alarm history</p>
@@ -538,18 +600,22 @@ function renderHistory(history) {
     return;
   }
   
-  elements.historyList.innerHTML = history.map(item => `
-    <div class="history-item">
+  historyList.innerHTML = history.map((item, index) => {
+    const timeAgo = formatTimeAgo(item.createdAt || item.timestamp);
+    const fullTime = item.timestamp || new Date(item.createdAt).toLocaleString();
+    
+    return `
+    <div class="history-item" style="animation-delay: ${index * 0.05}s">
       <div class="history-info">
-        <span class="history-time"><i class="fas fa-clock"></i> ${item.timestamp}</span>
-        <span class="history-trigger ${item.trigger}">${item.trigger.toUpperCase()}</span>
+        <span class="history-time" title="${fullTime}"><i class="fas fa-clock"></i> ${timeAgo}</span>
+        <span class="history-trigger ${item.trigger}">${item.trigger?.toUpperCase() || 'ALARM'}</span>
       </div>
       <div class="history-values">
         <span><i class="fas fa-fire"></i> ${item.gas?.toFixed(1) || '--'}%</span>
         <span><i class="fas fa-temperature-half"></i> ${item.temperature?.toFixed(1) || '--'}°C</span>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 // ============ Control Functions ============
