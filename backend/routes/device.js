@@ -2,62 +2,37 @@ const express = require('express');
 const router = express.Router();
 const Device = require('../models/Device');
 const AlarmHistory = require('../models/AlarmHistory');
-const Household = require('../models/Household');
+const User = require('../models/User');
+const { auth } = require('../middleware/auth');
 const { sendPushNotification } = require('../utils/push');
 const { sendAlarmSMS } = require('../utils/sms');
 
-// Middleware to verify household session
-const verifySession = async (req, res, next) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) {
-    return res.status(401).json({ error: 'Access denied. Please login.' });
-  }
-
+// Get device data (authenticated users)
+router.get('/:deviceId', auth, async (req, res) => {
   try {
-    const household = await Household.findOne({ 'sessions.token': token });
-    if (!household) {
-      return res.status(401).json({ error: 'Invalid session. Please login again.' });
-    }
-
-    const session = household.validateSession(token);
-    if (!session) {
-      return res.status(401).json({ error: 'Session expired. Please login again.' });
-    }
-
-    req.household = household;
-    req.session = session;
-    req.isAdmin = session.role === 'admin';
-    next();
-  } catch (error) {
-    res.status(500).json({ error: 'Authentication failed' });
-  }
-};
-
-// Middleware to require admin for settings changes
-const requireAdmin = (req, res, next) => {
-  if (!req.isAdmin) {
-    return res.status(403).json({ 
-      error: 'Admin access required',
-      message: 'Only admins can change device settings. Enter your admin PIN to upgrade.'
-    });
-  }
-  next();
-};
-
-// Get device data (all authenticated users)
-router.get('/:deviceId', verifySession, async (req, res) => {
-  try {
-    // Verify user has access to this device
-    if (req.household.deviceId !== req.params.deviceId) {
-      return res.status(403).json({ error: 'Access denied to this device' });
-    }
-
     const device = await Device.findOne({ deviceId: req.params.deviceId });
     if (!device) {
-      return res.status(404).json({ error: 'Device not found' });
+      // Create device if it doesn't exist
+      const newDevice = new Device({ 
+        deviceId: req.params.deviceId,
+        current: {
+          gas: 0,
+          temperature: 0,
+          humidity: 0,
+          voltage: 0,
+          threshold: 40,
+          tempThreshold: 60,
+          sirenEnabled: true,
+          alarm: false,
+          timestamp: new Date().toLocaleString()
+        }
+      });
+      await newDevice.save();
+      return res.json(newDevice);
     }
     res.json(device);
   } catch (error) {
+    console.error('Get device error:', error);
     res.status(500).json({ error: 'Failed to get device data' });
   }
 });
@@ -110,7 +85,7 @@ router.post('/:deviceId/data', async (req, res) => {
         timestamp: new Date().toLocaleString()
       });
 
-      // Send push notifications
+      // Send push notifications to all users with this device
       await sendPushNotification(deviceId, {
         title: '🔥 FIRE ALARM!',
         body: `${trigger === 'gas' ? 'Gas detected' : trigger === 'temperature' ? 'High temperature' : 'Gas + High temp'} - Gas: ${data.gas?.toFixed(1)}%, Temp: ${data.temperature?.toFixed(1)}°C`,
@@ -121,10 +96,10 @@ router.post('/:deviceId/data', async (req, res) => {
         requireInteraction: true
       });
 
-      // Send SMS if enabled for this household
-      const household = await Household.findOne({ deviceId });
-      if (household?.smsSettings?.enabled && household?.smsSettings?.phoneNumber) {
-        await sendAlarmSMS(household.smsSettings.phoneNumber, {
+      // Send SMS to users with SMS enabled
+      const usersWithSMS = await User.find({ smsEnabled: true, phoneNumber: { $exists: true, $ne: '' } });
+      for (const user of usersWithSMS) {
+        await sendAlarmSMS(user.phoneNumber, {
           trigger,
           gas: data.gas,
           temperature: data.temperature
@@ -167,25 +142,11 @@ router.get('/:deviceId/commands', async (req, res) => {
   }
 });
 
-// Send command to device - ADMIN ONLY for threshold/settings changes
-router.post('/:deviceId/command', verifySession, async (req, res) => {
+// Send command to device (authenticated users)
+router.post('/:deviceId/command', auth, async (req, res) => {
   try {
     const { deviceId } = req.params;
     const { command, value } = req.body;
-
-    // Verify user has access to this device
-    if (req.household.deviceId !== deviceId) {
-      return res.status(403).json({ error: 'Access denied to this device' });
-    }
-
-    // Admin-only commands
-    const adminOnlyCommands = ['threshold', 'tempThreshold', 'sirenEnabled'];
-    if (adminOnlyCommands.includes(command) && !req.isAdmin) {
-      return res.status(403).json({ 
-        error: 'Admin access required',
-        message: 'Only admins can change sensor thresholds and siren settings.'
-      });
-    }
 
     let device = await Device.findOne({ deviceId });
     if (!device) {
@@ -212,26 +173,23 @@ router.post('/:deviceId/command', verifySession, async (req, res) => {
     const wss = req.app.get('wss');
     if (wss) {
       wss.clients.forEach(client => {
-        if (client.deviceId === deviceId && client.isDevice && client.readyState === 1) {
-          client.send(JSON.stringify({ type: 'command', command, value }));
+        if (client.deviceId === deviceId && client.readyState === 1) {
+          client.send(JSON.stringify({ type: 'data', data: device.current }));
         }
       });
     }
 
     res.json({ success: true });
   } catch (error) {
+    console.error('Command error:', error);
     res.status(500).json({ error: 'Failed to send command' });
   }
 });
 
-// Silence alarm - ALL users can do this (safety feature)
-router.post('/:deviceId/silence', verifySession, async (req, res) => {
+// Silence alarm (authenticated users)
+router.post('/:deviceId/silence', auth, async (req, res) => {
   try {
     const { deviceId } = req.params;
-
-    if (req.household.deviceId !== deviceId) {
-      return res.status(403).json({ error: 'Access denied to this device' });
-    }
 
     let device = await Device.findOne({ deviceId });
     if (!device) {
@@ -240,21 +198,34 @@ router.post('/:deviceId/silence', verifySession, async (req, res) => {
 
     if (!device.commands) device.commands = {};
     device.commands.silence = true;
+    
+    // Also update current state
+    if (device.current) {
+      device.current.alarm = false;
+    }
+    
     await device.save();
+
+    // Broadcast alarm silenced to WebSocket clients
+    const wss = req.app.get('wss');
+    if (wss) {
+      wss.clients.forEach(client => {
+        if (client.deviceId === deviceId && client.readyState === 1) {
+          client.send(JSON.stringify({ type: 'data', data: device.current }));
+        }
+      });
+    }
 
     res.json({ success: true, message: 'Alarm silenced' });
   } catch (error) {
+    console.error('Silence error:', error);
     res.status(500).json({ error: 'Failed to silence alarm' });
   }
 });
 
-// Get alarm history (all authenticated users)
-router.get('/:deviceId/history', verifySession, async (req, res) => {
+// Get alarm history (authenticated users)
+router.get('/:deviceId/history', auth, async (req, res) => {
   try {
-    if (req.household.deviceId !== req.params.deviceId) {
-      return res.status(403).json({ error: 'Access denied to this device' });
-    }
-
     const history = await AlarmHistory.find({ deviceId: req.params.deviceId })
       .sort({ createdAt: -1 })
       .limit(50);
@@ -264,13 +235,9 @@ router.get('/:deviceId/history', verifySession, async (req, res) => {
   }
 });
 
-// Clear alarm history - ADMIN ONLY
-router.delete('/:deviceId/history', verifySession, requireAdmin, async (req, res) => {
+// Clear alarm history (authenticated users)
+router.delete('/:deviceId/history', auth, async (req, res) => {
   try {
-    if (req.household.deviceId !== req.params.deviceId) {
-      return res.status(403).json({ error: 'Access denied to this device' });
-    }
-
     await AlarmHistory.deleteMany({ deviceId: req.params.deviceId });
     res.json({ success: true });
   } catch (error) {

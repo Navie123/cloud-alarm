@@ -171,7 +171,7 @@ function updateUserDisplay() {
   const greetTextEl = document.getElementById('greetText');
   
   if (currentUser && userInfoEl) {
-    const name = currentUser.name || 'User';
+    const name = currentUser.displayName || currentUser.name || 'User';
     userInfoEl.innerHTML = `
       <div class="user-avatar"><i class="fas fa-user"></i></div>
       <div class="user-details">
