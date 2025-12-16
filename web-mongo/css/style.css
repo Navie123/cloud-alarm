@@ -2123,80 +2123,47 @@ header {
   background: rgba(239, 68, 68, 0.1);
 }
 
-/* Greeting Card - Improved */
+/* Greeting Card - Subtle & Blended */
 .header-greeting {
   flex: 1;
   display: flex;
   justify-content: center;
-  max-width: 320px;
 }
 
 .greeting-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 14px 22px;
-  background: linear-gradient(135deg, rgba(255, 87, 34, 0.08), rgba(255, 138, 80, 0.03));
-  border: 1px solid rgba(255, 87, 34, 0.15);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 14px;
+  padding: 12px 18px;
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  transition: all 0.3s ease;
   position: relative;
-  overflow: hidden;
-}
-
-.greeting-card::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255, 87, 34, 0.05) 0%, transparent 60%);
-  animation: greetingShimmer 8s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes greetingShimmer {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(25%, 25%); }
 }
 
 .greeting-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 87, 34, 0.3);
-  box-shadow: 0 8px 30px rgba(255, 87, 34, 0.15);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .weather-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1.4rem;
+  transition: all 0.4s ease;
   position: relative;
   flex-shrink: 0;
-}
-
-.weather-icon::after {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 17px;
-  background: inherit;
-  opacity: 0.3;
-  filter: blur(8px);
-  z-index: -1;
 }
 
 /* Weather icon themes */
 .weather-icon.morning {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
   color: white;
-  box-shadow: 0 4px 20px rgba(251, 191, 36, 0.5);
+  box-shadow: 0 4px 16px rgba(251, 191, 36, 0.4);
 }
 
 .weather-icon.morning i {
@@ -2205,13 +2172,13 @@ header {
 
 @keyframes sunRise {
   0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-3px) rotate(10deg); }
+  50% { transform: translateY(-2px) rotate(5deg); }
 }
 
 .weather-icon.afternoon {
   background: linear-gradient(135deg, #f97316, #ea580c);
   color: white;
-  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.5);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
 }
 
 .weather-icon.afternoon i {
@@ -2220,13 +2187,13 @@ header {
 
 @keyframes sunPulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  50% { transform: scale(1.08); }
 }
 
 .weather-icon.evening {
   background: linear-gradient(135deg, #8b5cf6, #7c3aed);
   color: white;
-  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
 }
 
 .weather-icon.evening i {
@@ -2234,14 +2201,14 @@ header {
 }
 
 @keyframes moonGlow {
-  0%, 100% { opacity: 1; filter: brightness(1); }
-  50% { opacity: 0.8; filter: brightness(1.2); }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
 }
 
 .weather-icon.night {
   background: linear-gradient(135deg, #1e3a5f, #0f172a);
   color: #fbbf24;
-  box-shadow: 0 4px 20px rgba(30, 58, 95, 0.5);
+  box-shadow: 0 4px 16px rgba(30, 58, 95, 0.4);
 }
 
 .weather-icon.night i {
@@ -2250,7 +2217,7 @@ header {
 
 @keyframes starTwinkle {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(0.95); }
+  50% { opacity: 0.75; transform: scale(0.96); }
 }
 
 .weather-icon.cloudy {
@@ -2266,22 +2233,18 @@ header {
 .greeting-content {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  position: relative;
-  z-index: 1;
+  gap: 2px;
 }
 
 .greeting-text {
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.1rem;
+  font-weight: 600;
   color: var(--text);
-  letter-spacing: -0.3px;
 }
 
 .greeting-sub {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--muted);
-  opacity: 0.9;
 }
 
 /* DateTime Display */
@@ -2362,16 +2325,13 @@ header {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 12px 20px;
+  padding: 14px 24px;
   background: var(--card);
   border: 1px solid var(--success);
-  border-radius: 12px;
-  margin-bottom: 16px;
+  border-radius: 14px;
+  margin-bottom: 20px;
   overflow: hidden;
   transition: all 0.3s ease;
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .alarm-banner::before {
@@ -2385,7 +2345,6 @@ header {
 .alarm-banner.alarm-active {
   border-color: var(--danger);
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), var(--card));
-  max-width: 450px;
 }
 
 .alarm-banner.alarm-active::before {
@@ -2395,29 +2354,29 @@ header {
 .alarm-content {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   z-index: 1;
 }
 
 .alarm-icon-wrap {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   background: linear-gradient(135deg, var(--success), #16a34a);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: white;
-  box-shadow: 0 3px 10px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
   transition: all 0.3s ease;
   flex-shrink: 0;
 }
 
 .alarm-banner.alarm-active .alarm-icon-wrap {
-  width: 42px;
-  height: 42px;
-  font-size: 1.1rem;
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
   background: linear-gradient(135deg, var(--danger), #dc2626);
   box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
   animation: iconPulse 0.6s ease-in-out infinite;
@@ -2431,31 +2390,30 @@ header {
 .alarm-text-wrap {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  text-align: center;
+  align-items: flex-start;
+  gap: 2px;
 }
 
 .alarm-title {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text);
 }
 
 .alarm-banner.alarm-active .alarm-title {
   color: var(--danger);
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 
 .alarm-subtitle {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 
 .alarm-pulse {
   position: absolute;
   inset: 0;
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--success);
   opacity: 0;
   pointer-events: none;
@@ -2691,7 +2649,8 @@ header {
   .header-top {
     flex-direction: column;
     text-align: center;
-    gap: 14px;
+    gap: 8px;
+    padding: 14px 16px;
   }
   
   .brand {
@@ -2700,13 +2659,11 @@ header {
   
   .header-greeting {
     width: 100%;
-    max-width: 100%;
+    order: 3;
   }
   
   .greeting-card {
     justify-content: center;
-    width: auto;
-    max-width: 300px;
     margin: 0 auto;
   }
   
@@ -2721,65 +2678,81 @@ header {
 
 @media (max-width: 768px) {
   .header-top {
-    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 8px 12px;
+    padding: 12px 14px;
+    text-align: left;
+  }
+  
+  .brand {
+    grid-column: 1;
+    grid-row: 1;
+    justify-content: flex-start;
+  }
+  
+  .header-datetime {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+  }
+  
+  .header-greeting {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    display: flex !important;
+  }
+  
+  .greeting-card {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 10px 0;
     gap: 12px;
   }
   
   .brand-icon {
-    width: 42px;
-    height: 42px;
-    font-size: 1.2rem;
-    border-radius: 12px;
-  }
-  
-  .brand-text h1 {
-    font-size: 1.15rem;
-  }
-  
-  .status-badge {
-    font-size: 0.7rem;
-    padding: 3px 8px;
-  }
-  
-  .greeting-card {
-    padding: 10px 16px;
-    gap: 12px;
-    border-radius: 14px;
-  }
-  
-  .greeting-card::before {
-    display: none;
-  }
-  
-  .weather-icon {
-    width: 42px;
-    height: 42px;
-    font-size: 1.2rem;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
     border-radius: 10px;
   }
   
-  .weather-icon::after {
-    display: none;
+  .brand-text h1 {
+    font-size: 1.1rem;
+  }
+  
+  .status-badge {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+  }
+  
+  .weather-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 1.1rem;
+    border-radius: 10px;
   }
   
   .greeting-text {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
   }
   
   .greeting-sub {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
   }
   
   .time-value {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
   }
   
   .time-period {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
   }
   
   .date-display {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
   }
   
   .header-nav {
@@ -2836,23 +2809,22 @@ header {
   }
   
   .alarm-banner {
-    max-width: 100%;
-    padding: 10px 14px;
-    border-radius: 10px;
+    padding: 12px 16px;
+    border-radius: 12px;
   }
   
   .alarm-icon-wrap {
-    width: 34px;
-    height: 34px;
-    font-size: 0.9rem;
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
   }
   
   .alarm-title {
-    font-size: 0.85rem;
+    font-size: 0.92rem;
   }
   
   .alarm-subtitle {
-    font-size: 0.68rem;
+    font-size: 0.7rem;
   }
   
   .container {
@@ -2867,56 +2839,60 @@ header {
 
 @media (max-width: 480px) {
   .header-top {
+    gap: 6px 10px;
     padding: 10px 12px;
-    gap: 10px;
   }
   
   .brand-icon {
-    width: 38px;
-    height: 38px;
-    font-size: 1.1rem;
-    border-radius: 10px;
-  }
-  
-  .brand-text h1 {
-    font-size: 1.05rem;
-  }
-  
-  .header-greeting {
-    display: block;
-  }
-  
-  .greeting-card {
-    padding: 8px 14px;
-    gap: 10px;
-    max-width: 260px;
-  }
-  
-  .weather-icon {
     width: 36px;
     height: 36px;
     font-size: 1rem;
     border-radius: 8px;
   }
   
+  .brand-text h1 {
+    font-size: 1rem;
+  }
+  
+  .status-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+  }
+  
+  .header-greeting {
+    display: flex !important;
+  }
+  
+  .greeting-card {
+    padding: 8px 0;
+    gap: 10px;
+  }
+  
+  .weather-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
+    border-radius: 8px;
+  }
+  
   .greeting-text {
-    font-size: 0.88rem;
+    font-size: 0.85rem;
   }
   
   .greeting-sub {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
   }
   
   .time-value {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
   }
   
   .time-period {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
   }
   
   .date-display {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
   }
   
   .header-nav {
@@ -2924,7 +2900,7 @@ header {
   }
   
   .tabs {
-    gap: 4px;
+    gap: 2px;
   }
   
   .tab {
@@ -2934,9 +2910,9 @@ header {
   }
   
   .action-btn {
-    width: 36px;
-    height: 36px;
-    font-size: 0.9rem;
+    width: 34px;
+    height: 34px;
+    font-size: 0.85rem;
     border-radius: 8px;
   }
   
@@ -2969,8 +2945,9 @@ header {
   }
   
   .alarm-banner {
-    padding: 10px 12px;
-    margin-bottom: 12px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border-radius: 10px;
   }
   
   .alarm-content {
@@ -2978,27 +2955,27 @@ header {
   }
   
   .alarm-icon-wrap {
-    width: 32px;
-    height: 32px;
-    font-size: 0.85rem;
-  }
-  
-  .alarm-banner.alarm-active .alarm-icon-wrap {
     width: 36px;
     height: 36px;
     font-size: 0.95rem;
   }
   
-  .alarm-title {
-    font-size: 0.82rem;
+  .alarm-banner.alarm-active .alarm-icon-wrap {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
   }
   
-  .alarm-banner.alarm-active .alarm-title {
+  .alarm-title {
     font-size: 0.88rem;
   }
   
+  .alarm-banner.alarm-active .alarm-title {
+    font-size: 0.92rem;
+  }
+  
   .alarm-subtitle {
-    font-size: 0.65rem;
+    font-size: 0.68rem;
   }
   
   .quick-stats {
@@ -3088,15 +3065,33 @@ header {
 /* Extra small screens */
 @media (max-width: 360px) {
   .header-greeting {
-    display: none;
+    display: flex !important;
+  }
+  
+  .greeting-card {
+    gap: 8px;
+  }
+  
+  .weather-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+  }
+  
+  .greeting-text {
+    font-size: 0.8rem;
+  }
+  
+  .greeting-sub {
+    font-size: 0.65rem;
   }
   
   .brand-text h1 {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
   }
   
   .time-value {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
   
   .gauge-ring {
