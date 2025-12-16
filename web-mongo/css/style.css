@@ -2138,7 +2138,7 @@ header {
   display: none;
 }
 
-/* PC: Greeting section - center, no border, blends with bg */
+/* PC: Greeting section - center, slightly larger */
 .header-greeting {
   flex: 1;
   display: flex;
@@ -2148,12 +2148,13 @@ header {
 .greeting-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
+  gap: 14px;
+  padding: 12px 20px;
   background: transparent;
   border: none;
   border-radius: 14px;
   transition: all 0.3s ease;
+  max-width: 600px;
 }
 
 .greeting-card:hover {
@@ -2161,13 +2162,13 @@ header {
 }
 
 .weather-icon {
-  width: 46px;
-  height: 46px;
+  width: 50px;
+  height: 50px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   transition: all 0.4s ease;
   flex-shrink: 0;
 }
@@ -2175,17 +2176,17 @@ header {
 .greeting-content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .greeting-text {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--text);
 }
 
 .greeting-sub {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -2386,13 +2387,16 @@ header {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 14px 28px;
+  padding: 10px 20px;
   background: var(--card);
   border: 1px solid var(--success);
-  border-radius: 12px;
+  border-radius: 10px;
   margin-bottom: 20px;
   overflow: hidden;
   transition: all 0.3s ease;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .alarm-banner::before {
@@ -2436,24 +2440,27 @@ header {
 .alarm-text-wrap {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  align-items: center;
+  gap: 1px;
+  text-align: center;
 }
 
 .alarm-title {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--text);
+  text-align: center;
 }
 
 .alarm-banner.alarm-active .alarm-title {
   color: var(--danger);
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .alarm-subtitle {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--muted);
+  text-align: center;
 }
 
 .alarm-pulse {
@@ -2497,6 +2504,7 @@ header {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+  margin-top: 10px;
   margin-bottom: 20px;
 }
 
@@ -2619,6 +2627,7 @@ header {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
+  margin-top: 8px;
 }
 
 .quick-stat {
