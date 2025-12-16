@@ -2148,13 +2148,13 @@ header {
 .greeting-card {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   padding: 12px 20px;
   background: transparent;
   border: none;
   border-radius: 14px;
   transition: all 0.3s ease;
-  max-width: 600px;
 }
 
 .greeting-card:hover {
@@ -2394,9 +2394,7 @@ header {
   margin-bottom: 20px;
   overflow: hidden;
   transition: all 0.3s ease;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
 }
 
 .alarm-banner::before {
