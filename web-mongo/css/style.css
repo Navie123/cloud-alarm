@@ -560,7 +560,7 @@ h1 {
 
 /* Remove extra space at bottom */
 main.container {
-  padding-bottom: 30px;
+  padding-bottom: 16px;
 }
 
 .tab-content { display: none; animation: fadeIn 0.3s ease; }
@@ -746,7 +746,7 @@ main.container {
 
 /* ========== HISTORY ========== */
 .history-actions { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.history-list { max-height: 300px; overflow-y: auto; }
+.history-list { max-height: 450px; overflow-y: auto; }
 
 .history-item {
   padding: 10px;
