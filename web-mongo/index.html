@@ -147,11 +147,18 @@
         <div class="header-right"><div id="currentTime">--:--</div></div>
       </div>
       <div class="tabs">
-        <div class="tab active" data-tab="monitor"><i class="fas fa-gauge"></i> Live Monitor</div>
-        <div class="tab" data-tab="history"><i class="fas fa-clock-rotate-left"></i> History</div>
-        <div class="tab" data-tab="settings"><i class="fas fa-sliders"></i> Settings</div>
+        <div class="tab active" data-tab="monitor"><i class="fas fa-gauge"></i> <span class="tab-text">Live Monitor</span></div>
+        <div class="tab" data-tab="history"><i class="fas fa-clock-rotate-left"></i> <span class="tab-text">History</span></div>
+        <div class="tab" data-tab="settings"><i class="fas fa-sliders"></i> <span class="tab-text">Settings</span></div>
         <div style="flex:1"></div>
-        <button class="icon-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+        <div class="header-actions">
+          <button class="action-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen">
+            <i class="fas fa-expand" id="fullscreenIcon"></i>
+          </button>
+          <button class="action-btn" onclick="toggleSidebar()" title="Settings">
+            <i class="fas fa-cog"></i>
+          </button>
+        </div>
       </div>
     </header>
 

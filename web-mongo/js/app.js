@@ -674,3 +674,55 @@ showMainApp = function() {
   loadUserPhone();
   loadAlarmSoundSetting();
 };
+
+
+// ============ Fullscreen Functions ============
+let isFullscreen = false;
+
+function toggleFullscreen() {
+  const icon = document.getElementById('fullscreenIcon');
+  
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    // Enter fullscreen
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
+    }
+    isFullscreen = true;
+    if (icon) icon.className = 'fas fa-compress';
+    document.body.classList.add('fullscreen-mode');
+  } else {
+    // Exit fullscreen
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+    isFullscreen = false;
+    if (icon) icon.className = 'fas fa-expand';
+    document.body.classList.remove('fullscreen-mode');
+  }
+}
+
+// Listen for fullscreen change events
+document.addEventListener('fullscreenchange', updateFullscreenIcon);
+document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+
+function updateFullscreenIcon() {
+  const icon = document.getElementById('fullscreenIcon');
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    isFullscreen = true;
+    if (icon) icon.className = 'fas fa-compress';
+    document.body.classList.add('fullscreen-mode');
+  } else {
+    isFullscreen = false;
+    if (icon) icon.className = 'fas fa-expand';
+    document.body.classList.remove('fullscreen-mode');
+  }
+}
