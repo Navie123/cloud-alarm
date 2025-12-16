@@ -89,19 +89,24 @@ function togglePushNotifications() {
 
 // Update push notification UI
 function updatePushUI(subscribed) {
-  const pushBtn = document.getElementById('pushToggleBtn');
-  const pushIcon = document.getElementById('pushIcon');
-  const pushText = document.getElementById('pushText');
+  const pushBtn = document.getElementById('pushBtn');
+  const pushStatus = document.getElementById('pushStatus');
   
   if (pushBtn) {
     if (subscribed) {
-      pushBtn.classList.add('active');
-      if (pushIcon) pushIcon.className = 'fas fa-bell';
-      if (pushText) pushText.textContent = 'Notifications On';
+      pushBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Disable Push Notifications';
+      pushBtn.classList.remove('btn-primary');
+      pushBtn.classList.add('btn-secondary');
+      if (pushStatus) {
+        pushStatus.innerHTML = '<span class="success"><i class="fas fa-check-circle"></i> Push notifications enabled</span>';
+      }
     } else {
-      pushBtn.classList.remove('active');
-      if (pushIcon) pushIcon.className = 'fas fa-bell-slash';
-      if (pushText) pushText.textContent = 'Enable Notifications';
+      pushBtn.innerHTML = '<i class="fas fa-bell"></i> Enable Push Notifications';
+      pushBtn.classList.remove('btn-secondary');
+      pushBtn.classList.add('btn-primary');
+      if (pushStatus) {
+        pushStatus.innerHTML = '';
+      }
     }
   }
 }
