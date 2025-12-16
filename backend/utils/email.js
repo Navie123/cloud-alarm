@@ -91,4 +91,52 @@ const sendPasswordResetEmail = async (email, token) => {
   }
 };
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail };
+// Send OTP email for admin verification
+const sendOTPEmail = async (email, code, purpose) => {
+  const purposeText = {
+    setup: 'complete your Admin setup',
+    login: 'log in as Admin',
+    reset: 'reset your Admin PIN'
+  };
+
+  console.log('[Email] Sending OTP to:', email, 'Purpose:', purpose);
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Cloud Fire Alarm <onboarding@resend.dev>',
+      to: email,
+      subject: `Your Verification Code - Cloud Fire Alarm`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #ff5722, #ff9800); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0;">🔥 Cloud Fire Alarm</h1>
+          </div>
+          <div style="padding: 30px; background: #f5f5f5; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #333;">Verification Code</h2>
+            <p style="color: #666;">Use this code to ${purposeText[purpose] || 'verify your identity'}:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <div style="background: #333; color: #ff5722; padding: 20px 40px; font-size: 32px; font-weight: bold; letter-spacing: 8px; border-radius: 8px; display: inline-block;">
+                ${code}
+              </div>
+            </div>
+            <p style="color: #999; font-size: 12px;">This code expires in 10 minutes.</p>
+            <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+          </div>
+        </div>
+      `
+    });
+
+    if (error) {
+      console.error('[Email] Resend error:', error);
+      throw new Error(error.message);
+    }
+
+    console.log('[Email] OTP sent successfully to:', email);
+    return data;
+  } catch (error) {
+    console.error('[Email] Failed to send OTP:', error.message);
+    throw error;
+  }
+};
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendOTPEmail };

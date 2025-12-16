@@ -1,5 +1,5 @@
 const webpush = require('web-push');
-const User = require('../models/User');
+const Device = require('../models/Device');
 
 // Configure web-push
 const configurePush = () => {
@@ -10,40 +10,41 @@ const configurePush = () => {
   );
 };
 
-// Send push notification to all users subscribed to a device
+// Send push notification to all subscriptions for a device
 const sendPushNotification = async (deviceId, payload) => {
   try {
-    // Find all users with push subscriptions
-    const users = await User.find({
-      'pushSubscriptions.0': { $exists: true }
-    });
+    // Find device with push subscriptions
+    const device = await Device.findOne({ deviceId });
+    
+    if (!device || !device.pushSubscriptions || device.pushSubscriptions.length === 0) {
+      console.log(`No push subscriptions for device ${deviceId}`);
+      return;
+    }
 
     const notifications = [];
 
-    for (const user of users) {
-      for (const subscription of user.pushSubscriptions) {
-        const pushSubscription = {
-          endpoint: subscription.endpoint,
-          keys: {
-            p256dh: subscription.keys.p256dh,
-            auth: subscription.keys.auth
-          }
-        };
+    for (const subscription of device.pushSubscriptions) {
+      const pushSubscription = {
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth
+        }
+      };
 
-        notifications.push(
-          webpush.sendNotification(pushSubscription, JSON.stringify(payload))
-            .catch(error => {
-              console.error('Push notification error:', error);
-              // Remove invalid subscription
-              if (error.statusCode === 410 || error.statusCode === 404) {
-                user.pushSubscriptions = user.pushSubscriptions.filter(
-                  s => s.endpoint !== subscription.endpoint
-                );
-                user.save();
-              }
-            })
-        );
-      }
+      notifications.push(
+        webpush.sendNotification(pushSubscription, JSON.stringify(payload))
+          .catch(error => {
+            console.error('Push notification error:', error);
+            // Remove invalid subscription
+            if (error.statusCode === 410 || error.statusCode === 404) {
+              device.pushSubscriptions = device.pushSubscriptions.filter(
+                s => s.endpoint !== subscription.endpoint
+              );
+              device.save();
+            }
+          })
+      );
     }
 
     await Promise.allSettled(notifications);

@@ -52,15 +52,18 @@ const elements = {
   connectionStatus: document.getElementById('connectionStatus')
 };
 
-// Initialize
+// Initialize - wait for auth
 document.addEventListener('DOMContentLoaded', () => {
   setupTabs();
   setupSlider();
   setupDateTime();
 });
 
-// Called after successful login
+// Called after successful household access
 function initializeApp() {
+  loadAlarmSoundSetting();
+  loadMemberPreferences();
+  initPushNotifications();
   connectWebSocket();
   loadInitialData();
   loadHistory();
@@ -73,7 +76,15 @@ let pingInterval = null;
 function connectWebSocket() {
   if (ws && ws.readyState === WebSocket.OPEN) return;
 
-  const wsUrl = `${CONFIG.WS_URL}/ws/${CONFIG.DEVICE_ID}`;
+  const token = localStorage.getItem('householdToken');
+  const deviceId = localStorage.getItem('deviceId') || CONFIG.DEVICE_ID;
+  
+  if (!token) {
+    console.log('No token, skipping WebSocket');
+    return;
+  }
+
+  const wsUrl = `${CONFIG.WS_URL}/ws/${deviceId}?token=${token}`;
   ws = new WebSocket(wsUrl);
   window.ws = ws;
 
@@ -325,32 +336,32 @@ function updateGreeting(hours) {
   const subEl = document.getElementById('greetSub');
   const weatherIcon = document.getElementById('weatherIcon');
   
-  let greeting, subtext, iconClass, timeClass;
+  // Get user's name from localStorage or auth
+  const memberName = localStorage.getItem('memberName') || '';
+  const userName = memberName ? `, ${memberName}` : '';
+  
+  let greeting, iconClass, timeClass;
   
   if (hours >= 5 && hours < 12) {
-    greeting = 'Good Morning!';
-    subtext = 'Start your day safely';
+    greeting = `Good Morning${userName}!`;
     iconClass = 'fa-sun';
     timeClass = 'morning';
   } else if (hours >= 12 && hours < 17) {
-    greeting = 'Good Afternoon!';
-    subtext = 'Stay alert and safe';
+    greeting = `Good Afternoon${userName}!`;
     iconClass = 'fa-cloud-sun';
     timeClass = 'afternoon';
   } else if (hours >= 17 && hours < 21) {
-    greeting = 'Good Evening!';
-    subtext = 'Winding down safely';
+    greeting = `Good Evening${userName}!`;
     iconClass = 'fa-cloud-moon';
     timeClass = 'evening';
   } else {
-    greeting = 'Good Night!';
-    subtext = 'Rest easy, we\'re watching';
+    greeting = `Good Night${userName}!`;
     iconClass = 'fa-moon';
     timeClass = 'night';
   }
   
   if (greetEl) greetEl.textContent = greeting;
-  if (subEl) subEl.textContent = subtext;
+  if (subEl) subEl.style.display = 'none'; // Hide subtitle
   if (weatherIcon) {
     weatherIcon.className = 'weather-icon ' + timeClass;
     weatherIcon.innerHTML = `<i class="fas ${iconClass}"></i>`;
@@ -627,11 +638,20 @@ function renderHistory(history) {
   `}).join('');
 }
 
-// ============ Control Functions ============
+// ============ Control Functions (Admin PIN Required) ============
+function getDeviceId() {
+  return localStorage.getItem('deviceId') || CONFIG.DEVICE_ID;
+}
+
+// Admin-only control functions
 async function saveThreshold() {
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
   const value = parseInt(elements.thresholdSlider.value);
   try {
-    await api.sendCommand(CONFIG.DEVICE_ID, 'threshold', value);
+    await api.sendCommand(getDeviceId(), 'threshold', value);
     currentThreshold = value;
     showToast('Gas threshold saved: ' + value + '%');
   } catch (error) {
@@ -640,9 +660,13 @@ async function saveThreshold() {
 }
 
 async function saveTempThreshold() {
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
   const value = parseInt(elements.tempThresholdSlider.value);
   try {
-    await api.sendCommand(CONFIG.DEVICE_ID, 'tempThreshold', value);
+    await api.sendCommand(getDeviceId(), 'tempThreshold', value);
     currentTempThreshold = value;
     showToast('Temp threshold saved: ' + value + '°C');
   } catch (error) {
@@ -651,9 +675,13 @@ async function saveTempThreshold() {
 }
 
 async function silenceAlarm() {
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
   stopAlarmSound();
   try {
-    await api.silenceAlarm(CONFIG.DEVICE_ID);
+    await api.silenceAlarm(getDeviceId());
     showToast('Alarm silenced');
   } catch (error) {
     showToast('Error: ' + error.message, 'error');
@@ -661,9 +689,13 @@ async function silenceAlarm() {
 }
 
 async function toggleSiren() {
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
   const newState = !sirenEnabled;
   try {
-    await api.sendCommand(CONFIG.DEVICE_ID, 'sirenEnabled', newState);
+    await api.sendCommand(getDeviceId(), 'sirenEnabled', newState);
     sirenEnabled = newState;
     updateSirenUI();
     showToast('Siren ' + (newState ? 'enabled' : 'disabled'));
@@ -673,15 +705,19 @@ async function toggleSiren() {
 }
 
 async function clearHistory() {
-  if (confirm('Are you sure you want to clear all alarm history?')) {
-    try {
-      await api.clearHistory(CONFIG.DEVICE_ID);
-      historyData = [];
-      renderHistory([]);
-      showToast('History cleared');
-    } catch (error) {
-      showToast('Error clearing history', 'error');
-    }
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
+  if (!confirm('Are you sure you want to clear all alarm history?')) return;
+  
+  try {
+    await api.clearHistory(getDeviceId());
+    historyData = [];
+    renderHistory([]);
+    showToast('History cleared');
+  } catch (error) {
+    showToast('Error clearing history', 'error');
   }
 }
 
@@ -816,53 +852,13 @@ function updateSidebarInfo(data) {
   if (freeHeap) freeHeap.textContent = data.heap ? Math.round(data.heap / 1024) + ' KB' : '--';
 }
 
-// ============ SMS Functions ============
-async function saveSmsSettings() {
-  const phone = document.getElementById('phoneInput').value.trim();
-  const statusEl = document.getElementById('smsStatus');
-  
-  if (!phone) {
-    statusEl.innerHTML = '<span class="error"><i class="fas fa-exclamation-circle"></i> Please enter a phone number</span>';
-    return;
-  }
-  
-  try {
-    await api.request('/api/auth/phone', {
-      method: 'PUT',
-      body: JSON.stringify({ phoneNumber: phone, smsEnabled: true })
-    });
-    statusEl.innerHTML = '<span class="success"><i class="fas fa-check-circle"></i> SMS alerts enabled for ' + phone + '</span>';
-    showToast('SMS settings saved!');
-  } catch (error) {
-    statusEl.innerHTML = '<span class="error"><i class="fas fa-exclamation-circle"></i> ' + error.message + '</span>';
-  }
+// ============ SMS Functions (Disabled - No Auth) ============
+function saveSmsSettings() {
+  showToast('SMS feature requires login system', 'error');
 }
 
-async function testSms() {
-  const statusEl = document.getElementById('smsStatus');
-  statusEl.innerHTML = '<span class="info"><i class="fas fa-spinner fa-spin"></i> Sending test SMS...</span>';
-  
-  try {
-    await api.request('/api/auth/test-sms', { method: 'POST' });
-    statusEl.innerHTML = '<span class="success"><i class="fas fa-check-circle"></i> Test SMS sent!</span>';
-    showToast('Test SMS sent!');
-  } catch (error) {
-    statusEl.innerHTML = '<span class="error"><i class="fas fa-exclamation-circle"></i> ' + error.message + '</span>';
-  }
-}
-
-async function loadUserPhone() {
-  try {
-    const data = await api.getMe();
-    if (data.user && data.user.phoneNumber) {
-      document.getElementById('phoneInput').value = data.user.phoneNumber;
-      if (data.user.smsEnabled) {
-        document.getElementById('smsStatus').innerHTML = '<span class="success"><i class="fas fa-check-circle"></i> SMS alerts enabled</span>';
-      }
-    }
-  } catch (error) {
-    console.log('Could not load phone settings');
-  }
+function testSms() {
+  showToast('SMS feature requires login system', 'error');
 }
 
 // ============ Alarm Sound Functions ============
@@ -884,7 +880,8 @@ function previewSound(soundFile) {
   }, 3000);
 }
 
-function saveAlarmSound() {
+// Save alarm sound (personal preference - no admin required)
+async function saveAlarmSound() {
   const selected = document.querySelector('input[name="alarmSound"]:checked');
   if (selected) {
     selectedAlarmSound = selected.value;
@@ -894,6 +891,16 @@ function saveAlarmSound() {
     if (alarmAudio) {
       alarmAudio.src = selectedAlarmSound;
       alarmAudio.load();
+    }
+    
+    // Save to server for this member
+    const memberId = getMemberId();
+    if (memberId) {
+      try {
+        await api.updatePreferences(memberId, { alarmSound: selectedAlarmSound });
+      } catch (e) {
+        console.log('Could not save preference to server');
+      }
     }
     
     showToast('Alarm sound saved: ' + selected.parentElement.querySelector('span').textContent.trim());
@@ -907,14 +914,25 @@ function loadAlarmSoundSetting() {
   if (radio) radio.checked = true;
 }
 
-// Override showMainApp to initialize app after login
-const originalShowMainApp = showMainApp;
-showMainApp = function() {
-  originalShowMainApp();
-  initializeApp();
-  loadUserPhone();
-  loadAlarmSoundSetting();
-};
+// Load member preferences from server
+async function loadMemberPreferences() {
+  const memberId = getMemberId();
+  if (!memberId) return;
+  
+  try {
+    const prefs = await api.getPreferences(memberId);
+    if (prefs.alarmSound) {
+      selectedAlarmSound = prefs.alarmSound;
+      localStorage.setItem('alarmSound', prefs.alarmSound);
+      const radio = document.querySelector(`input[name="alarmSound"][value="${prefs.alarmSound}"]`);
+      if (radio) radio.checked = true;
+    }
+  } catch (e) {
+    console.log('Could not load preferences');
+  }
+}
+
+
 
 
 // ============ Fullscreen Functions ============

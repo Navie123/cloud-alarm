@@ -45,8 +45,8 @@ async function subscribeToPush() {
       applicationServerKey
     });
 
-    // Send subscription to server
-    await api.subscribePush(pushSubscription.toJSON());
+    // Send subscription to server with deviceId
+    await api.subscribePush(pushSubscription.toJSON(), CONFIG.DEVICE_ID);
     
     console.log('Push subscription successful');
     updatePushUI(true);
@@ -65,7 +65,7 @@ async function subscribeToPush() {
 async function unsubscribeFromPush() {
   try {
     if (pushSubscription) {
-      await api.unsubscribePush(pushSubscription.endpoint);
+      await api.unsubscribePush(pushSubscription.endpoint, CONFIG.DEVICE_ID);
       await pushSubscription.unsubscribe();
       pushSubscription = null;
     }

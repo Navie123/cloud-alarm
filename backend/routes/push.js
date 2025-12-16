@@ -1,29 +1,39 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const { auth } = require('../middleware/auth');
+const Device = require('../models/Device');
 
 // Get VAPID public key
 router.get('/vapid-key', (req, res) => {
   res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
 });
 
-// Subscribe to push notifications
-router.post('/subscribe', auth, async (req, res) => {
+// Subscribe to push notifications (no auth - stores on device)
+router.post('/subscribe', async (req, res) => {
   try {
-    const { subscription } = req.body;
+    const { subscription, deviceId } = req.body;
+    const targetDeviceId = deviceId || 'ESP32_001';
+    
+    let device = await Device.findOne({ deviceId: targetDeviceId });
+    if (!device) {
+      device = new Device({ deviceId: targetDeviceId });
+    }
+    
+    // Initialize pushSubscriptions array if not exists
+    if (!device.pushSubscriptions) {
+      device.pushSubscriptions = [];
+    }
     
     // Check if subscription already exists
-    const existingSub = req.user.pushSubscriptions.find(
+    const existingSub = device.pushSubscriptions.find(
       s => s.endpoint === subscription.endpoint
     );
     
     if (!existingSub) {
-      req.user.pushSubscriptions.push({
+      device.pushSubscriptions.push({
         endpoint: subscription.endpoint,
         keys: subscription.keys
       });
-      await req.user.save();
+      await device.save();
     }
     
     res.json({ success: true });
@@ -34,14 +44,18 @@ router.post('/subscribe', auth, async (req, res) => {
 });
 
 // Unsubscribe from push notifications
-router.post('/unsubscribe', auth, async (req, res) => {
+router.post('/unsubscribe', async (req, res) => {
   try {
-    const { endpoint } = req.body;
+    const { endpoint, deviceId } = req.body;
+    const targetDeviceId = deviceId || 'ESP32_001';
     
-    req.user.pushSubscriptions = req.user.pushSubscriptions.filter(
-      s => s.endpoint !== endpoint
-    );
-    await req.user.save();
+    const device = await Device.findOne({ deviceId: targetDeviceId });
+    if (device && device.pushSubscriptions) {
+      device.pushSubscriptions = device.pushSubscriptions.filter(
+        s => s.endpoint !== endpoint
+      );
+      await device.save();
+    }
     
     res.json({ success: true });
   } catch (error) {

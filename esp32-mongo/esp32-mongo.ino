@@ -212,6 +212,7 @@ void sendDataToServer() {
     http.begin(wifiClient, url);
   }
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-Device-Secret", DEVICE_SECRET);  // Device authentication
   
   // Build JSON payload
   StaticJsonDocument<512> doc;
@@ -255,6 +256,7 @@ void checkCommands() {
     url = String("http://") + API_HOST + ":" + String(API_PORT) + "/api/device/" + DEVICE_ID + "/commands";
     http.begin(wifiClient, url);
   }
+  http.addHeader("X-Device-Secret", DEVICE_SECRET);  // Device authentication
   int httpCode = http.GET();
   
   if (httpCode == 200) {

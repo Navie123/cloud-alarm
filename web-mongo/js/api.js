@@ -1,76 +1,50 @@
-// API Helper Functions
+// Cloud Fire Alarm - API Module
 const api = {
   get baseUrl() {
     return CONFIG.API_URL;
   },
   
   get token() {
-    return localStorage.getItem('authToken');
+    return localStorage.getItem('householdToken');
   },
 
-  setAuth(token) {
-    if (token) {
-      localStorage.setItem('authToken', token);
-    } else {
-      localStorage.removeItem('authToken');
-    }
+  setToken(token) {
+    if (token) localStorage.setItem('householdToken', token);
+    else localStorage.removeItem('householdToken');
   },
 
   async request(endpoint, options = {}) {
     const url = `${CONFIG.API_URL}${endpoint}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
 
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-    }
-
-    const response = await fetch(url, {
-      ...options,
-      headers
-    });
-
+    const response = await fetch(url, { ...options, headers });
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || data.message || 'Request failed');
-    }
-
+    if (!response.ok) throw new Error(data.error || 'Request failed');
     return data;
   },
 
-  // Auth endpoints
-  async register(name, email, password) {
-    const data = await this.request('/api/auth/register', {
+  // Household
+  async joinHousehold(householdId, accessCode, memberName) {
+    const data = await this.request('/api/household/join', {
       method: 'POST',
-      body: JSON.stringify({ displayName: name, email, password })
+      body: JSON.stringify({ householdId, accessCode, memberName })
     });
-    if (data.token) {
-      this.setAuth(data.token);
-    }
+    if (data.token) this.setToken(data.token);
     return data;
   },
 
-  async login(email, password) {
-    const data = await this.request('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password })
-    });
-    this.setAuth(data.token);
-    return data;
-  },
-
-  async getMe() {
-    return this.request('/api/auth/me');
+  async getHouseholdInfo() {
+    return this.request('/api/household/info');
   },
 
   logout() {
-    this.setAuth(null);
+    this.request('/api/household/logout', { method: 'POST' }).catch(() => {});
+    this.setToken(null);
+    localStorage.removeItem('memberId');
   },
 
-  // Device endpoints
+  // Device
   async getDevice(deviceId) {
     return this.request(`/api/device/${deviceId}`);
   },
@@ -83,9 +57,7 @@ const api = {
   },
 
   async silenceAlarm(deviceId) {
-    return this.request(`/api/device/${deviceId}/silence`, {
-      method: 'POST'
-    });
+    return this.request(`/api/device/${deviceId}/silence`, { method: 'POST' });
   },
 
   async getHistory(deviceId) {
@@ -93,27 +65,25 @@ const api = {
   },
 
   async clearHistory(deviceId) {
-    return this.request(`/api/device/${deviceId}/history`, {
-      method: 'DELETE'
-    });
+    return this.request(`/api/device/${deviceId}/history`, { method: 'DELETE' });
   },
 
-  // Push notifications
+  // Push
   async getVapidKey() {
     return this.request('/api/push/vapid-key');
   },
 
-  async subscribePush(subscription) {
+  async subscribePush(subscription, deviceId) {
     return this.request('/api/push/subscribe', {
       method: 'POST',
-      body: JSON.stringify({ subscription })
+      body: JSON.stringify({ subscription, deviceId })
     });
   },
 
-  async unsubscribePush(endpoint) {
+  async unsubscribePush(endpoint, deviceId) {
     return this.request('/api/push/unsubscribe', {
       method: 'POST',
-      body: JSON.stringify({ endpoint })
+      body: JSON.stringify({ endpoint, deviceId })
     });
   }
 };

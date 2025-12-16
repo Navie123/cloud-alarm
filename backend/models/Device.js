@@ -22,6 +22,13 @@ const deviceSchema = new mongoose.Schema({
     sirenEnabled: Boolean,
     silence: Boolean
   },
+  pushSubscriptions: [{
+    endpoint: String,
+    keys: {
+      p256dh: String,
+      auth: String
+    }
+  }],
   lastSeen: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now }
 });

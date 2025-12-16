@@ -22,6 +22,7 @@
 
 // Device Configuration
 #define DEVICE_ID "ESP32_001"
+#define DEVICE_SECRET "d2cfb70a02782d6cbc2f1578a3b918a3"  // My Family household
 
 // Sensor Pins
 #define MQ2_PIN 34          // Gas sensor analog pin
