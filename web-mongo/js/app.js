@@ -286,48 +286,126 @@ function setupSlider() {
 function setupDateTime() {
   function update() {
     const now = new Date();
-    document.getElementById('currentTime').textContent = now.toLocaleTimeString();
+    const hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const hour12 = hours % 12 || 12;
+    const period = hours >= 12 ? 'PM' : 'AM';
+    
+    // Update time display
+    const timeEl = document.getElementById('currentTime');
+    const periodEl = document.getElementById('timePeriod');
+    const dateEl = document.getElementById('currentDate');
+    
+    if (timeEl) timeEl.textContent = `${hour12}:${minutes}`;
+    if (periodEl) periodEl.textContent = period;
+    if (dateEl) {
+      const options = { weekday: 'short', month: 'short', day: 'numeric' };
+      dateEl.textContent = now.toLocaleDateString('en-US', options);
+    }
+    
+    // Update greeting based on time of day
+    updateGreeting(hours);
   }
   update();
   setInterval(update, 1000);
+}
+
+function updateGreeting(hours) {
+  const greetEl = document.getElementById('greetText');
+  const subEl = document.getElementById('greetSub');
+  const weatherIcon = document.getElementById('weatherIcon');
+  
+  let greeting, subtext, iconClass, timeClass;
+  
+  if (hours >= 5 && hours < 12) {
+    greeting = 'Good Morning!';
+    subtext = 'Start your day safely';
+    iconClass = 'fa-sun';
+    timeClass = 'morning';
+  } else if (hours >= 12 && hours < 17) {
+    greeting = 'Good Afternoon!';
+    subtext = 'Stay alert and safe';
+    iconClass = 'fa-cloud-sun';
+    timeClass = 'afternoon';
+  } else if (hours >= 17 && hours < 21) {
+    greeting = 'Good Evening!';
+    subtext = 'Winding down safely';
+    iconClass = 'fa-cloud-moon';
+    timeClass = 'evening';
+  } else {
+    greeting = 'Good Night!';
+    subtext = 'Rest easy, we\'re watching';
+    iconClass = 'fa-moon';
+    timeClass = 'night';
+  }
+  
+  if (greetEl) greetEl.textContent = greeting;
+  if (subEl) subEl.textContent = subtext;
+  if (weatherIcon) {
+    weatherIcon.className = 'weather-icon ' + timeClass;
+    weatherIcon.innerHTML = `<i class="fas ${iconClass}"></i>`;
+  }
 }
 
 // Update UI with sensor data
 function updateUI(data) {
   if (!data) return;
   
+  // Gas gauge update
   const gasPercent = Math.min(data.gas || 0, 100);
-  elements.gasBar.style.height = gasPercent + '%';
-  elements.gasVal.textContent = gasPercent.toFixed(1);
+  const gasVal = document.getElementById('gasVal');
+  if (gasVal) gasVal.textContent = gasPercent.toFixed(1);
+  updateGauge('gasGauge', gasPercent, 100);
   
+  // Temperature gauge update
   const temp = data.temperature || 0;
-  const tempPercent = Math.min((temp / 80) * 100, 100);
-  elements.tempBar.style.height = tempPercent + '%';
-  elements.tempVal.textContent = temp.toFixed(1);
+  const tempVal = document.getElementById('tempVal');
+  if (tempVal) tempVal.textContent = temp.toFixed(1);
+  updateGauge('tempGauge', temp, 80);
   
+  // Humidity gauge update
   const humidity = Math.min(data.humidity || 0, 100);
-  elements.humBar.style.height = humidity + '%';
-  elements.humVal.textContent = humidity.toFixed(1);
+  const humVal = document.getElementById('humVal');
+  if (humVal) humVal.textContent = humidity.toFixed(1);
+  updateGauge('humGauge', humidity, 100);
   
-  elements.voltVal.textContent = (data.voltage || 0).toFixed(2);
-  elements.threshVal.textContent = data.threshold || '--';
-  
-  if (!sliderActive) {
-    currentThreshold = data.threshold || 40;
-    elements.thresholdSlider.value = currentThreshold;
-    elements.sliderValue.textContent = currentThreshold + '%';
-    const gasLevel = getGasLevel(currentThreshold);
-    updateSliderColors(elements.thresholdSlider, elements.sliderValue, gasLevel);
+  // Humidity level text
+  const humLevel = document.getElementById('humLevel');
+  if (humLevel) {
+    if (humidity < 30) humLevel.textContent = 'Low';
+    else if (humidity < 60) humLevel.textContent = 'Normal';
+    else humLevel.textContent = 'High';
   }
   
-  elements.tempThreshVal.textContent = data.tempThreshold || '--';
+  // Voltage
+  const voltVal = document.getElementById('voltVal');
+  if (voltVal) voltVal.textContent = (data.voltage || 0).toFixed(2);
   
-  if (!tempSliderActive) {
+  // Thresholds
+  const threshVal = document.getElementById('threshVal');
+  if (threshVal) threshVal.textContent = data.threshold || '40';
+  
+  const tempThreshVal = document.getElementById('tempThreshVal');
+  if (tempThreshVal) tempThreshVal.textContent = data.tempThreshold || '60';
+  
+  if (!sliderActive && elements.thresholdSlider) {
+    currentThreshold = data.threshold || 40;
+    elements.thresholdSlider.value = currentThreshold;
+    if (elements.sliderValue) {
+      elements.sliderValue.textContent = currentThreshold + '%';
+      const gasLevel = getGasLevel(currentThreshold);
+      updateSliderColors(elements.thresholdSlider, elements.sliderValue, gasLevel);
+    }
+  }
+  
+  if (!tempSliderActive && elements.tempThresholdSlider) {
     currentTempThreshold = data.tempThreshold || 60;
     elements.tempThresholdSlider.value = currentTempThreshold;
-    elements.tempSliderValue.textContent = currentTempThreshold + '°C';
-    const tempLevel = getTempLevel(currentTempThreshold);
-    updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, tempLevel);
+    if (elements.tempSliderValue) {
+      elements.tempSliderValue.textContent = currentTempThreshold + '°C';
+      const tempLevel = getTempLevel(currentTempThreshold);
+      updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, tempLevel);
+    }
   }
   
   sirenEnabled = data.sirenEnabled !== false;
@@ -335,28 +413,60 @@ function updateUI(data) {
   
   updateAlarmState(data.alarm, data.tempWarning);
   
-  elements.deviceId.textContent = CONFIG.DEVICE_ID;
-  elements.lastUpdate.textContent = data.timestamp || '--';
-  elements.connectionStatus.textContent = 'Connected';
-  elements.deviceStatus.textContent = 'Online';
-  elements.deviceStatus.classList.add('online');
+  // Device info
+  const deviceId = document.getElementById('deviceId');
+  if (deviceId) deviceId.textContent = CONFIG.DEVICE_ID;
+  
+  const lastUpdate = document.getElementById('lastUpdate');
+  if (lastUpdate) lastUpdate.textContent = data.timestamp || '--';
+  
+  const lastSeen = document.getElementById('lastSeen');
+  if (lastSeen) lastSeen.textContent = data.timestamp ? 'Just now' : '--';
+  
+  const connectionStatus = document.getElementById('connectionStatus');
+  if (connectionStatus) connectionStatus.textContent = 'Connected';
+  
+  const deviceStatus = document.getElementById('deviceStatus');
+  if (deviceStatus) {
+    deviceStatus.textContent = 'Online';
+    deviceStatus.classList.add('online');
+  }
   
   updateSidebarInfo(data);
 }
 
+// Update circular gauge
+function updateGauge(gaugeId, value, max) {
+  const gauge = document.getElementById(gaugeId);
+  if (!gauge) return;
+  
+  const circumference = 2 * Math.PI * 42; // r=42
+  const percent = Math.min(value / max, 1);
+  const offset = circumference * (1 - percent);
+  gauge.style.strokeDashoffset = offset;
+}
+
 function updateAlarmState(isAlarm, tempWarning) {
+  const alarmCard = document.getElementById('alarmCard');
+  const alarmIcon = document.getElementById('alarmIcon');
+  const alarmText = document.getElementById('alarmText');
+  const alarmSubtitle = document.querySelector('.alarm-subtitle');
+  const sirenOverlay = document.getElementById('sirenOverlay');
+  
   if (isAlarm) {
-    elements.alarmCard.classList.add('alarm-active');
-    elements.alarmIcon.className = 'fas fa-triangle-exclamation';
-    elements.alarmText.textContent = 'ALARM ACTIVE!';
-    elements.sirenOverlay.classList.add('active');
+    if (alarmCard) alarmCard.classList.add('alarm-active');
+    if (alarmIcon) alarmIcon.className = 'fas fa-triangle-exclamation';
+    if (alarmText) alarmText.textContent = 'ALARM ACTIVE!';
+    if (alarmSubtitle) alarmSubtitle.textContent = 'Danger detected - take action immediately!';
+    if (sirenOverlay) sirenOverlay.classList.add('active');
     document.body.classList.add('alarm-mode');
     playAlarmSound();
   } else {
-    elements.alarmCard.classList.remove('alarm-active');
-    elements.alarmIcon.className = 'fas fa-shield-check';
-    elements.alarmText.textContent = 'System Normal';
-    elements.sirenOverlay.classList.remove('active');
+    if (alarmCard) alarmCard.classList.remove('alarm-active');
+    if (alarmIcon) alarmIcon.className = 'fas fa-shield-check';
+    if (alarmText) alarmText.textContent = 'System Normal';
+    if (alarmSubtitle) alarmSubtitle.textContent = 'All sensors within safe range';
+    if (sirenOverlay) sirenOverlay.classList.remove('active');
     document.body.classList.remove('alarm-mode');
     stopAlarmSound();
   }
@@ -364,14 +474,28 @@ function updateAlarmState(isAlarm, tempWarning) {
 
 function setConnected(connected) {
   isConnected = connected;
+  const statusEl = document.getElementById('status');
+  const connectionBanner = document.getElementById('connectionBanner');
+  const deviceStatus = document.getElementById('deviceStatus');
+  
   if (connected) {
-    elements.connectionBanner.classList.remove('show');
-    elements.status.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
+    if (connectionBanner) connectionBanner.classList.remove('show');
+    if (statusEl) {
+      statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Connected';
+      statusEl.classList.add('connected');
+      statusEl.classList.remove('disconnected');
+    }
   } else {
-    elements.connectionBanner.classList.add('show');
-    elements.status.innerHTML = '<i class="fas fa-exclamation-circle"></i> Disconnected';
-    elements.deviceStatus.textContent = 'Offline';
-    elements.deviceStatus.classList.remove('online');
+    if (connectionBanner) connectionBanner.classList.add('show');
+    if (statusEl) {
+      statusEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> Disconnected';
+      statusEl.classList.add('disconnected');
+      statusEl.classList.remove('connected');
+    }
+    if (deviceStatus) {
+      deviceStatus.textContent = 'Offline';
+      deviceStatus.classList.remove('online');
+    }
   }
 }
 

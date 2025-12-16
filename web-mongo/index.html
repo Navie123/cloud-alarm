@@ -136,26 +136,47 @@
     <div class="connection-banner" id="connectionBanner"><i class="fas fa-wifi-slash"></i> Reconnecting...</div>
     
     <header>
-      <div class="header-content">
-        <div class="header-left">
-          <h1><i class="fas fa-fire-flame-curved"></i> Cloud Fire Alarm</h1>
-          <div id="status"><i class="fas fa-spinner fa-spin"></i> Connecting...</div>
+      <div class="header-top">
+        <div class="brand">
+          <div class="brand-icon"><i class="fas fa-fire-flame-curved"></i></div>
+          <div class="brand-text">
+            <h1>Cloud Fire Alarm</h1>
+            <div id="status" class="status-badge"><i class="fas fa-spinner fa-spin"></i> Connecting...</div>
+          </div>
         </div>
-        <div class="header-center">
-          <span id="greetText">Welcome!</span>
+        
+        <div class="header-greeting">
+          <div class="greeting-card">
+            <div class="weather-icon" id="weatherIcon">
+              <i class="fas fa-sun"></i>
+            </div>
+            <div class="greeting-content">
+              <span class="greeting-text" id="greetText">Good Morning!</span>
+              <span class="greeting-sub" id="greetSub">Have a great day</span>
+            </div>
+          </div>
         </div>
-        <div class="header-right"><div id="currentTime">--:--</div></div>
+        
+        <div class="header-datetime">
+          <div class="time-display">
+            <span class="time-value" id="currentTime">--:--</span>
+            <span class="time-period" id="timePeriod">--</span>
+          </div>
+          <div class="date-display" id="currentDate">-- --- ----</div>
+        </div>
       </div>
-      <div class="tabs">
-        <div class="tab active" data-tab="monitor"><i class="fas fa-gauge"></i> <span class="tab-text">Live Monitor</span></div>
-        <div class="tab" data-tab="history"><i class="fas fa-clock-rotate-left"></i> <span class="tab-text">History</span></div>
-        <div class="tab" data-tab="settings"><i class="fas fa-sliders"></i> <span class="tab-text">Settings</span></div>
-        <div style="flex:1"></div>
+      
+      <div class="header-nav">
+        <div class="tabs">
+          <div class="tab active" data-tab="monitor"><i class="fas fa-gauge"></i> <span class="tab-text">Live Monitor</span></div>
+          <div class="tab" data-tab="history"><i class="fas fa-clock-rotate-left"></i> <span class="tab-text">History</span></div>
+          <div class="tab" data-tab="settings"><i class="fas fa-sliders"></i> <span class="tab-text">Settings</span></div>
+        </div>
         <div class="header-actions">
           <button class="action-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen">
             <i class="fas fa-expand" id="fullscreenIcon"></i>
           </button>
-          <button class="action-btn" onclick="toggleSidebar()" title="Settings">
+          <button class="action-btn settings-btn" onclick="toggleSidebar()" title="Settings">
             <i class="fas fa-cog"></i>
           </button>
         </div>
@@ -165,57 +186,121 @@
     <main class="container">
       <!-- MONITOR TAB -->
       <div class="tab-content active" id="tab-monitor">
-        <div class="card alarm-card" id="alarmCard">
-          <div class="alarm-status">
+        <!-- Alarm Status Banner -->
+        <div class="alarm-banner" id="alarmCard">
+          <div class="alarm-icon-wrap">
             <i class="fas fa-shield-check" id="alarmIcon"></i>
-            <span id="alarmText">System Normal</span>
+          </div>
+          <div class="alarm-info">
+            <span class="alarm-title" id="alarmText">System Normal</span>
+            <span class="alarm-subtitle">All sensors within safe range</span>
+          </div>
+          <div class="alarm-indicator">
+            <span class="indicator-dot"></span>
           </div>
         </div>
         
-        <div class="card">
-          <div class="card-title"><i class="fas fa-chart-line"></i> Live Sensor Readings</div>
-          <div class="sensor-grid">
-            <div class="sensor-item">
-              <i class="fas fa-fire-flame-simple sensor-icon gas"></i>
-              <div class="sensor-bar"><div class="sensor-fill gas" id="gasBar"></div></div>
-              <div class="sensor-value" id="gasVal">--</div>
-              <div class="sensor-label">Gas %</div>
+        <!-- Main Sensor Display -->
+        <div class="sensor-panel">
+          <div class="sensor-card gas-card">
+            <div class="sensor-header">
+              <i class="fas fa-fire-flame-simple"></i>
+              <span>Gas Level</span>
             </div>
-            <div class="sensor-item">
-              <i class="fas fa-temperature-half sensor-icon temp"></i>
-              <div class="sensor-bar"><div class="sensor-fill temp" id="tempBar"></div></div>
-              <div class="sensor-value" id="tempVal">--</div>
-              <div class="sensor-label">Temp °C</div>
+            <div class="sensor-gauge">
+              <div class="gauge-ring">
+                <svg viewBox="0 0 100 100">
+                  <circle class="gauge-bg" cx="50" cy="50" r="42"/>
+                  <circle class="gauge-fill gas-gauge" id="gasGauge" cx="50" cy="50" r="42"/>
+                </svg>
+                <div class="gauge-value">
+                  <span class="gauge-number" id="gasVal">--</span>
+                  <span class="gauge-unit">%</span>
+                </div>
+              </div>
             </div>
-            <div class="sensor-item">
-              <i class="fas fa-droplet sensor-icon humidity"></i>
-              <div class="sensor-bar"><div class="sensor-fill humidity" id="humBar"></div></div>
-              <div class="sensor-value" id="humVal">--</div>
-              <div class="sensor-label">Humidity %</div>
+            <div class="sensor-status">
+              <span class="status-label">Threshold:</span>
+              <span class="status-value" id="threshVal">40</span>%
+            </div>
+          </div>
+          
+          <div class="sensor-card temp-card">
+            <div class="sensor-header">
+              <i class="fas fa-temperature-half"></i>
+              <span>Temperature</span>
+            </div>
+            <div class="sensor-gauge">
+              <div class="gauge-ring">
+                <svg viewBox="0 0 100 100">
+                  <circle class="gauge-bg" cx="50" cy="50" r="42"/>
+                  <circle class="gauge-fill temp-gauge" id="tempGauge" cx="50" cy="50" r="42"/>
+                </svg>
+                <div class="gauge-value">
+                  <span class="gauge-number" id="tempVal">--</span>
+                  <span class="gauge-unit">°C</span>
+                </div>
+              </div>
+            </div>
+            <div class="sensor-status">
+              <span class="status-label">Threshold:</span>
+              <span class="status-value" id="tempThreshVal">60</span>°C
+            </div>
+          </div>
+          
+          <div class="sensor-card humidity-card">
+            <div class="sensor-header">
+              <i class="fas fa-droplet"></i>
+              <span>Humidity</span>
+            </div>
+            <div class="sensor-gauge">
+              <div class="gauge-ring">
+                <svg viewBox="0 0 100 100">
+                  <circle class="gauge-bg" cx="50" cy="50" r="42"/>
+                  <circle class="gauge-fill humidity-gauge" id="humGauge" cx="50" cy="50" r="42"/>
+                </svg>
+                <div class="gauge-value">
+                  <span class="gauge-number" id="humVal">--</span>
+                  <span class="gauge-unit">%</span>
+                </div>
+              </div>
+            </div>
+            <div class="sensor-status">
+              <span class="status-label">Level:</span>
+              <span class="status-value" id="humLevel">Normal</span>
             </div>
           </div>
         </div>
         
-        <div class="stats-grid">
-          <div class="card stat-card">
-            <div class="card-title"><i class="fas fa-bolt"></i> Voltage</div>
-            <span class="value" id="voltVal">--</span><span class="unit">V</span>
+        <!-- Quick Stats -->
+        <div class="quick-stats">
+          <div class="quick-stat">
+            <div class="stat-icon voltage"><i class="fas fa-bolt"></i></div>
+            <div class="stat-info">
+              <span class="stat-value"><span id="voltVal">--</span><small>V</small></span>
+              <span class="stat-label">Voltage</span>
+            </div>
           </div>
-          <div class="card stat-card">
-            <div class="card-title"><i class="fas fa-fire"></i> Gas Thresh</div>
-            <span class="value" id="threshVal">--</span><span class="unit">%</span>
+          <div class="quick-stat">
+            <div class="stat-icon alarms"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="alarmCount">0</span>
+              <span class="stat-label">Total Alarms</span>
+            </div>
           </div>
-          <div class="card stat-card">
-            <div class="card-title"><i class="fas fa-thermometer"></i> Temp Thresh</div>
-            <span class="value" id="tempThreshVal">--</span><span class="unit">°C</span>
+          <div class="quick-stat">
+            <div class="stat-icon device"><i class="fas fa-satellite-dish"></i></div>
+            <div class="stat-info">
+              <span class="stat-value device-status" id="deviceStatus">Offline</span>
+              <span class="stat-label">Device Status</span>
+            </div>
           </div>
-          <div class="card stat-card">
-            <div class="card-title"><i class="fas fa-triangle-exclamation"></i> Alarms</div>
-            <span class="value" id="alarmCount">0</span>
-          </div>
-          <div class="card stat-card">
-            <div class="card-title"><i class="fas fa-satellite-dish"></i> Device</div>
-            <span class="value device-status" id="deviceStatus">Offline</span>
+          <div class="quick-stat">
+            <div class="stat-icon uptime"><i class="fas fa-clock"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="lastSeen">--</span>
+              <span class="stat-label">Last Update</span>
+            </div>
           </div>
         </div>
       </div>
