@@ -1,6 +1,7 @@
 /*
  * Cloud Fire Alarm - MongoDB Backend Version
  * ESP32 Firmware for sending sensor data to Node.js backend
+ * With MQ-7 (CO) and MQ-135 (Air Quality) sensor support
  */
 
 #include <WiFi.h>
@@ -8,6 +9,7 @@
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
+#include <Preferences.h>
 #include "ClosedCube_HDC1080.h"
 #include "config.h"
 
@@ -18,7 +20,10 @@ WiFiClientSecure wifiClientSecure;
 // HDC1080 Temperature/Humidity Sensor
 ClosedCube_HDC1080 hdc1080;
 
-// State variables
+// Preferences for storing calibration
+Preferences preferences;
+
+// State variables - existing sensors
 float gasPercent = 0;
 float temperature = 0;
 float humidity = 0;
@@ -30,6 +35,40 @@ bool sirenEnabled = true;
 bool silenceRequested = false;
 String tempWarning = "normal";
 
+// MQ-7 CO Sensor variables
+float coPpm = 0;
+int coRaw = 0;
+String coStatus = "normal";
+float coRo = DEFAULT_CO_RO;
+int coWarningThreshold = DEFAULT_CO_WARNING;
+int coDangerThreshold = DEFAULT_CO_DANGER;
+int coCriticalThreshold = DEFAULT_CO_CRITICAL;
+
+// MQ-135 Air Quality variables
+float aqi = 0;
+int aqiRaw = 0;
+String aqiStatus = "good";
+float aqiRo = DEFAULT_AQI_RO;
+
+// Sensor status
+bool sensorWarmup = true;
+bool fireRisk = false;
+String sensorHealth = "ok";
+unsigned long bootTime = 0;
+unsigned long lastCalibration = 0;
+
+// Moving average buffers
+float coReadings[MOVING_AVG_SAMPLES];
+float aqiReadings[MOVING_AVG_SAMPLES];
+int readingIndex = 0;
+int readingCount = 0;
+
+// Stuck sensor detection
+int lastCoRaw = -1;
+int stuckCoCount = 0;
+int lastAqiRaw = -1;
+int stuckAqiCount = 0;
+
 // Timing
 unsigned long lastSensorRead = 0;
 unsigned long lastDataSend = 0;
@@ -38,20 +77,36 @@ unsigned long lastCommandCheck = 0;
 // Function declarations
 void connectWiFi();
 void readSensors();
+void readGasSensors();
 void sendDataToServer();
 void checkCommands();
 void updateAlarmState();
 void activateBuzzer(bool state);
 String getTimestamp();
+float calculateCOPpm(int rawADC, float ro);
+float calculateAQI(int rawADC, float ro);
+String getCOStatus(float ppm);
+String getAQIStatus(float aqiValue);
+float applyMovingAverage(float* buffer, float newValue, int* index, int* count);
+void loadCalibration();
+void saveCalibration();
+void performCalibration();
+bool checkSensorStuck(int currentRaw, int* lastRaw, int* stuckCount);
 
 void setup() {
   Serial.begin(115200);
   Serial.println("\n=== Cloud Fire Alarm (MongoDB) ===");
+  Serial.println("With MQ-7 (CO) and MQ-135 (AQI) support");
+  
+  // Record boot time for warmup calculation
+  bootTime = millis();
   
   // Initialize pins
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(LED_PIN, OUTPUT);
   pinMode(MQ2_PIN, INPUT);
+  pinMode(MQ7_PIN, INPUT);
+  pinMode(MQ135_PIN, INPUT);
   
   digitalWrite(BUZZER_PIN, LOW);
   digitalWrite(LED_PIN, LOW);
@@ -61,8 +116,19 @@ void setup() {
   hdc1080.begin(0x40);
   Serial.println("HDC1080 initialized");
   
+  // Load calibration from preferences
+  loadCalibration();
+  
+  // Initialize moving average buffers
+  for (int i = 0; i < MOVING_AVG_SAMPLES; i++) {
+    coReadings[i] = 0;
+    aqiReadings[i] = 0;
+  }
+  
   // Connect to WiFi
   connectWiFi();
+  
+  Serial.println("Sensors ready - showing real-time readings");
 }
 
 void loop() {
@@ -133,7 +199,6 @@ void readSensors() {
   gasPercent = constrain(gasPercent, 0, 100);
   
   // Read HDC1080 with error checking
-  // 125°C and 100% humidity indicate I2C communication errors (0xFFFF)
   float newTemp = hdc1080.readTemperature();
   float newHum = hdc1080.readHumidity();
   
@@ -148,12 +213,10 @@ void readSensors() {
     validReading = false;
   }
   
-  // Only update if readings are valid
   if (validReading) {
     temperature = newTemp;
     humidity = newHum;
   } else {
-    // Try reinitializing the sensor on error
     static unsigned long lastReinit = 0;
     if (millis() - lastReinit > 5000) {
       Serial.println("Reinitializing HDC1080...");
@@ -163,19 +226,193 @@ void readSensors() {
   }
   
   // Read voltage (ESP32 internal)
-  voltage = analogRead(35) * (3.3 / 4095.0) * 2; // Assuming voltage divider
+  voltage = analogRead(35) * (3.3 / 4095.0) * 2;
+  
+  // Read MQ-7 and MQ-135 gas sensors
+  readGasSensors();
   
   // Debug output
-  Serial.printf("Gas: %.1f%%, Temp: %.1f°C, Hum: %.1f%%, V: %.2fV%s\n",
-                gasPercent, temperature, humidity, voltage,
-                validReading ? "" : " [CACHED]");
+  Serial.printf("Gas: %.1f%%, CO: %.1f PPM (%s), AQI: %.0f (%s), Temp: %.1f°C%s\n",
+                gasPercent, coPpm, coStatus.c_str(), aqi, aqiStatus.c_str(), 
+                temperature, sensorWarmup ? " [WARMUP]" : "");
+}
+
+void readGasSensors() {
+  // No warmup - show real-time readings immediately
+  sensorWarmup = false;
+  
+  // Read raw ADC values
+  coRaw = analogRead(MQ7_PIN);
+  aqiRaw = analogRead(MQ135_PIN);
+  
+  // Check for stuck sensors
+  bool coStuck = checkSensorStuck(coRaw, &lastCoRaw, &stuckCoCount);
+  bool aqiStuck = checkSensorStuck(aqiRaw, &lastAqiRaw, &stuckAqiCount);
+  
+  if (coStuck || aqiStuck) {
+    sensorHealth = "warning";
+  } else {
+    sensorHealth = "ok";
+  }
+  
+  // Calculate PPM and AQI
+  float rawCoPpm = calculateCOPpm(coRaw, coRo);
+  float rawAqi = calculateAQI(aqiRaw, aqiRo);
+  
+  // Apply moving average for smoothing
+  coPpm = applyMovingAverage(coReadings, rawCoPpm, &readingIndex, &readingCount);
+  aqi = applyMovingAverage(aqiReadings, rawAqi, &readingIndex, &readingCount);
+  
+  // Update status - real-time
+  coStatus = getCOStatus(coPpm);
+  aqiStatus = getAQIStatus(aqi);
+  
+  // Check for fire risk (cross-sensor correlation)
+  fireRisk = (coPpm >= coWarningThreshold) && 
+             (temperature >= (tempThreshold - 10)) && 
+             (gasPercent >= (gasThreshold - 10));
+}
+
+float calculateCOPpm(int rawADC, float ro) {
+  if (rawADC <= 0 || ro <= 0) return 0;
+  
+  float voltage = (rawADC / 4095.0) * 3.3;
+  if (voltage <= 0) return 0;
+  
+  float rs = ((3.3 * LOAD_RESISTANCE) / voltage) - LOAD_RESISTANCE;
+  if (rs <= 0) return 1000;
+  
+  float ratio = rs / ro;
+  
+  // MQ-7 curve: PPM = 10^((log10(ratio) - 0.72) / -0.34 + 2.3)
+  float ppm = pow(10, ((log10(ratio) - 0.72) / -0.34) + 2.3);
+  return constrain(ppm, 0, 1000);
+}
+
+float calculateAQI(int rawADC, float ro) {
+  if (rawADC <= 0 || ro <= 0) return 0;
+  
+  float voltage = (rawADC / 4095.0) * 3.3;
+  if (voltage <= 0) return 0;
+  
+  float rs = ((3.3 * LOAD_RESISTANCE) / voltage) - LOAD_RESISTANCE;
+  if (rs <= 0) return 500;
+  
+  float ratio = rs / ro;
+  
+  // Map ratio to AQI (lower ratio = more pollution)
+  float aqiValue = (1 - min(ratio, 1.0f)) * 625;
+  return constrain(aqiValue, 0, 500);
+}
+
+String getCOStatus(float ppm) {
+  if (ppm >= coCriticalThreshold) return "critical";
+  if (ppm >= coDangerThreshold) return "danger";
+  if (ppm >= coWarningThreshold) return "warning";
+  return "normal";
+}
+
+String getAQIStatus(float aqiValue) {
+  if (aqiValue > 150) return "unhealthy";
+  if (aqiValue > 100) return "unhealthy_sensitive";
+  if (aqiValue > 50) return "moderate";
+  return "good";
+}
+
+float applyMovingAverage(float* buffer, float newValue, int* index, int* count) {
+  buffer[*index % MOVING_AVG_SAMPLES] = newValue;
+  
+  int samples = min(*count + 1, MOVING_AVG_SAMPLES);
+  float sum = 0;
+  for (int i = 0; i < samples; i++) {
+    sum += buffer[i];
+  }
+  
+  if (*count < MOVING_AVG_SAMPLES) (*count)++;
+  (*index)++;
+  
+  return sum / samples;
+}
+
+bool checkSensorStuck(int currentRaw, int* lastRaw, int* stuckCount) {
+  if (currentRaw == *lastRaw) {
+    (*stuckCount)++;
+  } else {
+    *stuckCount = 0;
+  }
+  *lastRaw = currentRaw;
+  
+  // Check if stuck at min or max for too long
+  return (*stuckCount >= STUCK_SENSOR_READINGS) && 
+         (currentRaw == 0 || currentRaw >= 4095);
+}
+
+void loadCalibration() {
+  preferences.begin("gasSensor", true); // Read-only
+  coRo = preferences.getFloat("coRo", DEFAULT_CO_RO);
+  aqiRo = preferences.getFloat("aqiRo", DEFAULT_AQI_RO);
+  lastCalibration = preferences.getULong("lastCal", 0);
+  preferences.end();
+  
+  Serial.printf("Loaded calibration: CO Ro=%.0f, AQI Ro=%.0f\n", coRo, aqiRo);
+}
+
+void saveCalibration() {
+  preferences.begin("gasSensor", false); // Read-write
+  preferences.putFloat("coRo", coRo);
+  preferences.putFloat("aqiRo", aqiRo);
+  preferences.putULong("lastCal", millis());
+  preferences.end();
+  
+  lastCalibration = millis();
+  Serial.println("Calibration saved to flash");
+}
+
+void performCalibration() {
+  Serial.println("Starting sensor calibration...");
+  Serial.println("Ensure sensors are in clean air!");
+  
+  // Take multiple readings and average
+  float coSum = 0, aqiSum = 0;
+  const int samples = 50;
+  
+  for (int i = 0; i < samples; i++) {
+    int coRawCal = analogRead(MQ7_PIN);
+    int aqiRawCal = analogRead(MQ135_PIN);
+    
+    float coVoltage = (coRawCal / 4095.0) * 3.3;
+    float aqiVoltage = (aqiRawCal / 4095.0) * 3.3;
+    
+    if (coVoltage > 0) {
+      coSum += ((3.3 * LOAD_RESISTANCE) / coVoltage) - LOAD_RESISTANCE;
+    }
+    if (aqiVoltage > 0) {
+      aqiSum += ((3.3 * LOAD_RESISTANCE) / aqiVoltage) - LOAD_RESISTANCE;
+    }
+    
+    delay(100);
+  }
+  
+  coRo = coSum / samples;
+  aqiRo = aqiSum / samples;
+  
+  // Sanity check
+  if (coRo < 1000 || coRo > 100000) coRo = DEFAULT_CO_RO;
+  if (aqiRo < 1000 || aqiRo > 100000) aqiRo = DEFAULT_AQI_RO;
+  
+  saveCalibration();
+  Serial.printf("Calibration complete: CO Ro=%.0f, AQI Ro=%.0f\n", coRo, aqiRo);
 }
 
 void updateAlarmState() {
   bool gasAlarm = gasPercent >= gasThreshold;
   bool tempAlarm = temperature >= tempThreshold;
   
-  alarmActive = gasAlarm || tempAlarm;
+  // CO alarm (only after warmup)
+  bool coAlarm = !sensorWarmup && (coStatus == "danger" || coStatus == "critical");
+  
+  // Combined alarm state
+  alarmActive = gasAlarm || tempAlarm || coAlarm || fireRisk;
   
   // Temperature warning levels
   if (temperature >= tempThreshold) {
@@ -193,8 +430,16 @@ void updateAlarmState() {
     silenceRequested = false;
   }
   
-  // LED indicator
-  digitalWrite(LED_PIN, alarmActive ? HIGH : LOW);
+  // LED indicator - blink fast for fire risk, solid for other alarms
+  if (fireRisk) {
+    static unsigned long lastBlink = 0;
+    if (millis() - lastBlink > 100) {
+      digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+      lastBlink = millis();
+    }
+  } else {
+    digitalWrite(LED_PIN, alarmActive ? HIGH : LOW);
+  }
 }
 
 void sendDataToServer() {
@@ -205,17 +450,19 @@ void sendDataToServer() {
   String url;
   if (USE_HTTPS) {
     url = String("https://") + API_HOST + "/api/device/" + DEVICE_ID + "/data";
-    wifiClientSecure.setInsecure(); // Skip certificate verification
+    wifiClientSecure.setInsecure();
     http.begin(wifiClientSecure, url);
   } else {
     url = String("http://") + API_HOST + ":" + String(API_PORT) + "/api/device/" + DEVICE_ID + "/data";
     http.begin(wifiClient, url);
   }
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-Device-Secret", DEVICE_SECRET);  // Device authentication
+  http.addHeader("X-Device-Secret", DEVICE_SECRET);
   
-  // Build JSON payload
-  StaticJsonDocument<512> doc;
+  // Build JSON payload with gas sensor data
+  StaticJsonDocument<768> doc;
+  
+  // Existing sensor data
   doc["gas"] = gasPercent;
   doc["temperature"] = temperature;
   doc["humidity"] = humidity;
@@ -227,6 +474,26 @@ void sendDataToServer() {
   doc["sirenEnabled"] = sirenEnabled;
   doc["heap"] = ESP.getFreeHeap();
   doc["timestamp"] = getTimestamp();
+  
+  // MQ-7 CO sensor data
+  doc["coPpm"] = coPpm;
+  doc["coRaw"] = coRaw;
+  doc["coStatus"] = coStatus;
+  
+  // MQ-135 AQI sensor data
+  doc["aqi"] = aqi;
+  doc["aqiRaw"] = aqiRaw;
+  doc["aqiStatus"] = aqiStatus;
+  
+  // Sensor status
+  doc["sensorWarmup"] = sensorWarmup;
+  doc["fireRisk"] = fireRisk;
+  doc["sensorHealth"] = sensorHealth;
+  
+  // Calibration info
+  doc["coRo"] = coRo;
+  doc["aqiRo"] = aqiRo;
+  doc["lastCalibration"] = lastCalibration;
   
   String payload;
   serializeJson(doc, payload);
@@ -256,17 +523,17 @@ void checkCommands() {
     url = String("http://") + API_HOST + ":" + String(API_PORT) + "/api/device/" + DEVICE_ID + "/commands";
     http.begin(wifiClient, url);
   }
-  http.addHeader("X-Device-Secret", DEVICE_SECRET);  // Device authentication
+  http.addHeader("X-Device-Secret", DEVICE_SECRET);
   int httpCode = http.GET();
   
   if (httpCode == 200) {
     String response = http.getString();
     
-    StaticJsonDocument<256> doc;
+    StaticJsonDocument<512> doc;
     DeserializationError error = deserializeJson(doc, response);
     
     if (!error) {
-      // Process commands
+      // Existing commands
       if (doc.containsKey("threshold")) {
         gasThreshold = doc["threshold"].as<int>();
         Serial.printf("Gas threshold updated: %d%%\n", gasThreshold);
@@ -285,6 +552,28 @@ void checkCommands() {
       if (doc.containsKey("silence") && doc["silence"].as<bool>()) {
         silenceRequested = true;
         Serial.println("Alarm silenced");
+      }
+      
+      // CO threshold commands
+      if (doc.containsKey("coWarningThreshold")) {
+        coWarningThreshold = doc["coWarningThreshold"].as<int>();
+        Serial.printf("CO warning threshold updated: %d PPM\n", coWarningThreshold);
+      }
+      
+      if (doc.containsKey("coDangerThreshold")) {
+        coDangerThreshold = doc["coDangerThreshold"].as<int>();
+        Serial.printf("CO danger threshold updated: %d PPM\n", coDangerThreshold);
+      }
+      
+      if (doc.containsKey("coCriticalThreshold")) {
+        coCriticalThreshold = doc["coCriticalThreshold"].as<int>();
+        Serial.printf("CO critical threshold updated: %d PPM\n", coCriticalThreshold);
+      }
+      
+      // Calibration command
+      if (doc.containsKey("calibrate") && doc["calibrate"].as<bool>()) {
+        Serial.println("Calibration requested from server");
+        performCalibration();
       }
     }
   }

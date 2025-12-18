@@ -304,6 +304,23 @@
           <div class="alarm-pulse"></div>
         </div>
         
+        <!-- Fire Risk Banner (hidden by default) -->
+        <div class="fire-risk-banner hidden" id="fireRiskBanner">
+          <div class="fire-risk-content">
+            <i class="fas fa-fire"></i>
+            <div class="fire-risk-text">
+              <span class="fire-risk-title">FIRE RISK DETECTED</span>
+              <span class="fire-risk-subtitle" id="fireRiskTriggers">Multiple sensors triggered</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Warmup Banner (hidden by default) -->
+        <div class="warmup-banner hidden" id="warmupBanner">
+          <i class="fas fa-hourglass-half"></i>
+          <span>Gas sensors warming up... Readings will be available shortly.</span>
+        </div>
+
         <div class="sensor-panel">
           <div class="sensor-card gas-card">
             <div class="sensor-header"><i class="fas fa-fire-flame-simple"></i><span>Gas Level</span></div>
@@ -317,6 +334,42 @@
               </div>
             </div>
             <div class="sensor-status"><span class="status-label">Threshold:</span><span class="status-value" id="threshVal">40</span>%</div>
+          </div>
+          
+          <!-- CO Sensor Card -->
+          <div class="sensor-card co-card">
+            <div class="sensor-header">
+              <i class="fas fa-skull-crossbones"></i><span>Carbon Monoxide</span>
+              <span class="sensor-health-icon hidden" id="coHealthIcon" title="Sensor issue detected"><i class="fas fa-exclamation-triangle"></i></span>
+            </div>
+            <div class="sensor-gauge">
+              <div class="gauge-ring">
+                <svg viewBox="0 0 100 100">
+                  <circle class="gauge-bg" cx="50" cy="50" r="42"/>
+                  <circle class="gauge-fill co-gauge" id="coGauge" cx="50" cy="50" r="42"/>
+                </svg>
+                <div class="gauge-value"><span class="gauge-number" id="coVal">--</span><span class="gauge-unit">PPM</span></div>
+              </div>
+            </div>
+            <div class="sensor-status"><span class="status-label">Status:</span><span class="status-value" id="coStatus">--</span></div>
+          </div>
+          
+          <!-- AQI Sensor Card -->
+          <div class="sensor-card aqi-card">
+            <div class="sensor-header">
+              <i class="fas fa-wind"></i><span>Air Quality</span>
+              <span class="sensor-health-icon hidden" id="aqiHealthIcon" title="Sensor issue detected"><i class="fas fa-exclamation-triangle"></i></span>
+            </div>
+            <div class="sensor-gauge">
+              <div class="gauge-ring">
+                <svg viewBox="0 0 100 100">
+                  <circle class="gauge-bg" cx="50" cy="50" r="42"/>
+                  <circle class="gauge-fill aqi-gauge" id="aqiGauge" cx="50" cy="50" r="42"/>
+                </svg>
+                <div class="gauge-value"><span class="gauge-number" id="aqiVal">--</span><span class="gauge-unit">AQI</span></div>
+              </div>
+            </div>
+            <div class="sensor-status"><span class="status-label">Level:</span><span class="status-value" id="aqiStatus">--</span></div>
           </div>
           
           <div class="sensor-card temp-card">
@@ -437,6 +490,39 @@
               </div>
             </div>
             <button class="btn btn-primary" onclick="saveTempThreshold()"><i class="fas fa-save"></i> Save Threshold</button>
+          </div>
+          
+          <!-- CO Thresholds -->
+          <div class="card">
+            <div class="card-title"><i class="fas fa-skull-crossbones"></i> CO Thresholds (PPM)</div>
+            <div class="threshold-group">
+              <label>Warning Level</label>
+              <input type="range" class="slider" id="coWarningSlider" min="10" max="50" value="35">
+              <span id="coWarningVal">35 PPM</span>
+            </div>
+            <div class="threshold-group">
+              <label>Danger Level</label>
+              <input type="range" class="slider" id="coDangerSlider" min="50" max="200" value="100">
+              <span id="coDangerVal">100 PPM</span>
+            </div>
+            <div class="threshold-group">
+              <label>Critical Level</label>
+              <input type="range" class="slider" id="coCriticalSlider" min="200" max="800" value="400">
+              <span id="coCriticalVal">400 PPM</span>
+            </div>
+            <button class="btn btn-primary" onclick="saveCOThresholds()"><i class="fas fa-save"></i> Save CO Thresholds</button>
+          </div>
+          
+          <!-- Sensor Calibration -->
+          <div class="card">
+            <div class="card-title"><i class="fas fa-sliders"></i> Sensor Calibration</div>
+            <div class="calibration-info">
+              <p><span>Last Calibration</span><span id="lastCalibration">Never</span></p>
+              <p><span>CO Sensor (Ro)</span><span id="coRoValue">10000 Ω</span></p>
+              <p><span>AQI Sensor (Ro)</span><span id="aqiRoValue">10000 Ω</span></p>
+            </div>
+            <p class="card-subtitle">Ensure sensors are in clean air before calibrating</p>
+            <button class="btn btn-secondary" onclick="startCalibration()"><i class="fas fa-sync"></i> Calibrate Sensors</button>
           </div>
           
           <div class="card">

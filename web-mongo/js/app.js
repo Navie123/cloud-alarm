@@ -985,3 +985,247 @@ function updateFullscreenIcon() {
     document.body.classList.remove('fullscreen-mode');
   }
 }
+
+
+// ============ Gas Sensor Functions (CO & AQI) ============
+
+// Update UI with gas sensor data
+function updateGasSensorUI(data) {
+  // CO Sensor
+  const coVal = document.getElementById('coVal');
+  const coStatus = document.getElementById('coStatus');
+  const coGauge = document.getElementById('coGauge');
+  const coCard = document.querySelector('.sensor-card.co-card');
+  const coHealthIcon = document.getElementById('coHealthIcon');
+  
+  if (coVal) {
+    if (data.sensorWarmup) {
+      coVal.textContent = '--';
+    } else {
+      coVal.textContent = (data.coPpm || 0).toFixed(0);
+    }
+  }
+  
+  if (coStatus) {
+    const status = data.sensorWarmup ? 'warmup' : (data.coStatus || 'normal');
+    coStatus.textContent = formatStatus(status);
+    coStatus.className = 'status-value co-' + status.replace('_', '-');
+  }
+  
+  // Update CO gauge (max 500 PPM for display)
+  if (coGauge && !data.sensorWarmup) {
+    updateGauge('coGauge', Math.min(data.coPpm || 0, 500), 500);
+  }
+  
+  // Update CO card status class
+  if (coCard) {
+    coCard.classList.remove('status-warning', 'status-danger', 'status-critical');
+    if (!data.sensorWarmup && data.coStatus) {
+      if (data.coStatus === 'warning') coCard.classList.add('status-warning');
+      else if (data.coStatus === 'danger') coCard.classList.add('status-danger');
+      else if (data.coStatus === 'critical') coCard.classList.add('status-critical');
+    }
+  }
+  
+  // AQI Sensor
+  const aqiVal = document.getElementById('aqiVal');
+  const aqiStatus = document.getElementById('aqiStatus');
+  const aqiGauge = document.getElementById('aqiGauge');
+  const aqiCard = document.querySelector('.sensor-card.aqi-card');
+  const aqiHealthIcon = document.getElementById('aqiHealthIcon');
+  
+  if (aqiVal) {
+    if (data.sensorWarmup) {
+      aqiVal.textContent = '--';
+    } else {
+      aqiVal.textContent = Math.round(data.aqi || 0);
+    }
+  }
+  
+  if (aqiStatus) {
+    const status = data.sensorWarmup ? 'warmup' : (data.aqiStatus || 'good');
+    aqiStatus.textContent = formatStatus(status);
+    aqiStatus.className = 'status-value aqi-' + status.replace('_', '-');
+  }
+  
+  // Update AQI gauge (max 500)
+  if (aqiGauge && !data.sensorWarmup) {
+    updateGauge('aqiGauge', Math.min(data.aqi || 0, 500), 500);
+  }
+  
+  // Update AQI card status class
+  if (aqiCard) {
+    aqiCard.classList.remove('status-moderate', 'status-unhealthy-sensitive', 'status-unhealthy');
+    if (!data.sensorWarmup && data.aqiStatus) {
+      if (data.aqiStatus === 'moderate') aqiCard.classList.add('status-moderate');
+      else if (data.aqiStatus === 'unhealthy_sensitive') aqiCard.classList.add('status-unhealthy-sensitive');
+      else if (data.aqiStatus === 'unhealthy') aqiCard.classList.add('status-unhealthy');
+    }
+  }
+  
+  // Sensor health indicators
+  if (coHealthIcon) {
+    coHealthIcon.classList.toggle('hidden', data.sensorHealth !== 'warning');
+  }
+  if (aqiHealthIcon) {
+    aqiHealthIcon.classList.toggle('hidden', data.sensorHealth !== 'warning');
+  }
+  
+  // Warmup banner
+  const warmupBanner = document.getElementById('warmupBanner');
+  if (warmupBanner) {
+    warmupBanner.classList.toggle('hidden', !data.sensorWarmup);
+  }
+  
+  // Fire risk banner
+  const fireRiskBanner = document.getElementById('fireRiskBanner');
+  const fireRiskTriggers = document.getElementById('fireRiskTriggers');
+  if (fireRiskBanner) {
+    fireRiskBanner.classList.toggle('hidden', !data.fireRisk);
+    if (data.fireRisk && fireRiskTriggers) {
+      fireRiskTriggers.textContent = 'CO + Temperature + Gas sensors triggered';
+    }
+  }
+}
+
+// Format status text for display
+function formatStatus(status) {
+  const statusMap = {
+    'normal': 'Normal',
+    'warning': 'Warning',
+    'danger': 'Danger',
+    'critical': 'CRITICAL',
+    'good': 'Good',
+    'moderate': 'Moderate',
+    'unhealthy_sensitive': 'Unhealthy (Sensitive)',
+    'unhealthy': 'Unhealthy',
+    'warmup': 'Warming Up...'
+  };
+  return statusMap[status] || status;
+}
+
+// Extend the existing updateUI function to include gas sensors
+const originalUpdateUI = updateUI;
+updateUI = function(data) {
+  originalUpdateUI(data);
+  updateGasSensorUI(data);
+  
+  // Update alarm state to include CO and fire risk
+  updateAlarmStateExtended(data);
+};
+
+// Extended alarm state handling
+function updateAlarmStateExtended(data) {
+  const alarmCard = document.getElementById('alarmCard');
+  const alarmIcon = document.getElementById('alarmIcon');
+  const alarmText = document.getElementById('alarmText');
+  const alarmSubtitle = document.getElementById('alarmSubtitle');
+  
+  // Fire risk takes highest priority
+  if (data.fireRisk) {
+    if (alarmCard) alarmCard.classList.add('alarm-active', 'fire-risk');
+    if (alarmIcon) alarmIcon.className = 'fas fa-fire';
+    if (alarmText) alarmText.textContent = 'FIRE RISK!';
+    if (alarmSubtitle) alarmSubtitle.textContent = 'Multiple sensors triggered - evacuate if necessary!';
+    playAlarmSound();
+    return;
+  }
+  
+  // CO critical/danger
+  if (!data.sensorWarmup && (data.coStatus === 'critical' || data.coStatus === 'danger')) {
+    if (alarmCard) alarmCard.classList.add('alarm-active');
+    if (alarmIcon) alarmIcon.className = 'fas fa-skull-crossbones';
+    if (alarmText) alarmText.textContent = data.coStatus === 'critical' ? 'CO CRITICAL!' : 'CO DANGER!';
+    if (alarmSubtitle) {
+      alarmSubtitle.textContent = data.coStatus === 'critical' 
+        ? 'EVACUATE IMMEDIATELY! CO at ' + (data.coPpm || 0).toFixed(0) + ' PPM'
+        : 'Ventilate area! CO at ' + (data.coPpm || 0).toFixed(0) + ' PPM';
+    }
+    playAlarmSound();
+    return;
+  }
+  
+  // Remove fire-risk class if not active
+  if (alarmCard) alarmCard.classList.remove('fire-risk');
+}
+
+// CO Threshold Settings
+async function saveCOThresholds() {
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
+  
+  const warning = parseInt(document.getElementById('coWarningSlider')?.value || 35);
+  const danger = parseInt(document.getElementById('coDangerSlider')?.value || 100);
+  const critical = parseInt(document.getElementById('coCriticalSlider')?.value || 400);
+  
+  try {
+    const response = await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/co-thresholds`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('householdToken'),
+        'X-Admin-PIN': localStorage.getItem('adminPin')
+      },
+      body: JSON.stringify({ warning, danger, critical })
+    });
+    
+    if (response.ok) {
+      showToast('CO thresholds saved');
+    } else {
+      throw new Error('Failed to save');
+    }
+  } catch (error) {
+    showToast('Error saving CO thresholds', 'error');
+  }
+}
+
+// Calibration
+async function startCalibration() {
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
+  
+  if (!confirm('Start sensor calibration? Ensure sensors are in clean air.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/calibrate`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('householdToken'),
+        'X-Admin-PIN': localStorage.getItem('adminPin')
+      }
+    });
+    
+    if (response.ok) {
+      showToast('Calibration started - please wait...');
+    } else {
+      throw new Error('Failed to start calibration');
+    }
+  } catch (error) {
+    showToast('Error starting calibration', 'error');
+  }
+}
+
+// Load gas history for charts
+async function loadGasHistory(range = '24h') {
+  try {
+    const response = await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/gas-history?range=${range}`, {
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('householdToken')
+      }
+    });
+    
+    if (response.ok) {
+      return await response.json();
+    }
+    return [];
+  } catch (error) {
+    console.error('Failed to load gas history:', error);
+    return [];
+  }
+}

@@ -4003,3 +4003,229 @@ header {
     font-size: 0.8rem;
   }
 }
+
+
+/* ========== GAS SENSOR CARDS (CO & AQI) ========== */
+
+/* CO Card Styling */
+.sensor-card.co-card {
+  --card-accent: #9333ea; /* Purple for CO */
+}
+
+.sensor-card.co-card .sensor-header i {
+  color: #9333ea;
+}
+
+.co-gauge {
+  stroke: #9333ea;
+}
+
+.sensor-card.co-card.status-warning {
+  border-color: var(--warn);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.sensor-card.co-card.status-warning .co-gauge {
+  stroke: var(--warn);
+}
+
+.sensor-card.co-card.status-danger {
+  border-color: #f97316;
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+}
+
+.sensor-card.co-card.status-danger .co-gauge {
+  stroke: #f97316;
+}
+
+.sensor-card.co-card.status-critical {
+  border-color: var(--danger);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+  animation: criticalPulse 1s ease-in-out infinite;
+}
+
+.sensor-card.co-card.status-critical .co-gauge {
+  stroke: var(--danger);
+}
+
+/* AQI Card Styling */
+.sensor-card.aqi-card {
+  --card-accent: #06b6d4; /* Cyan for AQI */
+}
+
+.sensor-card.aqi-card .sensor-header i {
+  color: #06b6d4;
+}
+
+.aqi-gauge {
+  stroke: #06b6d4;
+}
+
+.sensor-card.aqi-card.status-moderate .aqi-gauge {
+  stroke: var(--warn);
+}
+
+.sensor-card.aqi-card.status-unhealthy-sensitive {
+  border-color: #f97316;
+}
+
+.sensor-card.aqi-card.status-unhealthy-sensitive .aqi-gauge {
+  stroke: #f97316;
+}
+
+.sensor-card.aqi-card.status-unhealthy {
+  border-color: var(--danger);
+}
+
+.sensor-card.aqi-card.status-unhealthy .aqi-gauge {
+  stroke: var(--danger);
+}
+
+/* Sensor Health Icon */
+.sensor-health-icon {
+  margin-left: auto;
+  color: var(--warn);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Fire Risk Banner */
+.fire-risk-banner {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  animation: fireRiskPulse 1s ease-in-out infinite;
+}
+
+.fire-risk-banner .fire-risk-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.fire-risk-banner i {
+  font-size: 32px;
+  color: #fef08a;
+  animation: fireFlicker 0.5s ease-in-out infinite alternate;
+}
+
+.fire-risk-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.fire-risk-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.fire-risk-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+@keyframes fireRiskPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.5); }
+  50% { box-shadow: 0 0 40px rgba(220, 38, 38, 0.8); }
+}
+
+@keyframes fireFlicker {
+  from { opacity: 0.8; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.1); }
+}
+
+@keyframes criticalPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+/* Warmup Banner */
+.warmup-banner {
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  border-radius: 12px;
+  padding: 12px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+  font-size: 14px;
+}
+
+.warmup-banner i {
+  font-size: 20px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* CO Status Colors */
+.status-value.co-normal { color: var(--success); }
+.status-value.co-warning { color: var(--warn); }
+.status-value.co-danger { color: #f97316; }
+.status-value.co-critical { color: var(--danger); font-weight: 700; }
+.status-value.co-warmup { color: var(--muted); }
+
+/* AQI Status Colors */
+.status-value.aqi-good { color: var(--success); }
+.status-value.aqi-moderate { color: var(--warn); }
+.status-value.aqi-unhealthy-sensitive { color: #f97316; }
+.status-value.aqi-unhealthy { color: var(--danger); }
+.status-value.aqi-warmup { color: var(--muted); }
+
+/* Calibration Card Styles */
+.calibration-info {
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.calibration-info p {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.calibration-info p:last-child {
+  border-bottom: none;
+}
+
+.calibration-info span:first-child {
+  color: var(--muted);
+}
+
+/* Threshold Group Styles */
+.threshold-group {
+  margin-bottom: 20px;
+}
+
+.threshold-group label {
+  display: block;
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.threshold-group input[type="range"] {
+  width: 100%;
+}
+
+.threshold-group span {
+  display: block;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 8px;
+}
