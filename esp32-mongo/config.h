@@ -40,10 +40,10 @@
 #define DEFAULT_GAS_THRESHOLD 40
 #define DEFAULT_TEMP_THRESHOLD 60
 
-// CO Thresholds (PPM)
-#define DEFAULT_CO_WARNING 35
-#define DEFAULT_CO_DANGER 100
-#define DEFAULT_CO_CRITICAL 400
+// CO Thresholds (PPM) - Higher values to prevent false alarms
+#define DEFAULT_CO_WARNING 100
+#define DEFAULT_CO_DANGER 200
+#define DEFAULT_CO_CRITICAL 500
 
 // Sensor Calibration Defaults
 #define DEFAULT_CO_RO 10000.0     // MQ-7 Ro in clean air (ohms)

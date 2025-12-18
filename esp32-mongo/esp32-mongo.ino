@@ -408,11 +408,11 @@ void updateAlarmState() {
   bool gasAlarm = gasPercent >= gasThreshold;
   bool tempAlarm = temperature >= tempThreshold;
   
-  // CO alarm (only after warmup)
-  bool coAlarm = !sensorWarmup && (coStatus == "danger" || coStatus == "critical");
+  // CO alarm - only trigger on CRITICAL to avoid false alarms
+  bool coAlarm = (coStatus == "critical");
   
-  // Combined alarm state
-  alarmActive = gasAlarm || tempAlarm || coAlarm || fireRisk;
+  // Combined alarm state - CO only triggers with other sensors to reduce false alarms
+  alarmActive = gasAlarm || tempAlarm || (coAlarm && (gasAlarm || tempAlarm)) || fireRisk;
   
   // Temperature warning levels
   if (temperature >= tempThreshold) {
