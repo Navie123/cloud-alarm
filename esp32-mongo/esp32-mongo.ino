@@ -241,11 +241,22 @@ void readGasSensors() {
   // No warmup - show real-time readings immediately
   sensorWarmup = false;
   
-  // Read raw ADC values
+  // MQ-7 and MQ-135 disabled - set to safe defaults
+  // (Enable these if you have the sensors connected)
+  coRaw = 0;
+  aqiRaw = 0;
+  coPpm = 0;
+  aqi = 0;
+  coStatus = "normal";
+  aqiStatus = "good";
+  sensorHealth = "ok";
+  fireRisk = false;
+  
+  // Uncomment below if MQ-7/MQ-135 sensors are connected:
+  /*
   coRaw = analogRead(MQ7_PIN);
   aqiRaw = analogRead(MQ135_PIN);
   
-  // Check for stuck sensors
   bool coStuck = checkSensorStuck(coRaw, &lastCoRaw, &stuckCoCount);
   bool aqiStuck = checkSensorStuck(aqiRaw, &lastAqiRaw, &stuckAqiCount);
   
@@ -255,22 +266,19 @@ void readGasSensors() {
     sensorHealth = "ok";
   }
   
-  // Calculate PPM and AQI
   float rawCoPpm = calculateCOPpm(coRaw, coRo);
   float rawAqi = calculateAQI(aqiRaw, aqiRo);
   
-  // Apply moving average for smoothing
   coPpm = applyMovingAverage(coReadings, rawCoPpm, &readingIndex, &readingCount);
   aqi = applyMovingAverage(aqiReadings, rawAqi, &readingIndex, &readingCount);
   
-  // Update status - real-time
   coStatus = getCOStatus(coPpm);
   aqiStatus = getAQIStatus(aqi);
   
-  // Check for fire risk (cross-sensor correlation)
   fireRisk = (coPpm >= coWarningThreshold) && 
              (temperature >= (tempThreshold - 10)) && 
              (gasPercent >= (gasThreshold - 10));
+  */
 }
 
 float calculateCOPpm(int rawADC, float ro) {
