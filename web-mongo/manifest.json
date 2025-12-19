@@ -1,9 +1,9 @@
 {
-  "name": "Cloud Fire Alarm",
-  "short_name": "Fire Alarm",
-  "description": "Cloud-based fire alarm monitoring system",
+  "name": "FireWire - Smart Fire Monitoring",
+  "short_name": "FireWire",
+  "description": "Smart IoT fire monitoring system with real-time gas, temperature & air quality detection",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
+  "background_color": "#0a0a0a",
   "theme_color": "#ff5722"
 }

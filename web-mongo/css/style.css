@@ -4229,3 +4229,87 @@ header {
   color: var(--text);
   margin-top: 8px;
 }
+
+
+/* ========== FOOTER ========== */
+.app-footer {
+  background: linear-gradient(180deg, var(--bg) 0%, #0d0d0d 100%);
+  border-top: 1px solid var(--border);
+  padding: 40px 20px 30px;
+  margin-top: 40px;
+}
+
+.footer-content {
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 15px;
+}
+
+.footer-brand i {
+  font-size: 1.8rem;
+}
+
+.footer-info {
+  margin-bottom: 20px;
+}
+
+.footer-info p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 5px 0;
+}
+
+.footer-info p:first-child {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.footer-credits {
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.footer-credits p {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 5px 0;
+}
+
+.footer-credits strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.footer-tech {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  margin-top: 10px;
+}
+
+.footer-tech i {
+  color: var(--accent);
+}
+
+.footer-bottom {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
