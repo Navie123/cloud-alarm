@@ -29,11 +29,11 @@ const verifySession = async (req, res, next) => {
   next();
 };
 
-// Require admin PIN for critical actions
+// Require admin session (not PIN) for critical actions
 const requireAdmin = (req, res, next) => {
-  const pin = req.header('X-Admin-PIN');
-  if (!pin || pin !== req.household.adminPin) {
-    return res.status(403).json({ error: 'Admin PIN required', requirePin: true });
+  // Check if user has admin session
+  if (req.session.type !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
   }
   next();
 };

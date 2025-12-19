@@ -25,8 +25,9 @@ Preferences preferences;
 
 // State variables - existing sensors
 float gasPercent = 0;
-float temperature = 0;
-float humidity = 0;
+float temperature = 25.0;  // Start with safe room temp to avoid false alarms
+float humidity = 50.0;     // Start with normal humidity
+bool tempSensorReady = false;  // Track if we got a valid temp reading
 float voltage = 0;
 int gasThreshold = DEFAULT_GAS_THRESHOLD;
 int tempThreshold = DEFAULT_TEMP_THRESHOLD;
@@ -101,10 +102,9 @@ void setup() {
   // Record boot time for warmup calculation
   bootTime = millis();
   
-  // Initialize pins
+  // Initialize pins (MQ-2 removed, using MQ-7 and MQ-135 only)
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(LED_PIN, OUTPUT);
-  pinMode(MQ2_PIN, INPUT);
   pinMode(MQ7_PIN, INPUT);
   pinMode(MQ135_PIN, INPUT);
   
@@ -193,10 +193,8 @@ void connectWiFi() {
 }
 
 void readSensors() {
-  // Read MQ2 gas sensor - simple and fast
-  int gasRaw = analogRead(MQ2_PIN);
-  gasPercent = map(gasRaw, 0, 4095, 0, 100);
-  gasPercent = constrain(gasPercent, 0, 100);
+  // MQ-2 removed - gasPercent now derived from MQ-7 CO readings
+  // Will be set in readGasSensors()
   
   // Read HDC1080 with error checking
   float newTemp = hdc1080.readTemperature();
@@ -216,7 +214,9 @@ void readSensors() {
   if (validReading) {
     temperature = newTemp;
     humidity = newHum;
+    tempSensorReady = true;  // Got valid reading
   } else {
+    // Don't set tempSensorReady to false - keep last valid reading
     static unsigned long lastReinit = 0;
     if (millis() - lastReinit > 5000) {
       Serial.println("Reinitializing HDC1080...");
@@ -225,60 +225,69 @@ void readSensors() {
     }
   }
   
-  // Read voltage (ESP32 internal)
-  voltage = analogRead(35) * (3.3 / 4095.0) * 2;
+  // Read voltage (ESP32 ADC2 - use different pin since 35 might conflict)
+  voltage = 3.3; // Fixed value since we're using pin 35 for other purposes
   
   // Read MQ-7 and MQ-135 gas sensors
   readGasSensors();
   
   // Debug output
-  Serial.printf("Gas: %.1f%%, CO: %.1f PPM (%s), AQI: %.0f (%s), Temp: %.1f°C%s\n",
-                gasPercent, coPpm, coStatus.c_str(), aqi, aqiStatus.c_str(), 
-                temperature, sensorWarmup ? " [WARMUP]" : "");
+  Serial.printf("CO: %.1f PPM (%s), AQI: %.0f (%s), Temp: %.1f°C, Hum: %.1f%%\n",
+                coPpm, coStatus.c_str(), aqi, aqiStatus.c_str(), 
+                temperature, humidity);
 }
 
 void readGasSensors() {
   // No warmup - show real-time readings immediately
   sensorWarmup = false;
   
-  // MQ-7 and MQ-135 disabled - set to safe defaults
-  // (Enable these if you have the sensors connected)
-  coRaw = 0;
-  aqiRaw = 0;
-  coPpm = 0;
-  aqi = 0;
-  coStatus = "normal";
-  aqiStatus = "good";
-  sensorHealth = "ok";
-  fireRisk = false;
-  
-  // Uncomment below if MQ-7/MQ-135 sensors are connected:
-  /*
+  // Read MQ-7 on pin 34 (replacing MQ-2 for gas detection)
   coRaw = analogRead(MQ7_PIN);
+  
+  // Read MQ-135 on pin 32 for AQI
   aqiRaw = analogRead(MQ135_PIN);
   
-  bool coStuck = checkSensorStuck(coRaw, &lastCoRaw, &stuckCoCount);
-  bool aqiStuck = checkSensorStuck(aqiRaw, &lastAqiRaw, &stuckAqiCount);
+  // Direct mapping: low ADC = low gas (safe), high ADC = high gas (danger)
+  // Your sensors read ~400-500 in clean air = ~10-12% (safe)
+  // Gas detection will increase the ADC value
+  gasPercent = map(coRaw, 0, 4095, 0, 100);
+  gasPercent = constrain(gasPercent, 0, 100);
   
-  if (coStuck || aqiStuck) {
-    sensorHealth = "warning";
+  // AQI from MQ-135 (direct mapping)
+  aqi = map(aqiRaw, 0, 4095, 0, 500);
+  aqi = constrain(aqi, 0, 500);
+  
+  // CO PPM calculation (optional, for display)
+  coPpm = gasPercent * 5; // Rough estimate: 100% = 500 PPM
+  
+  // Debug raw values
+  Serial.printf("Raw ADC - MQ7: %d, MQ135: %d -> Gas: %.1f%%, AQI: %.0f\n", 
+                coRaw, aqiRaw, gasPercent, aqi);
+  
+  // Set status based on gas percentage (using gasThreshold)
+  if (gasPercent >= gasThreshold + 20) {
+    coStatus = "critical";
+  } else if (gasPercent >= gasThreshold) {
+    coStatus = "danger";
+  } else if (gasPercent >= gasThreshold - 10) {
+    coStatus = "warning";
   } else {
-    sensorHealth = "ok";
+    coStatus = "normal";
   }
   
-  float rawCoPpm = calculateCOPpm(coRaw, coRo);
-  float rawAqi = calculateAQI(aqiRaw, aqiRo);
+  // AQI status
+  if (aqi > 150) {
+    aqiStatus = "unhealthy";
+  } else if (aqi > 100) {
+    aqiStatus = "unhealthy_sensitive";
+  } else if (aqi > 50) {
+    aqiStatus = "moderate";
+  } else {
+    aqiStatus = "good";
+  }
   
-  coPpm = applyMovingAverage(coReadings, rawCoPpm, &readingIndex, &readingCount);
-  aqi = applyMovingAverage(aqiReadings, rawAqi, &readingIndex, &readingCount);
-  
-  coStatus = getCOStatus(coPpm);
-  aqiStatus = getAQIStatus(aqi);
-  
-  fireRisk = (coPpm >= coWarningThreshold) && 
-             (temperature >= (tempThreshold - 10)) && 
-             (gasPercent >= (gasThreshold - 10));
-  */
+  sensorHealth = "ok";
+  fireRisk = false;
 }
 
 float calculateCOPpm(int rawADC, float ro) {
@@ -413,14 +422,14 @@ void performCalibration() {
 }
 
 void updateAlarmState() {
+  // Gas alarm when MQ-7 reading exceeds threshold
   bool gasAlarm = gasPercent >= gasThreshold;
-  bool tempAlarm = temperature >= tempThreshold;
   
-  // CO alarm - only trigger on CRITICAL to avoid false alarms
-  bool coAlarm = (coStatus == "critical");
+  // Only trigger temp alarm if sensor is ready AND temp is valid (not I2C error value)
+  bool tempAlarm = tempSensorReady && temperature >= tempThreshold && temperature < 100.0;
   
-  // Combined alarm state - CO only triggers with other sensors to reduce false alarms
-  alarmActive = gasAlarm || tempAlarm || (coAlarm && (gasAlarm || tempAlarm)) || fireRisk;
+  // Combined alarm state - gas OR temp triggers alarm
+  alarmActive = gasAlarm || tempAlarm;
   
   // Temperature warning levels
   if (temperature >= tempThreshold) {
