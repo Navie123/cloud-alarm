@@ -1,4 +1,4 @@
-// Cloud Fire Alarm - Configuration
+// FireWire - Configuration
 const CONFIG = {
   // Backend API URL - same origin since frontend is served by backend
   API_URL: '',  // Empty = same origin

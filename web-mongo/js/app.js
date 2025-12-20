@@ -1,4 +1,4 @@
-// Cloud Fire Alarm Dashboard - Main Application (MongoDB Version)
+// FireWire Dashboard - Main Application (MongoDB Version)
 
 const { jsPDF } = window.jspdf;
 
@@ -775,11 +775,12 @@ function exportPDF() {
   doc.setFontSize(22);
   doc.setTextColor(255, 255, 255);
   doc.setFont(undefined, 'bold');
-  doc.text('CLOUD FIRE ALARM SYSTEM', 15, 13);
+  doc.text('FIREWIRE - SMART FIRE MONITORING', 15, 13);
   doc.setFontSize(10);
   doc.setFont(undefined, 'normal');
   doc.text('Alarm History Report', 15, 20);
   doc.text('Generated: ' + formatDatePH(new Date()), 15, 25);
+  doc.text('By Vince Angelo Nailon', pageW - 60, 20);
   
   // Table header
   let y = 42;
@@ -790,9 +791,12 @@ function exportPDF() {
   doc.setFont(undefined, 'bold');
   doc.text('#', 20, y);
   doc.text('Date & Time (PH)', 35, y);
-  doc.text('Trigger', 130, y);
-  doc.text('Gas Level', 175, y);
-  doc.text('Temperature', 225, y);
+  doc.text('Trigger', 120, y);
+  doc.text('Gas Level', 155, y);
+  doc.text('CO (PPM)', 195, y);
+  doc.text('AQI', 235, y);
+  doc.text('Temperature', 270, y);
+  doc.text('Humidity', 310, y);
   
   y += 10;
   doc.setFont(undefined, 'normal');
@@ -810,9 +814,12 @@ function exportPDF() {
     doc.setTextColor(40, 40, 40);
     doc.text(String(i + 1), 20, y);
     doc.text(displayTime, 35, y);
-    doc.text((h.trigger || 'unknown').toUpperCase(), 130, y);
-    doc.text((h.gas?.toFixed(1) || '--') + '%', 175, y);
-    doc.text((h.temperature?.toFixed(1) || '--') + '°C', 225, y);
+    doc.text((h.trigger || 'unknown').toUpperCase(), 120, y);
+    doc.text((h.gas?.toFixed(1) || '--') + '%', 155, y);
+    doc.text((h.coPpm?.toFixed(0) || '--'), 195, y);
+    doc.text((h.aqi?.toFixed(0) || '--'), 235, y);
+    doc.text((h.temperature?.toFixed(1) || '--') + '°C', 270, y);
+    doc.text((h.humidity?.toFixed(1) || '--') + '%', 310, y);
     
     y += 9;
   });
@@ -824,9 +831,10 @@ function exportPDF() {
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(`Page ${i} of ${totalPages}`, pageW - 30, pageH - 10);
+    doc.text('FireWire © 2025', 15, pageH - 10);
   }
   
-  const filename = 'FireAlarm_History_' + new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }).replace(/\//g, '-') + '.pdf';
+  const filename = 'FireWire_History_' + new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' }).replace(/\//g, '-') + '.pdf';
   doc.save(filename);
   showToast('PDF exported successfully');
 }

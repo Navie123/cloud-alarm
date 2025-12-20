@@ -1,4 +1,4 @@
-// Cloud Fire Alarm - Authentication Module
+// FireWire - Authentication Module
 // Supports: First-time setup, Household access, Admin login
 
 let accessType = null; // 'household' or 'admin'

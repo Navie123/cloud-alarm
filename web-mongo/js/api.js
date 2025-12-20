@@ -1,4 +1,4 @@
-// Cloud Fire Alarm - API Module
+// FireWire - API Module
 const api = {
   get baseUrl() {
     return CONFIG.API_URL;
