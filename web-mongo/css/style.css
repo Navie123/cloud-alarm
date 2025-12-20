@@ -4297,3 +4297,44 @@ header {
   color: var(--muted);
   font-size: 0.75rem;
 }
+
+
+/* ========== LOGO STYLES ========== */
+.logo-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.header-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.footer-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.login-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .logo-img {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .header-logo {
+    width: 36px;
+    height: 36px;
+  }
+}
