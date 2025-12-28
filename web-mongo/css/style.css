@@ -1289,8 +1289,23 @@ main.container {
 .stat-card { text-align: center; padding: 12px; }
 .value { font-size: 1.4rem; font-weight: 800; }
 .unit { font-size: 0.75rem; color: var(--muted); margin-left: 2px; }
-.device-status { font-size: 0.85rem !important; color: var(--danger); }
-.device-status.online { color: var(--success); }
+.device-status { 
+  font-size: 0.85rem !important; 
+  color: var(--danger); 
+  font-weight: 600;
+}
+.device-status.online { 
+  color: var(--success); 
+}
+.device-status.offline {
+  color: var(--danger);
+  animation: offlinePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes offlinePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
 
 /* ========== BUTTONS ========== */
 .btn {

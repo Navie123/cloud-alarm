@@ -87,6 +87,7 @@ function startDeviceStatusChecker() {
       if (deviceStatus) {
         deviceStatus.textContent = isOnline ? 'Online' : 'Offline';
         deviceStatus.classList.toggle('online', isOnline);
+        deviceStatus.classList.toggle('offline', !isOnline);
       }
       
       if (lastSeen) {
@@ -512,6 +513,7 @@ function updateUI(data) {
   if (deviceStatus) {
     deviceStatus.textContent = isDeviceOnline ? 'Online' : 'Offline';
     deviceStatus.classList.toggle('online', isDeviceOnline);
+    deviceStatus.classList.toggle('offline', !isDeviceOnline);
   }
   
   if (connectionStatus) {
@@ -581,6 +583,7 @@ function setConnected(connected) {
     if (deviceStatus) {
       deviceStatus.textContent = 'Offline';
       deviceStatus.classList.remove('online');
+      deviceStatus.classList.add('offline');
     }
   }
 }
