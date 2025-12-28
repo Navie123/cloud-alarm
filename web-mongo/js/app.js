@@ -68,6 +68,40 @@ function initializeApp() {
   loadInitialData();
   loadHistory();
   startHistoryAutoRefresh();
+  startDeviceStatusChecker();
+}
+
+// Track last data received time
+let lastDataReceivedTime = null;
+
+// Check device status periodically
+function startDeviceStatusChecker() {
+  setInterval(() => {
+    const deviceStatus = document.getElementById('deviceStatus');
+    const lastSeen = document.getElementById('lastSeen');
+    
+    if (lastDataReceivedTime) {
+      const diffSeconds = (Date.now() - lastDataReceivedTime) / 1000;
+      const isOnline = diffSeconds < 30;
+      
+      if (deviceStatus) {
+        deviceStatus.textContent = isOnline ? 'Online' : 'Offline';
+        deviceStatus.classList.toggle('online', isOnline);
+      }
+      
+      if (lastSeen) {
+        if (diffSeconds < 10) {
+          lastSeen.textContent = 'Just now';
+        } else if (diffSeconds < 60) {
+          lastSeen.textContent = Math.floor(diffSeconds) + 's ago';
+        } else if (diffSeconds < 3600) {
+          lastSeen.textContent = Math.floor(diffSeconds / 60) + 'm ago';
+        } else {
+          lastSeen.textContent = Math.floor(diffSeconds / 3600) + 'h ago';
+        }
+      }
+    }
+  }, 5000); // Check every 5 seconds
 }
 
 // ============ WebSocket Connection ============
@@ -372,6 +406,9 @@ function updateGreeting(hours) {
 function updateUI(data) {
   if (!data) return;
   
+  // Track when we received data
+  lastDataReceivedTime = Date.now();
+  
   // Gas gauge update
   const gasPercent = Math.min(data.gas || 0, 100);
   const gasVal = document.getElementById('gasVal');
@@ -441,16 +478,44 @@ function updateUI(data) {
   const lastUpdate = document.getElementById('lastUpdate');
   if (lastUpdate) lastUpdate.textContent = data.timestamp || '--';
   
+  // Check if device is actually online based on lastSeen
   const lastSeen = document.getElementById('lastSeen');
-  if (lastSeen) lastSeen.textContent = data.timestamp ? 'Just now' : '--';
-  
-  const connectionStatus = document.getElementById('connectionStatus');
-  if (connectionStatus) connectionStatus.textContent = 'Connected';
-  
   const deviceStatus = document.getElementById('deviceStatus');
+  const connectionStatus = document.getElementById('connectionStatus');
+  
+  // Calculate if device is online (data received within last 30 seconds)
+  let isDeviceOnline = false;
+  if (data.lastSeen) {
+    const lastSeenTime = new Date(data.lastSeen).getTime();
+    const now = Date.now();
+    const diffSeconds = (now - lastSeenTime) / 1000;
+    isDeviceOnline = diffSeconds < 30; // Online if data within 30 seconds
+    
+    if (lastSeen) {
+      if (diffSeconds < 10) {
+        lastSeen.textContent = 'Just now';
+      } else if (diffSeconds < 60) {
+        lastSeen.textContent = Math.floor(diffSeconds) + 's ago';
+      } else if (diffSeconds < 3600) {
+        lastSeen.textContent = Math.floor(diffSeconds / 60) + 'm ago';
+      } else {
+        lastSeen.textContent = Math.floor(diffSeconds / 3600) + 'h ago';
+      }
+    }
+  } else if (data.timestamp) {
+    if (lastSeen) lastSeen.textContent = 'Just now';
+    isDeviceOnline = true; // If we just got data with timestamp, device is online
+  } else {
+    if (lastSeen) lastSeen.textContent = '--';
+  }
+  
   if (deviceStatus) {
-    deviceStatus.textContent = 'Online';
-    deviceStatus.classList.add('online');
+    deviceStatus.textContent = isDeviceOnline ? 'Online' : 'Offline';
+    deviceStatus.classList.toggle('online', isDeviceOnline);
+  }
+  
+  if (connectionStatus) {
+    connectionStatus.textContent = isDeviceOnline ? 'Connected' : 'Disconnected';
   }
   
   updateSidebarInfo(data);

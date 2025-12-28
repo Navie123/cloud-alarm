@@ -59,3 +59,4 @@
 #define STUCK_SENSOR_READINGS 60  // Number of identical readings to trigger warning
 
 #endif
+ 
