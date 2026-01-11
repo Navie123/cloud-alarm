@@ -1,0 +1,280 @@
+================================================================================
+                    FIREWIRE HARDWARE WIRING GUIDE
+          ESP32-Based Smart Fire Alarm System with Cloud Monitoring
+================================================================================
+
+Project: FireWire
+Author: Vince Angelo Nailon
+Date: January 2026
+
+================================================================================
+                           COMPONENT LIST
+================================================================================
+
+MICROCONTROLLER:
+  • ESP32 DevKit V1 (30-pin or 38-pin)
+
+SENSORS:
+  • MQ-2 Gas/Smoke Sensor Module (with blue PCB)
+  • MQ-7 Carbon Monoxide Sensor Module (with blue PCB)
+  • MQ-135 Air Quality Sensor Module (with blue PCB)
+  • HDC1080 Temperature & Humidity Sensor (I2C)
+
+OUTPUT DEVICES:
+  • 20x4 LCD Display Module (I2C, address 0x27)
+  • Piezoelectric Buzzer (Active, 5V)
+
+CALIBRATION CONTROLS:
+  • 10K Potentiometers (x3, one per MQ sensor - built into modules)
+  • Hardware Switches (optional, for manual control)
+
+POWER:
+  • 5V USB Power Supply (2A recommended)
+  • Micro-USB Cable
+
+================================================================================
+                         PIN ASSIGNMENTS
+================================================================================
+
+ESP32 GPIO PIN          COMPONENT               WIRE COLOR (suggested)
+--------------------------------------------------------------------------------
+
+ANALOG INPUTS (ADC1 - Works with WiFi):
+  GPIO 34 (ADC1_CH6)    MQ-7 AO (Analog Out)    Orange
+  GPIO 35 (ADC1_CH7)    MQ-2 AO (Analog Out)    Yellow
+  GPIO 32 (ADC1_CH4)    MQ-135 AO (Analog Out)  Green
+
+I2C BUS (Default Pins):
+  GPIO 21 (SDA)         HDC1080 SDA             Blue
+  GPIO 21 (SDA)         LCD SDA                 Blue (shared)
+  GPIO 22 (SCL)         HDC1080 SCL             Purple
+  GPIO 22 (SCL)         LCD SCL                 Purple (shared)
+
+DIGITAL OUTPUTS:
+  GPIO 25               Buzzer (+)              Red
+  GPIO 2                Built-in LED            (onboard)
+
+POWER PINS:
+  3.3V                  HDC1080 VCC             Red
+  5V (VIN)              MQ-2 VCC                Red
+  5V (VIN)              MQ-7 VCC                Red
+  5V (VIN)              MQ-135 VCC              Red
+  5V (VIN)              LCD VCC                 Red
+  5V (VIN)              Buzzer VCC              Red
+  GND                   All GND connections     Black
+
+================================================================================
+                      DETAILED WIRING CONNECTIONS
+================================================================================
+
+------------------------------------------------------------------------------
+1. MQ-2 SMOKE/GAS SENSOR (Blue PCB Module)
+------------------------------------------------------------------------------
+   MQ-2 Pin      ESP32 Pin       Notes
+   ---------     ---------       -----
+   VCC           5V (VIN)        Requires 5V for heater
+   GND           GND             Common ground
+   AO            GPIO 35         Analog output (0-4095 on ESP32)
+   DO            Not connected   Digital output not used
+
+   Note: The blue PCB module has built-in load resistor and potentiometer.
+         No external resistors needed.
+
+------------------------------------------------------------------------------
+2. MQ-7 CARBON MONOXIDE SENSOR (Blue PCB Module)
+------------------------------------------------------------------------------
+   MQ-7 Pin      ESP32 Pin       Notes
+   ---------     ---------       -----
+   VCC           5V (VIN)        Requires 5V for heater
+   GND           GND             Common ground
+   AO            GPIO 34         Analog output (0-4095 on ESP32)
+   DO            Not connected   Digital output not used
+
+   Note: MQ-7 requires 60-90 second warmup time for accurate readings.
+         The blue PCB module has built-in circuitry.
+
+------------------------------------------------------------------------------
+3. MQ-135 AIR QUALITY SENSOR (Blue PCB Module)
+------------------------------------------------------------------------------
+   MQ-135 Pin    ESP32 Pin       Notes
+   ---------     ---------       -----
+   VCC           5V (VIN)        Requires 5V for heater
+   GND           GND             Common ground
+   AO            GPIO 32         Analog output (0-4095 on ESP32)
+   DO            Not connected   Digital output not used
+
+   Note: Detects NH3, NOx, alcohol, benzene, smoke, CO2.
+         Best for detecting combustion byproducts.
+
+------------------------------------------------------------------------------
+4. HDC1080 TEMPERATURE & HUMIDITY SENSOR (I2C)
+------------------------------------------------------------------------------
+   HDC1080 Pin   ESP32 Pin       Notes
+   -----------   ---------       -----
+   VCC           3.3V            Use 3.3V (NOT 5V!)
+   GND           GND             Common ground
+   SDA           GPIO 21         I2C Data line
+   SCL           GPIO 22         I2C Clock line
+
+   I2C Address: 0x40 (default)
+   Note: Can share I2C bus with LCD display.
+
+------------------------------------------------------------------------------
+5. 20x4 LCD DISPLAY (I2C Module with PCF8574)
+------------------------------------------------------------------------------
+   LCD Pin       ESP32 Pin       Notes
+   -------       ---------       -----
+   VCC           5V (VIN)        Requires 5V for backlight
+   GND           GND             Common ground
+   SDA           GPIO 21         I2C Data (shared with HDC1080)
+   SCL           GPIO 22         I2C Clock (shared with HDC1080)
+
+   I2C Address: 0x27 (common) or 0x3F (check your module)
+   Note: Adjust contrast using the blue potentiometer on the back.
+
+------------------------------------------------------------------------------
+6. PIEZOELECTRIC BUZZER (Active Type)
+------------------------------------------------------------------------------
+   Buzzer Pin    ESP32 Pin       Notes
+   ----------    ---------       -----
+   (+) Positive  GPIO 25         Signal pin
+   (-) Negative  GND             Common ground
+
+   Note: Active buzzers produce sound when voltage is applied.
+         No PWM frequency control needed.
+
+================================================================================
+                         WIRING DIAGRAM (ASCII)
+================================================================================
+
+                              ESP32 DevKit V1
+                         ┌─────────────────────┐
+                         │                     │
+         MQ-7 AO ────────┤ GPIO 34        3V3  ├──────── HDC1080 VCC
+         MQ-2 AO ────────┤ GPIO 35        GND  ├──────┬─ All GND
+        MQ-135 AO ───────┤ GPIO 32        5V   ├──────┼─ MQ-2 VCC
+                         │                     │      ├─ MQ-7 VCC
+     HDC1080 SDA ────┬───┤ GPIO 21             │      ├─ MQ-135 VCC
+         LCD SDA ────┘   │                     │      ├─ LCD VCC
+                         │                     │      └─ Buzzer (-)
+     HDC1080 SCL ────┬───┤ GPIO 22             │
+         LCD SCL ────┘   │                     │
+                         │                     │
+       Buzzer (+) ───────┤ GPIO 25             │
+                         │                     │
+                         │        USB          │
+                         └─────────┬───────────┘
+                                   │
+                              5V Power
+
+================================================================================
+                         I2C BUS CONFIGURATION
+================================================================================
+
+The I2C bus (GPIO 21 SDA, GPIO 22 SCL) is shared between:
+  • HDC1080 (Address: 0x40)
+  • LCD 20x4 (Address: 0x27 or 0x3F)
+
+Both devices can coexist on the same I2C bus since they have different addresses.
+
+To scan for I2C devices, use this code snippet:
+```cpp
+#include <Wire.h>
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin(21, 22);  // SDA, SCL
+  
+  Serial.println("Scanning I2C bus...");
+  for (byte addr = 1; addr < 127; addr++) {
+    Wire.beginTransmission(addr);
+    if (Wire.endTransmission() == 0) {
+      Serial.printf("Device found at 0x%02X\n", addr);
+    }
+  }
+}
+```
+
+================================================================================
+                         ADC NOTES (IMPORTANT!)
+================================================================================
+
+ESP32 has two ADC units:
+  • ADC1 (GPIO 32-39): Works normally, even with WiFi active
+  • ADC2 (GPIO 0, 2, 4, 12-15, 25-27): DOES NOT WORK when WiFi is enabled!
+
+This project uses ADC1 pins only:
+  • GPIO 34 (ADC1_CH6) - MQ-7
+  • GPIO 35 (ADC1_CH7) - MQ-2
+  • GPIO 32 (ADC1_CH4) - MQ-135
+
+DO NOT use ADC2 pins for sensors if WiFi is required!
+
+================================================================================
+                         WIRE LENGTH RECOMMENDATIONS
+================================================================================
+
+For ceiling-mounted sensor unit to wall-mounted control panel:
+
+  Recommended wire length: 4-5 meters maximum
+
+  Wire gauge recommendations:
+  • Power (5V, GND): 22 AWG or thicker
+  • I2C (SDA, SCL): 22-24 AWG, keep as short as possible
+  • Analog signals: 22-24 AWG, shielded if possible
+
+  Tips for long wire runs:
+  • Use twisted pairs for I2C lines
+  • Add 4.7K pull-up resistors on SDA and SCL if I2C becomes unreliable
+  • Keep analog sensor wires away from power lines to reduce noise
+
+================================================================================
+                         POWER REQUIREMENTS
+================================================================================
+
+Component               Current Draw (typical)
+-----------             ----------------------
+ESP32                   80-240 mA (WiFi active)
+MQ-2 Sensor             150 mA (heater)
+MQ-7 Sensor             150 mA (heater)
+MQ-135 Sensor           150 mA (heater)
+HDC1080                 1 mA
+LCD 20x4 (backlight)    20-40 mA
+Buzzer                  30 mA
+
+TOTAL (estimated):      600-800 mA
+
+Recommended power supply: 5V 2A USB adapter
+
+================================================================================
+                         TROUBLESHOOTING
+================================================================================
+
+Problem: Sensors show 0 or 4095 constantly
+  → Check VCC and GND connections
+  → Verify using ADC1 pins (not ADC2)
+  → Allow 2-3 minutes warmup time for MQ sensors
+
+Problem: LCD not displaying
+  → Check I2C address (try 0x27 and 0x3F)
+  → Adjust contrast potentiometer on LCD backpack
+  → Verify SDA/SCL connections
+
+Problem: HDC1080 not responding
+  → Ensure using 3.3V (not 5V!)
+  → Check I2C address 0x40
+  → Run I2C scanner to verify detection
+
+Problem: Buzzer not sounding
+  → Verify GPIO 25 connection
+  → Check buzzer polarity (+ to GPIO, - to GND)
+  → Test with simple digitalWrite(25, HIGH)
+
+Problem: WiFi disconnects frequently
+  → Ensure using 2.4GHz network (ESP32 doesn't support 5GHz)
+  → Check signal strength
+  → Verify SSID and password in config.h
+
+================================================================================
+                              END OF GUIDE
+================================================================================

@@ -225,6 +225,14 @@
         <button class="btn btn-primary btn-full" onclick="saveThreshold()"><i class="fas fa-save"></i> Save</button>
       </div>
       
+      <div class="sidebar-section admin-only">
+        <div class="sidebar-section-title"><i class="fas fa-wifi"></i> DEVICE WIFI</div>
+        <div class="sidebar-info wifi-setup-info">
+          <p><i class="fas fa-info-circle"></i> Change device WiFi network</p>
+        </div>
+        <button class="btn btn-secondary btn-full" onclick="resetDeviceWifi()"><i class="fas fa-rotate"></i> Change WiFi</button>
+      </div>
+      
       <div class="sidebar-section">
         <div class="sidebar-section-title"><i class="fas fa-server"></i> SYSTEM INFO</div>
         <div class="sidebar-info">
@@ -525,6 +533,18 @@
             </div>
             <p class="card-subtitle">Ensure sensors are in clean air before calibrating</p>
             <button class="btn btn-secondary" onclick="startCalibration()"><i class="fas fa-sync"></i> Calibrate Sensors</button>
+          </div>
+          
+          <!-- WiFi Configuration -->
+          <div class="card">
+            <div class="card-title"><i class="fas fa-wifi"></i> WiFi Configuration</div>
+            <p class="card-subtitle">Change the device's WiFi network</p>
+            <div class="wifi-info">
+              <p><i class="fas fa-signal"></i> Device will restart in setup mode</p>
+              <p><i class="fas fa-mobile-alt"></i> Connect to "FireWire-Setup" network</p>
+              <p><i class="fas fa-key"></i> Password: firewire123</p>
+            </div>
+            <button class="btn btn-secondary" onclick="resetDeviceWifi()"><i class="fas fa-rotate"></i> Change WiFi Network</button>
           </div>
           
           <div class="card">

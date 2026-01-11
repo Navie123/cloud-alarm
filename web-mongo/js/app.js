@@ -1287,6 +1287,38 @@ async function startCalibration() {
   }
 }
 
+// Reset device WiFi (triggers captive portal)
+async function resetDeviceWifi() {
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
+  
+  if (!confirm('Reset device WiFi?\n\nThe device will restart in setup mode.\nConnect to "FireWire-Setup" network (password: firewire123) to configure new WiFi.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/reset-wifi`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + localStorage.getItem('householdToken'),
+        'X-Admin-PIN': localStorage.getItem('adminPin')
+      }
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      showToast('WiFi reset command sent!');
+      alert('Device will restart in setup mode.\n\n1. Wait for "FireWire-Setup" network to appear\n2. Connect to it (password: firewire123)\n3. Open 192.168.4.1 in browser\n4. Select your new WiFi network');
+    } else {
+      throw new Error('Failed to reset WiFi');
+    }
+  } catch (error) {
+    showToast('Error resetting WiFi', 'error');
+  }
+}
+
 // Load gas history for charts
 async function loadGasHistory(range = '24h') {
   try {

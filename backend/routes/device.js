@@ -490,4 +490,33 @@ router.post('/:deviceId/co-thresholds', verifySession, requireAdmin, async (req,
   }
 });
 
+// Reset WiFi settings on device (requires admin PIN)
+router.post('/:deviceId/reset-wifi', verifySession, requireAdmin, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+
+    if (!req.household.devices.find(d => d.deviceId === deviceId)) {
+      return res.status(403).json({ error: 'Device not in household' });
+    }
+
+    let device = await Device.findOne({ deviceId });
+    if (!device) {
+      return res.status(404).json({ error: 'Device not found' });
+    }
+
+    // Set WiFi reset command for ESP32 to pick up
+    if (!device.commands) device.commands = {};
+    device.commands.resetWifi = true;
+    await device.save();
+
+    res.json({ 
+      success: true, 
+      message: 'WiFi reset command sent. Device will restart in setup mode. Connect to "FireWire-Setup" network to configure new WiFi.' 
+    });
+  } catch (error) {
+    console.error('WiFi reset error:', error);
+    res.status(500).json({ error: 'Failed to reset WiFi' });
+  }
+});
+
 module.exports = router;

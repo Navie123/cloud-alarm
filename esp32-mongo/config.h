@@ -1,9 +1,20 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-// WiFi Configuration
-#define WIFI_SSID "Converge_2.4GHz_58BD"
-#define WIFI_PASSWORD "P@ssW0rd369"
+// ============================================
+// WiFiManager Configuration (Captive Portal)
+// ============================================
+// When ESP32 can't connect to saved WiFi, it creates an access point
+// Connect to this AP with your phone/laptop to configure WiFi
+
+#define WIFI_AP_NAME "FireWire-Setup"      // AP name when in setup mode
+#define WIFI_AP_PASSWORD "firewire123"     // AP password (min 8 chars)
+#define WIFI_PORTAL_TIMEOUT 180            // Config portal timeout (seconds)
+#define WIFI_FAIL_RESTART_PORTAL 5         // Restart portal after X failed reconnects
+
+// Legacy WiFi credentials (optional fallback, WiFiManager handles this now)
+// #define WIFI_SSID "Boarding House"
+// #define WIFI_PASSWORD "Welcome2025"
 
 // Backend Server Configuration
 // For local development (comment out for production):

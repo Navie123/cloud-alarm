@@ -1,7 +1,8 @@
 /*
- * Cloud Fire Alarm - MongoDB Backend Version
+ * FireWire - ESP32 Smart Fire Alarm System
  * ESP32 Firmware for sending sensor data to Node.js backend
  * With MQ-7 (CO) and MQ-135 (Air Quality) sensor support
+ * WiFiManager for easy WiFi configuration via captive portal
  */
 
 #include <WiFi.h>
@@ -10,12 +11,16 @@
 #include <ArduinoJson.h>
 #include <Wire.h>
 #include <Preferences.h>
+#include <WiFiManager.h>  // WiFiManager library for captive portal
 #include "ClosedCube_HDC1080.h"
 #include "config.h"
 
 // WiFi clients
 WiFiClient wifiClient;
 WiFiClientSecure wifiClientSecure;
+
+// WiFiManager instance
+WiFiManager wifiManager;
 
 // HDC1080 Temperature/Humidity Sensor
 ClosedCube_HDC1080 hdc1080;
@@ -75,7 +80,12 @@ unsigned long lastSensorRead = 0;
 unsigned long lastDataSend = 0;
 unsigned long lastCommandCheck = 0;
 
+// WiFi Manager config portal trigger
+bool configPortalActive = false;
+bool wifiResetRequested = false;  // Server can request WiFi reset
+
 // Function declarations
+void setupWiFiManager();
 void connectWiFi();
 void readSensors();
 void readGasSensors();
@@ -93,11 +103,14 @@ void loadCalibration();
 void saveCalibration();
 void performCalibration();
 bool checkSensorStuck(int currentRaw, int* lastRaw, int* stuckCount);
+void resetWiFiSettings();
+void blinkSetupMode();
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n=== Cloud Fire Alarm (MongoDB) ===");
+  Serial.println("\n=== FireWire Smart Fire Alarm ===");
   Serial.println("With MQ-7 (CO) and MQ-135 (AQI) support");
+  Serial.println("WiFiManager enabled for easy setup");
   
   // Record boot time for warmup calculation
   bootTime = millis();
@@ -107,6 +120,14 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   pinMode(MQ7_PIN, INPUT);
   pinMode(MQ135_PIN, INPUT);
+  
+  // Check for reset button (hold during boot to reset WiFi)
+  // Using built-in BOOT button on GPIO 0
+  pinMode(0, INPUT_PULLUP);
+  if (digitalRead(0) == LOW) {
+    Serial.println("BOOT button held - resetting WiFi settings...");
+    resetWiFiSettings();
+  }
   
   digitalWrite(BUZZER_PIN, LOW);
   digitalWrite(LED_PIN, LOW);
@@ -125,8 +146,8 @@ void setup() {
     aqiReadings[i] = 0;
   }
   
-  // Connect to WiFi
-  connectWiFi();
+  // Setup WiFiManager (captive portal)
+  setupWiFiManager();
   
   Serial.println("Sensors ready - showing real-time readings");
 }
@@ -169,26 +190,102 @@ void loop() {
   delay(100);
 }
 
+void setupWiFiManager() {
+  // Set WiFiManager debug output
+  wifiManager.setDebugOutput(true);
+  
+  // Set timeout for config portal (3 minutes)
+  wifiManager.setConfigPortalTimeout(WIFI_PORTAL_TIMEOUT);
+  
+  // Set minimum signal quality for networks to show
+  wifiManager.setMinimumSignalQuality(20);
+  
+  // Custom AP name and password
+  String apName = String(WIFI_AP_NAME);
+  
+  Serial.println("Starting WiFiManager...");
+  Serial.printf("If no saved WiFi, connect to: %s\n", apName.c_str());
+  Serial.printf("Password: %s\n", WIFI_AP_PASSWORD);
+  Serial.println("Then open 192.168.4.1 in browser");
+  
+  // Blink LED to indicate setup mode
+  for (int i = 0; i < 5; i++) {
+    digitalWrite(LED_PIN, HIGH);
+    delay(100);
+    digitalWrite(LED_PIN, LOW);
+    delay(100);
+  }
+  
+  // Try to connect with saved credentials, or start config portal
+  bool connected = wifiManager.autoConnect(apName.c_str(), WIFI_AP_PASSWORD);
+  
+  if (connected) {
+    Serial.println("\nWiFi connected!");
+    Serial.print("IP: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("SSID: ");
+    Serial.println(WiFi.SSID());
+    
+    // Success indication - solid LED then off
+    digitalWrite(LED_PIN, HIGH);
+    delay(1000);
+    digitalWrite(LED_PIN, LOW);
+  } else {
+    Serial.println("\nFailed to connect to WiFi");
+    Serial.println("Device will continue in offline mode");
+    Serial.println("Sensors will still work locally");
+  }
+}
+
 void connectWiFi() {
-  Serial.print("Connecting to WiFi");
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  // Simple reconnection - no auto portal restart
+  if (WiFi.status() == WL_CONNECTED) return;
+  
+  Serial.print("Reconnecting to WiFi");
+  WiFi.reconnect();
   
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
     delay(500);
     Serial.print(".");
     attempts++;
   }
   
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nWiFi connected!");
+    Serial.println("\nWiFi reconnected!");
     Serial.print("IP: ");
     Serial.println(WiFi.localIP());
-    digitalWrite(LED_PIN, HIGH);
-    delay(500);
-    digitalWrite(LED_PIN, LOW);
   } else {
-    Serial.println("\nWiFi connection failed!");
+    Serial.println("\nWiFi reconnection failed - will retry next loop");
+    // Don't auto-restart portal - wait for manual reset or server command
+  }
+}
+
+void resetWiFiSettings() {
+  Serial.println("Erasing WiFi credentials...");
+  wifiManager.resetSettings();
+  
+  // Visual feedback - rapid blink
+  for (int i = 0; i < 10; i++) {
+    digitalWrite(LED_PIN, HIGH);
+    delay(50);
+    digitalWrite(LED_PIN, LOW);
+    delay(50);
+  }
+  
+  Serial.println("WiFi settings cleared. Restarting...");
+  delay(1000);
+  ESP.restart();
+}
+
+void blinkSetupMode() {
+  static unsigned long lastBlink = 0;
+  static bool ledState = false;
+  
+  if (millis() - lastBlink > 200) {
+    ledState = !ledState;
+    digitalWrite(LED_PIN, ledState);
+    lastBlink = millis();
   }
 }
 
@@ -592,10 +689,22 @@ void checkCommands() {
         Serial.println("Calibration requested from server");
         performCalibration();
       }
+      
+      // WiFi reset command from dashboard
+      if (doc.containsKey("resetWifi") && doc["resetWifi"].as<bool>()) {
+        Serial.println("WiFi reset requested from server");
+        wifiResetRequested = true;
+      }
     }
   }
   
   http.end();
+  
+  // Handle WiFi reset after HTTP connection closed
+  if (wifiResetRequested) {
+    wifiResetRequested = false;
+    resetWiFiSettings();
+  }
 }
 
 void activateBuzzer(bool state) {
