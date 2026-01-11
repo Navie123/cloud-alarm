@@ -4,7 +4,6 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const expressWs = require('express-ws');
-const rateLimit = require('express-rate-limit');
 
 const deviceRoutes = require('./routes/device');
 const pushRoutes = require('./routes/push');
@@ -15,46 +14,14 @@ const Household = require('./models/Household');
 const app = express();
 const wsInstance = expressWs(app);
 
-// Rate limiters
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // 500 API requests per window (increased for dashboard polling)
-  message: { error: 'Too many requests, please try again later' },
-  standardHeaders: true,
-  legacyHeaders: false
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 login attempts per window
-  message: { error: 'Too many login attempts, please try again in 15 minutes' },
-  standardHeaders: true,
-  legacyHeaders: false
-});
-
-const otpLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // 5 OTP requests per hour
-  message: { error: 'Too many verification requests, please try again later' },
-  standardHeaders: true,
-  legacyHeaders: false
-});
-
 // Middleware
 app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
 
-// Serve static frontend files BEFORE rate limiting
+// Serve static frontend files
 const webMongoPath = path.resolve(__dirname, '../web-mongo');
 console.log('Serving static files from:', webMongoPath);
 app.use(express.static(webMongoPath));
-
-// Apply rate limiting only to API routes
-app.use('/api', generalLimiter);
-
-// Export rate limiters for use in routes
-app.set('authLimiter', authLimiter);
-app.set('otpLimiter', otpLimiter);
 
 // Configure push notifications
 configurePush();
@@ -208,9 +175,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Database reset DISABLED for security
-// To reset database, use MongoDB Atlas console or CLI directly
-// app.post('/api/reset-db', ...) - REMOVED
+// Reset database (DEV ONLY - remove in production)
+app.post('/api/reset-db', async (req, res) => {
+  try {
+    await Household.collection.drop().catch(() => {});
+    await Household.collection.dropIndexes().catch(() => {});
+    res.json({ success: true, message: 'Database reset' });
+  } catch (error) {
+    res.json({ success: true, message: 'Reset attempted' });
+  }
+});
 
 // Serve frontend
 app.get('*', (req, res) => {

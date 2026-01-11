@@ -11,17 +11,11 @@ const deviceSchema = new mongoose.Schema({
     voltage: { type: Number, default: 0 },
     threshold: { type: Number, default: 40 },
     tempThreshold: { type: Number, default: 60 },
-    smokeThreshold: { type: Number, default: 40 },  // NEW: Smoke threshold
     alarm: { type: Boolean, default: false },
     tempWarning: { type: String, default: 'normal' },
     sirenEnabled: { type: Boolean, default: true },
     timestamp: String,
     heap: Number,
-    
-    // MQ-2 Smoke sensor fields
-    smoke: { type: Number, default: 0 },
-    smokeRaw: { type: Number, default: 0 },
-    smokeStatus: { type: String, default: 'normal', enum: ['normal', 'warning', 'danger', 'critical'] },
     
     // MQ-7 Carbon Monoxide sensor fields
     coPpm: { type: Number, default: 0 },
@@ -47,7 +41,6 @@ const deviceSchema = new mongoose.Schema({
     // Existing commands
     threshold: Number,
     tempThreshold: Number,
-    smokeThreshold: Number,  // NEW: Smoke threshold command
     sirenEnabled: Boolean,
     silence: Boolean,
     

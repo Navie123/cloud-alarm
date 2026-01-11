@@ -9,14 +9,6 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ============ MIDDLEWARE ============
 
-// Get rate limiters from app (set in server.js)
-const getRateLimiters = (req) => ({
-  authLimiter: req.app.get('authLimiter'),
-  otpLimiter: req.app.get('otpLimiter')
-});
-
-// ============ MIDDLEWARE ============
-
 // Verify household session (for household access)
 const verifyHouseholdSession = async (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -61,11 +53,6 @@ router.get('/check-setup', async (req, res) => {
 
 // Step 1: Admin initiates setup with Google OAuth
 router.post('/setup/google', async (req, res) => {
-  // Apply OTP rate limit
-  const { otpLimiter } = getRateLimiters(req);
-  if (otpLimiter) await new Promise((resolve) => otpLimiter(req, res, resolve));
-  if (res.headersSent) return;
-  
   try {
     const { credential } = req.body;
 
@@ -169,8 +156,8 @@ router.post('/setup/complete', async (req, res) => {
       return res.status(400).json({ error: 'Access code must be 6 digits' });
     }
 
-    // Set values - now async
-    await household.setPin(adminPin);
+    // Set values
+    household.setPin(adminPin);
     household.accessCode = accessCode;
     household.name = householdName || 'My Household';
     household.setupComplete = true;
@@ -204,11 +191,6 @@ router.post('/setup/complete', async (req, res) => {
 
 // Join with Household ID + Access Code
 router.post('/join', async (req, res) => {
-  // Apply auth rate limit
-  const { authLimiter } = getRateLimiters(req);
-  if (authLimiter) await new Promise((resolve) => authLimiter(req, res, resolve));
-  if (res.headersSent) return;
-  
   try {
     const { householdId, accessCode, memberName } = req.body;
 
@@ -282,11 +264,6 @@ router.post('/admin/check-trusted', async (req, res) => {
 
 // Step 1: Request OTP for admin login (skip if trusted)
 router.post('/admin/request-otp', async (req, res) => {
-  // Apply OTP rate limit
-  const { otpLimiter } = getRateLimiters(req);
-  if (otpLimiter) await new Promise((resolve) => otpLimiter(req, res, resolve));
-  if (res.headersSent) return;
-  
   try {
     const { householdId, email, trustedToken } = req.body;
 
@@ -331,11 +308,6 @@ router.post('/admin/request-otp', async (req, res) => {
 
 // Step 2: Verify OTP + PIN for admin login (or just PIN if trusted)
 router.post('/admin/login', async (req, res) => {
-  // Apply auth rate limit
-  const { authLimiter } = getRateLimiters(req);
-  if (authLimiter) await new Promise((resolve) => authLimiter(req, res, resolve));
-  if (res.headersSent) return;
-  
   try {
     const { householdId, email, code, pin, trustedToken, rememberDevice, deviceName } = req.body;
 
@@ -359,9 +331,8 @@ router.post('/admin/login', async (req, res) => {
       }
     }
 
-    // Verify PIN (always required) - now async
-    const pinValid = await household.verifyPin(pin);
-    if (!pinValid) {
+    // Verify PIN (always required)
+    if (!household.verifyPin(pin)) {
       return res.status(401).json({ error: 'Invalid Admin PIN' });
     }
 
@@ -439,9 +410,7 @@ router.put('/admin-pin', verifyAdminSession, async (req, res) => {
   try {
     const { currentPin, newPin } = req.body;
 
-    // Verify current PIN - now async
-    const pinValid = await req.household.verifyPin(currentPin);
-    if (!pinValid) {
+    if (!req.household.verifyPin(currentPin)) {
       return res.status(401).json({ error: 'Current PIN is incorrect' });
     }
 
@@ -449,12 +418,7 @@ router.put('/admin-pin', verifyAdminSession, async (req, res) => {
       return res.status(400).json({ error: 'PIN must be 4-6 digits' });
     }
 
-    await req.household.setPin(newPin);
-    
-    // Invalidate all sessions except current one (security improvement)
-    const currentToken = req.header('Authorization')?.replace('Bearer ', '');
-    req.household.sessions = req.household.sessions.filter(s => s.token === currentToken);
-    
+    req.household.setPin(newPin);
     await req.household.save();
 
     res.json({ success: true, message: 'Admin PIN changed' });
@@ -559,12 +523,8 @@ router.post('/admin/reset-pin', async (req, res) => {
       return res.status(400).json({ error: 'PIN must be 4-6 digits' });
     }
 
-    await household.setPin(newPin);
+    household.setPin(newPin);
     household.clearOTP();
-    
-    // Invalidate all sessions on PIN reset (security)
-    household.sessions = [];
-    
     await household.save();
 
     res.json({ success: true, message: 'PIN reset successful' });
@@ -580,9 +540,8 @@ router.post('/admin/factory-reset', verifyAdminSession, async (req, res) => {
   try {
     const { pin, confirmText } = req.body;
 
-    // Verify PIN - now async
-    const pinValid = await req.household.verifyPin(pin);
-    if (!pinValid) {
+    // Verify PIN
+    if (!req.household.verifyPin(pin)) {
       return res.status(401).json({ error: 'Invalid Admin PIN' });
     }
 
