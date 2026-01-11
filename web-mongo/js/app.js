@@ -69,6 +69,61 @@ function initializeApp() {
   loadHistory();
   startHistoryAutoRefresh();
   startDeviceStatusChecker();
+  setupCOSliders();
+}
+
+// Setup CO threshold sliders with dynamic colors
+function setupCOSliders() {
+  const coWarningSlider = document.getElementById('coWarningSlider');
+  const coDangerSlider = document.getElementById('coDangerSlider');
+  const coCriticalSlider = document.getElementById('coCriticalSlider');
+  
+  if (coWarningSlider) {
+    updateCOSliderValue('coWarningSlider', 'coWarningVal', 'warning');
+    coWarningSlider.addEventListener('input', () => {
+      updateCOSliderValue('coWarningSlider', 'coWarningVal', 'warning');
+    });
+  }
+  
+  if (coDangerSlider) {
+    updateCOSliderValue('coDangerSlider', 'coDangerVal', 'danger');
+    coDangerSlider.addEventListener('input', () => {
+      updateCOSliderValue('coDangerSlider', 'coDangerVal', 'danger');
+    });
+  }
+  
+  if (coCriticalSlider) {
+    updateCOSliderValue('coCriticalSlider', 'coCriticalVal', 'critical');
+    coCriticalSlider.addEventListener('input', () => {
+      updateCOSliderValue('coCriticalSlider', 'coCriticalVal', 'critical');
+    });
+  }
+}
+
+function updateCOSliderValue(sliderId, valueId, level) {
+  const slider = document.getElementById(sliderId);
+  const valueEl = document.getElementById(valueId);
+  if (!slider || !valueEl) return;
+  
+  const value = parseInt(slider.value);
+  valueEl.textContent = value + ' PPM';
+  
+  // Remove all level classes
+  valueEl.classList.remove('level-safe', 'level-warning', 'level-danger', 'level-critical');
+  
+  // Add appropriate level class based on slider type
+  if (level === 'warning') {
+    if (value <= 20) valueEl.classList.add('level-safe');
+    else if (value <= 35) valueEl.classList.add('level-warning');
+    else valueEl.classList.add('level-danger');
+  } else if (level === 'danger') {
+    if (value <= 80) valueEl.classList.add('level-warning');
+    else if (value <= 150) valueEl.classList.add('level-danger');
+    else valueEl.classList.add('level-critical');
+  } else if (level === 'critical') {
+    if (value <= 300) valueEl.classList.add('level-danger');
+    else valueEl.classList.add('level-critical');
+  }
 }
 
 // Track last data received time

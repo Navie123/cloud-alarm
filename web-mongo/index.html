@@ -227,10 +227,17 @@
       
       <div class="sidebar-section admin-only">
         <div class="sidebar-section-title"><i class="fas fa-wifi"></i> DEVICE WIFI</div>
-        <div class="sidebar-info wifi-setup-info">
-          <p><i class="fas fa-info-circle"></i> Change device WiFi network</p>
+        <div class="wifi-status-box">
+          <div class="wifi-status-row">
+            <span class="wifi-label"><i class="fas fa-signal"></i> Network</span>
+            <span class="wifi-value" id="currentWifiName">Connected</span>
+          </div>
+          <div class="wifi-status-row">
+            <span class="wifi-label"><i class="fas fa-circle-check"></i> Status</span>
+            <span class="wifi-value wifi-online" id="wifiStatusText">Online</span>
+          </div>
         </div>
-        <button class="btn btn-secondary btn-full" onclick="resetDeviceWifi()"><i class="fas fa-rotate"></i> Change WiFi</button>
+        <button class="btn btn-wifi btn-full" onclick="resetDeviceWifi()"><i class="fas fa-rotate"></i> Change WiFi Network</button>
       </div>
       
       <div class="sidebar-section">
@@ -507,18 +514,18 @@
             <div class="card-title"><i class="fas fa-skull-crossbones"></i> CO Thresholds (PPM)</div>
             <div class="threshold-group">
               <label>Warning Level</label>
-              <input type="range" class="slider" id="coWarningSlider" min="10" max="50" value="35">
-              <span id="coWarningVal">35 PPM</span>
+              <input type="range" class="slider co-warning-slider" id="coWarningSlider" min="10" max="50" value="35">
+              <span class="co-value" id="coWarningVal">35 PPM</span>
             </div>
             <div class="threshold-group">
               <label>Danger Level</label>
-              <input type="range" class="slider" id="coDangerSlider" min="50" max="200" value="100">
-              <span id="coDangerVal">100 PPM</span>
+              <input type="range" class="slider co-danger-slider" id="coDangerSlider" min="50" max="200" value="100">
+              <span class="co-value" id="coDangerVal">100 PPM</span>
             </div>
             <div class="threshold-group">
               <label>Critical Level</label>
-              <input type="range" class="slider" id="coCriticalSlider" min="200" max="800" value="400">
-              <span id="coCriticalVal">400 PPM</span>
+              <input type="range" class="slider co-critical-slider" id="coCriticalSlider" min="200" max="800" value="400">
+              <span class="co-value" id="coCriticalVal">400 PPM</span>
             </div>
             <button class="btn btn-primary" onclick="saveCOThresholds()"><i class="fas fa-save"></i> Save CO Thresholds</button>
           </div>

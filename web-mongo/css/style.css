@@ -1438,6 +1438,36 @@ main.container {
   );
 }
 
+/* CO Warning slider - Green to Yellow (low PPM range) */
+.slider.co-warning-slider {
+  background: linear-gradient(to right, 
+    #22c55e 0%,      /* Safe green */
+    #84cc16 30%,     /* Lime */
+    #eab308 60%,     /* Yellow warning */
+    #f97316 100%     /* Orange */
+  );
+}
+
+/* CO Danger slider - Yellow to Orange to Red (medium PPM range) */
+.slider.co-danger-slider {
+  background: linear-gradient(to right, 
+    #eab308 0%,      /* Yellow */
+    #f97316 40%,     /* Orange */
+    #ef4444 70%,     /* Red */
+    #dc2626 100%     /* Dark red */
+  );
+}
+
+/* CO Critical slider - Orange to Red to Dark Red (high PPM range) */
+.slider.co-critical-slider {
+  background: linear-gradient(to right, 
+    #f97316 0%,      /* Orange */
+    #ef4444 30%,     /* Red */
+    #dc2626 60%,     /* Dark red */
+    #991b1b 100%     /* Very dark red */
+  );
+}
+
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 22px;
@@ -4229,20 +4259,92 @@ header {
   width: 16px;
 }
 
+/* Sidebar WiFi Status Box */
+.wifi-status-box {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.wifi-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.wifi-status-row:first-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.wifi-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.wifi-label i {
+  margin-right: 8px;
+  width: 14px;
+}
+
+.wifi-value {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.wifi-value.wifi-online {
+  color: #4ade80;
+}
+
+.wifi-value.wifi-offline {
+  color: #f87171;
+}
+
+/* WiFi Button Style */
+.btn-wifi {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.btn-wifi:hover {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-wifi i {
+  margin-right: 8px;
+}
+
 /* Threshold Group Styles */
 .threshold-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.threshold-group:last-of-type {
+  border-bottom: none;
+  margin-bottom: 16px;
 }
 
 .threshold-group label {
   display: block;
   font-size: 14px;
   color: var(--muted);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  font-weight: 500;
 }
 
 .threshold-group input[type="range"] {
   width: 100%;
+  margin-bottom: 8px;
 }
 
 .threshold-group span {
@@ -4252,6 +4354,43 @@ header {
   font-weight: 600;
   color: var(--text);
   margin-top: 8px;
+}
+
+/* CO Value Display with dynamic colors */
+.co-value {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 16px;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.co-value.level-safe {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.co-value.level-warning {
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.co-value.level-danger {
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.co-value.level-critical {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 
