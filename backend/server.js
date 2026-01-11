@@ -18,7 +18,7 @@ const wsInstance = expressWs(app);
 // Rate limiters
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
+  max: 500, // 500 API requests per window (increased for dashboard polling)
   message: { error: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false
@@ -43,16 +43,18 @@ const otpLimiter = rateLimit({
 // Middleware
 app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
-app.use(generalLimiter); // Apply general rate limit to all routes
+
+// Serve static frontend files BEFORE rate limiting
+const webMongoPath = path.resolve(__dirname, '../web-mongo');
+console.log('Serving static files from:', webMongoPath);
+app.use(express.static(webMongoPath));
+
+// Apply rate limiting only to API routes
+app.use('/api', generalLimiter);
 
 // Export rate limiters for use in routes
 app.set('authLimiter', authLimiter);
 app.set('otpLimiter', otpLimiter);
-
-// Serve static frontend files
-const webMongoPath = path.resolve(__dirname, '../web-mongo');
-console.log('Serving static files from:', webMongoPath);
-app.use(express.static(webMongoPath));
 
 // Configure push notifications
 configurePush();
