@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
+
+const SALT_ROUNDS = 10;
 
 const householdSchema = new mongoose.Schema({
   // Unique household identifier (10-digit)
@@ -112,15 +115,31 @@ householdSchema.methods.clearOTP = function() {
   this.verification = undefined;
 };
 
-// Hash PIN
-householdSchema.methods.setPin = function(pin) {
-  this.admin.pinHash = crypto.createHash('sha256').update(pin).digest('hex');
+// Hash PIN with bcrypt (async version for new PINs)
+householdSchema.methods.setPin = async function(pin) {
+  this.admin.pinHash = await bcrypt.hash(pin, SALT_ROUNDS);
 };
 
-// Verify PIN
-householdSchema.methods.verifyPin = function(pin) {
-  const hash = crypto.createHash('sha256').update(pin).digest('hex');
-  return this.admin.pinHash === hash;
+// Sync version for backward compatibility during migration
+householdSchema.methods.setPinSync = function(pin) {
+  this.admin.pinHash = bcrypt.hashSync(pin, SALT_ROUNDS);
+};
+
+// Verify PIN (supports both old SHA256 and new bcrypt)
+householdSchema.methods.verifyPin = async function(pin) {
+  // Check if it's a bcrypt hash (starts with $2)
+  if (this.admin.pinHash && this.admin.pinHash.startsWith('$2')) {
+    return bcrypt.compare(pin, this.admin.pinHash);
+  }
+  // Legacy SHA256 check - migrate to bcrypt on successful verify
+  const sha256Hash = crypto.createHash('sha256').update(pin).digest('hex');
+  if (this.admin.pinHash === sha256Hash) {
+    // Migrate to bcrypt
+    this.admin.pinHash = await bcrypt.hash(pin, SALT_ROUNDS);
+    await this.save();
+    return true;
+  }
+  return false;
 };
 
 // Create session

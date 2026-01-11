@@ -83,42 +83,65 @@ router.post('/:deviceId/data', async (req, res) => {
       return res.status(401).json({ error: 'Invalid device credentials' });
     }
 
+    // Input validation for sensor data (prevent garbage data)
+    const validateRange = (val, min, max, def) => {
+      if (val === undefined || val === null) return def;
+      const num = Number(val);
+      if (isNaN(num)) return def;
+      return Math.max(min, Math.min(max, num));
+    };
+
+    // Sanitize incoming data
+    const sanitizedData = {
+      ...data,
+      gas: validateRange(data.gas, 0, 100, 0),
+      smoke: validateRange(data.smoke, 0, 100, 0),
+      temperature: validateRange(data.temperature, -40, 125, 25),
+      humidity: validateRange(data.humidity, 0, 100, 50),
+      coPpm: validateRange(data.coPpm, 0, 2000, 0),
+      aqi: validateRange(data.aqi, 0, 500, 0),
+      threshold: validateRange(data.threshold, 10, 90, 40),
+      tempThreshold: validateRange(data.tempThreshold, 30, 100, 60),
+      smokeThreshold: validateRange(data.smokeThreshold, 10, 90, 40)
+    };
+
     let device = await Device.findOne({ deviceId });
     if (!device) device = new Device({ deviceId });
 
     const wasAlarm = device.current?.alarm;
-    const isAlarm = data.alarm;
+    const isAlarm = sanitizedData.alarm;
     const wasFireRisk = device.current?.fireRisk;
 
     const storedThreshold = device.current?.threshold;
     const storedTempThreshold = device.current?.tempThreshold;
+    const storedSmokeThreshold = device.current?.smokeThreshold;
     const storedSirenEnabled = device.current?.sirenEnabled;
 
     // Process gas sensor data if present
-    let coStatus = data.coStatus || 'normal';
-    let aqiStatus = data.aqiStatus || 'good';
+    let coStatus = sanitizedData.coStatus || 'normal';
+    let aqiStatus = sanitizedData.aqiStatus || 'good';
     let fireRisk = false;
 
     // Calculate status from PPM/AQI if raw values provided but status not
-    if (data.coPpm !== undefined && !data.coStatus) {
+    if (sanitizedData.coPpm !== undefined && !sanitizedData.coStatus) {
       const thresholds = {
         WARNING: device.commands?.coWarningThreshold || 35,
         DANGER: device.commands?.coDangerThreshold || 100,
         CRITICAL: device.commands?.coCriticalThreshold || 400
       };
-      coStatus = getCOStatus(data.coPpm, thresholds);
+      coStatus = getCOStatus(sanitizedData.coPpm, thresholds);
     }
 
-    if (data.aqi !== undefined && !data.aqiStatus) {
-      aqiStatus = getAQIStatus(data.aqi);
+    if (sanitizedData.aqi !== undefined && !sanitizedData.aqiStatus) {
+      aqiStatus = getAQIStatus(sanitizedData.aqi);
     }
 
     // Detect fire risk (cross-sensor correlation)
-    if (!data.sensorWarmup && data.coPpm !== undefined) {
+    if (!sanitizedData.sensorWarmup && sanitizedData.coPpm !== undefined) {
       fireRisk = detectFireRisk(
-        data.coPpm || 0,
-        data.temperature || 0,
-        data.gas || 0,
+        sanitizedData.coPpm || 0,
+        sanitizedData.temperature || 0,
+        sanitizedData.gas || 0,
         {
           coWarning: device.commands?.coWarningThreshold || 35,
           tempWarning: (storedTempThreshold || 60) - 10,
@@ -129,20 +152,21 @@ router.post('/:deviceId/data', async (req, res) => {
 
     device.current = {
       ...device.current, 
-      ...data,
+      ...sanitizedData,
       coStatus,
       aqiStatus,
       fireRisk,
-      threshold: storedThreshold ?? data.threshold ?? 40,
-      tempThreshold: storedTempThreshold ?? data.tempThreshold ?? 60,
-      sirenEnabled: storedSirenEnabled ?? data.sirenEnabled ?? true,
+      threshold: storedThreshold ?? sanitizedData.threshold ?? 40,
+      tempThreshold: storedTempThreshold ?? sanitizedData.tempThreshold ?? 60,
+      smokeThreshold: storedSmokeThreshold ?? sanitizedData.smokeThreshold ?? 40,
+      sirenEnabled: storedSirenEnabled ?? sanitizedData.sirenEnabled ?? true,
       timestamp: new Date().toLocaleString()
     };
     device.lastSeen = new Date();
     await device.save();
 
     // Store gas history record (every update, for trending)
-    if (data.coPpm !== undefined || data.aqi !== undefined) {
+    if (sanitizedData.coPpm !== undefined || sanitizedData.aqi !== undefined) {
       const alertTriggers = [];
       let alertLevel = 'none';
 
@@ -164,34 +188,58 @@ router.post('/:deviceId/data', async (req, res) => {
 
       await GasHistory.create({
         deviceId,
-        coPpm: data.coPpm || 0,
-        coRaw: data.coRaw || 0,
+        coPpm: sanitizedData.coPpm || 0,
+        coRaw: sanitizedData.coRaw || 0,
         coStatus,
-        aqi: data.aqi || 0,
-        aqiRaw: data.aqiRaw || 0,
+        aqi: sanitizedData.aqi || 0,
+        aqiRaw: sanitizedData.aqiRaw || 0,
         aqiStatus,
-        temperature: data.temperature,
-        humidity: data.humidity,
-        gas: data.gas,
+        temperature: sanitizedData.temperature,
+        humidity: sanitizedData.humidity,
+        gas: sanitizedData.gas,
         alertLevel,
         alertTriggers
       });
     }
 
-    // Handle fire alarm
+    // Handle fire alarm - now includes smoke sensor
     if (!wasAlarm && isAlarm) {
-      const trigger = data.gas > (data.threshold || 40) && data.temperature > (data.tempThreshold || 60)
-        ? 'both' : data.gas > (data.threshold || 40) ? 'gas' : 'temperature';
+      // Determine what triggered the alarm
+      const gasTriggered = sanitizedData.gas > (storedThreshold || 40);
+      const tempTriggered = sanitizedData.temperature > (storedTempThreshold || 60);
+      const smokeTriggered = sanitizedData.smoke > (storedSmokeThreshold || 40);
+      
+      let trigger = 'unknown';
+      const triggers = [];
+      if (smokeTriggered) triggers.push('smoke');
+      if (gasTriggered) triggers.push('gas');
+      if (tempTriggered) triggers.push('temperature');
+      
+      if (triggers.length > 1) {
+        trigger = triggers.join('+');
+      } else if (triggers.length === 1) {
+        trigger = triggers[0];
+      }
       
       await AlarmHistory.create({
-        deviceId, trigger,
-        gas: data.gas, temperature: data.temperature, humidity: data.humidity,
+        deviceId, 
+        trigger,
+        gas: sanitizedData.gas, 
+        smoke: sanitizedData.smoke,
+        temperature: sanitizedData.temperature, 
+        humidity: sanitizedData.humidity,
         timestamp: new Date().toLocaleString()
       });
 
+      // Build notification message
+      let alertDetails = [];
+      if (smokeTriggered) alertDetails.push(`Smoke ${sanitizedData.smoke?.toFixed(1)}%`);
+      if (gasTriggered) alertDetails.push(`Gas ${sanitizedData.gas?.toFixed(1)}%`);
+      if (tempTriggered) alertDetails.push(`Temp ${sanitizedData.temperature?.toFixed(1)}°C`);
+
       await sendPushNotification(deviceId, {
         title: '🔥 FIRE ALARM!',
-        body: `${trigger === 'gas' ? 'Gas' : trigger === 'temperature' ? 'Temp' : 'Gas+Temp'} - ${data.gas?.toFixed(1)}%, ${data.temperature?.toFixed(1)}°C`,
+        body: alertDetails.join(', '),
         vibrate: [200, 100, 200], tag: 'fire-alarm', requireInteraction: true
       });
     }
@@ -200,7 +248,7 @@ router.post('/:deviceId/data', async (req, res) => {
     if (!wasFireRisk && fireRisk) {
       await sendPushNotification(deviceId, {
         title: '🚨 FIRE RISK DETECTED!',
-        body: `Multiple sensors triggered: CO ${data.coPpm?.toFixed(0)} PPM, Temp ${data.temperature?.toFixed(1)}°C, Gas ${data.gas?.toFixed(1)}%`,
+        body: `Multiple sensors triggered: CO ${sanitizedData.coPpm?.toFixed(0)} PPM, Temp ${sanitizedData.temperature?.toFixed(1)}°C, Gas ${sanitizedData.gas?.toFixed(1)}%`,
         vibrate: [300, 100, 300, 100, 300], tag: 'fire-risk', requireInteraction: true
       });
     }
@@ -210,13 +258,13 @@ router.post('/:deviceId/data', async (req, res) => {
     if (coStatus === 'danger' && wasCOStatus !== 'danger' && wasCOStatus !== 'critical') {
       await sendPushNotification(deviceId, {
         title: '⚠️ CO DANGER!',
-        body: `Carbon Monoxide at ${data.coPpm?.toFixed(0)} PPM - Ventilate immediately!`,
+        body: `Carbon Monoxide at ${sanitizedData.coPpm?.toFixed(0)} PPM - Ventilate immediately!`,
         vibrate: [200, 100, 200], tag: 'co-danger', requireInteraction: true
       });
     } else if (coStatus === 'critical' && wasCOStatus !== 'critical') {
       await sendPushNotification(deviceId, {
         title: '🚨 CO CRITICAL!',
-        body: `Carbon Monoxide at ${data.coPpm?.toFixed(0)} PPM - EVACUATE NOW!`,
+        body: `Carbon Monoxide at ${sanitizedData.coPpm?.toFixed(0)} PPM - EVACUATE NOW!`,
         vibrate: [300, 100, 300, 100, 300], tag: 'co-critical', requireInteraction: true
       });
     }
@@ -280,6 +328,7 @@ router.post('/:deviceId/command', verifySession, requireAdmin, async (req, res) 
     if (!device.current) device.current = {};
     if (command === 'threshold') device.current.threshold = value;
     else if (command === 'tempThreshold') device.current.tempThreshold = value;
+    else if (command === 'smokeThreshold') device.current.smokeThreshold = value;
     else if (command === 'sirenEnabled') device.current.sirenEnabled = value;
     
     await device.save();
