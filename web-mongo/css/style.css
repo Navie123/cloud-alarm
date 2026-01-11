@@ -3529,14 +3529,29 @@ header {
   /* MOBILE: Switch to stacked layout */
   .header-top {
     flex-direction: column;
-    padding: 12px 14px;
-    gap: 10px;
+    padding: 16px;
+    gap: 12px;
   }
   
   .header-row-brand {
     display: flex;
     justify-content: center;
     width: 100%;
+    padding: 12px 16px;
+    background: var(--card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+  }
+  
+  .brand {
+    gap: 12px;
+  }
+  
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
   
   .header-row-info {
@@ -3572,19 +3587,22 @@ header {
   }
   
   .brand-icon {
-    width: 42px;
-    height: 42px;
-    font-size: 1.15rem;
-    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+    border-radius: 12px;
+    flex-shrink: 0;
   }
   
   .brand-text h1 {
-    font-size: 1.15rem;
+    font-size: 1.2rem;
+    line-height: 1.2;
   }
   
   .status-badge {
-    font-size: 0.68rem;
-    padding: 2px 8px;
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    margin-top: 0;
   }
   
   .header-greeting {
@@ -3714,24 +3732,29 @@ header {
 
 @media (max-width: 480px) {
   .header-top {
-    padding: 10px 12px;
-    gap: 8px;
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .header-row-brand {
+    padding: 10px 14px;
+    border-radius: 12px;
   }
   
   .brand-icon {
-    width: 38px;
-    height: 38px;
-    font-size: 1.05rem;
-    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+    border-radius: 10px;
   }
   
   .brand-text h1 {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
   
   .status-badge {
-    font-size: 0.6rem;
-    padding: 2px 6px;
+    font-size: 0.65rem;
+    padding: 3px 8px;
   }
   
   .header-row-info {
@@ -3949,24 +3972,29 @@ header {
 /* Extra small screens */
 @media (max-width: 360px) {
   .header-top {
-    padding: 8px 10px;
-    gap: 6px;
+    padding: 10px;
+    gap: 8px;
+  }
+  
+  .header-row-brand {
+    padding: 8px 12px;
+    border-radius: 10px;
   }
   
   .brand-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 0.9rem;
-    border-radius: 7px;
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+    border-radius: 8px;
   }
   
   .brand-text h1 {
-    font-size: 0.9rem;
+    font-size: 1rem;
   }
   
   .status-badge {
-    font-size: 0.55rem;
-    padding: 1px 5px;
+    font-size: 0.6rem;
+    padding: 2px 6px;
   }
   
   .header-row-info {
