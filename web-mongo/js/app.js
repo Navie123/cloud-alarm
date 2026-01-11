@@ -69,7 +69,66 @@ function initializeApp() {
   loadHistory();
   startHistoryAutoRefresh();
   startDeviceStatusChecker();
+  setupAllThresholdSliders();
+}
+
+// Setup all threshold sliders with dynamic colors
+function setupAllThresholdSliders() {
+  // Gas threshold slider
+  const gasSlider = document.getElementById('thresholdSlider');
+  const gasValue = document.getElementById('sliderValue');
+  if (gasSlider && gasValue) {
+    updateThresholdBadge(gasSlider, gasValue, 'gas');
+    gasSlider.addEventListener('input', () => updateThresholdBadge(gasSlider, gasValue, 'gas'));
+  }
+  
+  // Smoke threshold slider
+  const smokeSlider = document.getElementById('smokeThresholdSlider');
+  const smokeValue = document.getElementById('smokeSliderValue');
+  if (smokeSlider && smokeValue) {
+    updateThresholdBadge(smokeSlider, smokeValue, 'smoke');
+    smokeSlider.addEventListener('input', () => updateThresholdBadge(smokeSlider, smokeValue, 'smoke'));
+  }
+  
+  // Temperature threshold slider
+  const tempSlider = document.getElementById('tempThresholdSlider');
+  const tempValue = document.getElementById('tempSliderValue');
+  if (tempSlider && tempValue) {
+    updateThresholdBadge(tempSlider, tempValue, 'temp');
+    tempSlider.addEventListener('input', () => updateThresholdBadge(tempSlider, tempValue, 'temp'));
+  }
+  
+  // CO threshold sliders
   setupCOSliders();
+}
+
+function updateThresholdBadge(slider, badge, type) {
+  const value = parseInt(slider.value);
+  const levels = ['level-safe', 'level-low', 'level-medium', 'level-high', 'level-danger', 'level-critical'];
+  
+  // Remove all level classes
+  levels.forEach(l => badge.classList.remove(l));
+  
+  let level;
+  if (type === 'gas' || type === 'smoke') {
+    badge.textContent = value + '%';
+    if (value <= 20) level = 'level-safe';
+    else if (value <= 35) level = 'level-low';
+    else if (value <= 50) level = 'level-medium';
+    else if (value <= 70) level = 'level-high';
+    else if (value <= 85) level = 'level-danger';
+    else level = 'level-critical';
+  } else if (type === 'temp') {
+    badge.textContent = value + '°C';
+    if (value <= 45) level = 'level-safe';
+    else if (value <= 52) level = 'level-low';
+    else if (value <= 60) level = 'level-medium';
+    else if (value <= 68) level = 'level-high';
+    else if (value <= 75) level = 'level-danger';
+    else level = 'level-critical';
+  }
+  
+  badge.classList.add(level);
 }
 
 // Setup CO threshold sliders with dynamic colors
@@ -79,51 +138,28 @@ function setupCOSliders() {
   const coCriticalSlider = document.getElementById('coCriticalSlider');
   
   if (coWarningSlider) {
-    updateCOSliderValue('coWarningSlider', 'coWarningVal', 'warning');
-    coWarningSlider.addEventListener('input', () => {
-      updateCOSliderValue('coWarningSlider', 'coWarningVal', 'warning');
-    });
+    updateCOSliderValue('coWarningSlider', 'coWarningVal');
+    coWarningSlider.addEventListener('input', () => updateCOSliderValue('coWarningSlider', 'coWarningVal'));
   }
   
   if (coDangerSlider) {
-    updateCOSliderValue('coDangerSlider', 'coDangerVal', 'danger');
-    coDangerSlider.addEventListener('input', () => {
-      updateCOSliderValue('coDangerSlider', 'coDangerVal', 'danger');
-    });
+    updateCOSliderValue('coDangerSlider', 'coDangerVal');
+    coDangerSlider.addEventListener('input', () => updateCOSliderValue('coDangerSlider', 'coDangerVal'));
   }
   
   if (coCriticalSlider) {
-    updateCOSliderValue('coCriticalSlider', 'coCriticalVal', 'critical');
-    coCriticalSlider.addEventListener('input', () => {
-      updateCOSliderValue('coCriticalSlider', 'coCriticalVal', 'critical');
-    });
+    updateCOSliderValue('coCriticalSlider', 'coCriticalVal');
+    coCriticalSlider.addEventListener('input', () => updateCOSliderValue('coCriticalSlider', 'coCriticalVal'));
   }
 }
 
-function updateCOSliderValue(sliderId, valueId, level) {
+function updateCOSliderValue(sliderId, valueId) {
   const slider = document.getElementById(sliderId);
   const valueEl = document.getElementById(valueId);
   if (!slider || !valueEl) return;
   
   const value = parseInt(slider.value);
   valueEl.textContent = value + ' PPM';
-  
-  // Remove all level classes
-  valueEl.classList.remove('level-safe', 'level-warning', 'level-danger', 'level-critical');
-  
-  // Add appropriate level class based on slider type
-  if (level === 'warning') {
-    if (value <= 20) valueEl.classList.add('level-safe');
-    else if (value <= 35) valueEl.classList.add('level-warning');
-    else valueEl.classList.add('level-danger');
-  } else if (level === 'danger') {
-    if (value <= 80) valueEl.classList.add('level-warning');
-    else if (value <= 150) valueEl.classList.add('level-danger');
-    else valueEl.classList.add('level-critical');
-  } else if (level === 'critical') {
-    if (value <= 300) valueEl.classList.add('level-danger');
-    else valueEl.classList.add('level-critical');
-  }
 }
 
 // Track last data received time
@@ -813,6 +849,21 @@ async function saveTempThreshold() {
     await api.sendCommand(getDeviceId(), 'tempThreshold', value);
     currentTempThreshold = value;
     showToast('Temp threshold saved: ' + value + '°C');
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+async function saveSmokeThreshold() {
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
+  const slider = document.getElementById('smokeThresholdSlider');
+  const value = parseInt(slider?.value || 40);
+  try {
+    await api.sendCommand(getDeviceId(), 'smokeThreshold', value);
+    showToast('Smoke threshold saved: ' + value + '%');
   } catch (error) {
     showToast('Error: ' + error.message, 'error');
   }

@@ -4364,74 +4364,247 @@ header {
 }
 
 /* Threshold Group Styles */
-.threshold-group {
-  margin-bottom: 24px;
+.threshold-card {
+  border-left: 3px solid var(--primary);
+}
+
+.threshold-slider-group {
+  margin: 20px 0;
+}
+
+.threshold-slider-group .slider {
+  margin-bottom: 12px;
+}
+
+.threshold-value-display {
+  text-align: center;
+  margin: 16px 0;
+}
+
+.threshold-badge {
+  display: inline-block;
+  padding: 10px 24px;
+  border-radius: 25px;
+  font-weight: 700;
+  font-size: 18px;
+  min-width: 100px;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Gas Badge Colors */
+.threshold-badge.gas-badge {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(234, 179, 8, 0.2) 100%);
+  color: #22c55e;
+  border: 2px solid rgba(34, 197, 94, 0.4);
+}
+
+.threshold-badge.gas-badge.level-safe {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.3) 100%);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.threshold-badge.gas-badge.level-low {
+  background: linear-gradient(135deg, rgba(132, 204, 22, 0.2) 0%, rgba(132, 204, 22, 0.3) 100%);
+  color: #84cc16;
+  border-color: rgba(132, 204, 22, 0.5);
+}
+
+.threshold-badge.gas-badge.level-medium {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(234, 179, 8, 0.3) 100%);
+  color: #eab308;
+  border-color: rgba(234, 179, 8, 0.5);
+}
+
+.threshold-badge.gas-badge.level-high {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(249, 115, 22, 0.3) 100%);
+  color: #f97316;
+  border-color: rgba(249, 115, 22, 0.5);
+}
+
+.threshold-badge.gas-badge.level-danger {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.3) 100%);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.threshold-badge.gas-badge.level-critical {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(220, 38, 38, 0.3) 100%);
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.5);
+}
+
+/* Smoke Badge Colors */
+.threshold-badge.smoke-badge {
+  background: linear-gradient(135deg, rgba(168, 162, 158, 0.2) 0%, rgba(120, 113, 108, 0.2) 100%);
+  color: #a8a29e;
+  border: 2px solid rgba(168, 162, 158, 0.4);
+}
+
+.threshold-badge.smoke-badge.level-safe {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.3) 100%);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.threshold-badge.smoke-badge.level-low {
+  background: linear-gradient(135deg, rgba(132, 204, 22, 0.2) 0%, rgba(132, 204, 22, 0.3) 100%);
+  color: #84cc16;
+  border-color: rgba(132, 204, 22, 0.5);
+}
+
+.threshold-badge.smoke-badge.level-medium {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(234, 179, 8, 0.3) 100%);
+  color: #eab308;
+  border-color: rgba(234, 179, 8, 0.5);
+}
+
+.threshold-badge.smoke-badge.level-high {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(249, 115, 22, 0.3) 100%);
+  color: #f97316;
+  border-color: rgba(249, 115, 22, 0.5);
+}
+
+.threshold-badge.smoke-badge.level-danger,
+.threshold-badge.smoke-badge.level-critical {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.3) 100%);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Temperature Badge Colors */
+.threshold-badge.temp-badge {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(239, 68, 68, 0.2) 100%);
+  color: #22c55e;
+  border: 2px solid rgba(34, 197, 94, 0.4);
+}
+
+.threshold-badge.temp-badge.level-safe {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(6, 182, 212, 0.3) 100%);
+  color: #3b82f6;
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.threshold-badge.temp-badge.level-low {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.3) 100%);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.threshold-badge.temp-badge.level-medium {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(234, 179, 8, 0.3) 100%);
+  color: #eab308;
+  border-color: rgba(234, 179, 8, 0.5);
+}
+
+.threshold-badge.temp-badge.level-high {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(249, 115, 22, 0.3) 100%);
+  color: #f97316;
+  border-color: rgba(249, 115, 22, 0.5);
+}
+
+.threshold-badge.temp-badge.level-danger,
+.threshold-badge.temp-badge.level-critical {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.3) 100%);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* CO Threshold Badges */
+.threshold-badge.co-warning-badge {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(234, 179, 8, 0.25) 100%);
+  color: #eab308;
+  border: 2px solid rgba(234, 179, 8, 0.4);
+  padding: 8px 16px;
+  font-size: 15px;
+}
+
+.threshold-badge.co-danger-badge {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(249, 115, 22, 0.25) 100%);
+  color: #f97316;
+  border: 2px solid rgba(249, 115, 22, 0.4);
+  padding: 8px 16px;
+  font-size: 15px;
+}
+
+.threshold-badge.co-critical-badge {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.25) 100%);
+  color: #ef4444;
+  border: 2px solid rgba(239, 68, 68, 0.4);
+  padding: 8px 16px;
+  font-size: 15px;
+}
+
+/* Threshold Range Labels */
+.threshold-range {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.threshold-range .range-min {
+  color: #22c55e;
+}
+
+.threshold-range .range-max {
+  color: #ef4444;
+}
+
+.threshold-range i {
+  margin-right: 4px;
+}
+
+/* CO Threshold Group */
+.co-threshold-group {
+  margin: 16px 0;
+}
+
+.co-level-item {
+  margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.threshold-group:last-of-type {
+.co-level-item:last-child {
   border-bottom: none;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
-.threshold-group label {
+.co-level-item label {
   display: block;
   font-size: 14px;
-  color: var(--muted);
+  color: var(--text);
   margin-bottom: 10px;
   font-weight: 500;
 }
 
-.threshold-group input[type="range"] {
-  width: 100%;
-  margin-bottom: 8px;
+.co-level-item label i {
+  margin-right: 8px;
 }
 
-.threshold-group span {
+.co-level-item .slider {
+  margin-bottom: 10px;
+}
+
+.co-level-item .threshold-badge {
   display: block;
   text-align: center;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text);
-  margin-top: 8px;
 }
 
-/* CO Value Display with dynamic colors */
-.co-value {
-  display: inline-block;
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-weight: 700;
-  font-size: 16px;
-  text-align: center;
-  width: 100%;
-  box-sizing: border-box;
-  transition: all 0.3s ease;
-}
-
-.co-value.level-safe {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.3);
-}
-
-.co-value.level-warning {
-  background: rgba(234, 179, 8, 0.15);
-  color: #eab308;
-  border: 1px solid rgba(234, 179, 8, 0.3);
-}
-
-.co-value.level-danger {
-  background: rgba(249, 115, 22, 0.15);
-  color: #f97316;
-  border: 1px solid rgba(249, 115, 22, 0.3);
-}
-
-.co-value.level-critical {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+/* Smoke Slider */
+.slider.smoke-slider {
+  background: linear-gradient(to right, 
+    #a8a29e 0%,      /* Gray safe */
+    #78716c 20%,     /* Darker gray */
+    #eab308 40%,     /* Yellow warning */
+    #f97316 60%,     /* Orange */
+    #ef4444 80%,     /* Red danger */
+    #dc2626 100%     /* Dark red critical */
+  );
 }
 
 
