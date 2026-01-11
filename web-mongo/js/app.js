@@ -465,11 +465,32 @@ function updateUI(data) {
   // Track when we received data
   lastDataReceivedTime = Date.now();
   
-  // Gas gauge update
+  // Gas gauge update (MQ-7)
   const gasPercent = Math.min(data.gas || 0, 100);
   const gasVal = document.getElementById('gasVal');
   if (gasVal) gasVal.textContent = gasPercent.toFixed(1);
   updateGauge('gasGauge', gasPercent, 100);
+  
+  // Smoke gauge update (MQ-2)
+  const smokePercent = Math.min(data.smoke || 0, 100);
+  const smokeVal = document.getElementById('smokeVal');
+  if (smokeVal) smokeVal.textContent = smokePercent.toFixed(1);
+  updateGauge('smokeGauge', smokePercent, 100);
+  
+  // Smoke status and card styling
+  const smokeStatus = document.getElementById('smokeStatus');
+  const smokeCard = document.querySelector('.smoke-card');
+  if (smokeStatus) {
+    const status = data.smokeStatus || 'normal';
+    smokeStatus.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    smokeStatus.className = 'status-value smoke-' + status;
+  }
+  if (smokeCard) {
+    smokeCard.classList.remove('status-warning', 'status-danger', 'status-critical');
+    if (data.smokeStatus === 'warning') smokeCard.classList.add('status-warning');
+    else if (data.smokeStatus === 'danger') smokeCard.classList.add('status-danger');
+    else if (data.smokeStatus === 'critical') smokeCard.classList.add('status-critical');
+  }
   
   // Temperature gauge update
   const temp = data.temperature || 0;

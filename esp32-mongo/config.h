@@ -35,11 +35,12 @@
 #define DEVICE_ID "ESP32_001"
 #define DEVICE_SECRET "6195d9a4faa9ef076a21eab5810e4ef8"  // Nailon household
 
-// Sensor Pins (MQ-2 removed, using MQ-7 and MQ-135 only)
-#define MQ7_PIN 34          // MQ-7 Carbon Monoxide sensor (was MQ2 pin)
-#define MQ135_PIN 32        // MQ-135 Air Quality sensor
-#define BUZZER_PIN 25       // Buzzer pin
-#define LED_PIN 2           // Built-in LED
+// Sensor Pins
+#define MQ2_PIN 35           // MQ-2 Smoke sensor
+#define MQ7_PIN 34           // MQ-7 Carbon Monoxide sensor
+#define MQ135_PIN 32         // MQ-135 Air Quality sensor
+#define BUZZER_PIN 25        // Buzzer pin
+#define LED_PIN 2            // Built-in LED
 
 // Update Intervals (milliseconds)
 #define SENSOR_READ_INTERVAL 200     // Read sensors every 0.2 seconds

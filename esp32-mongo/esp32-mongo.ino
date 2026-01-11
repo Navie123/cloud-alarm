@@ -41,6 +41,11 @@ bool sirenEnabled = true;
 bool silenceRequested = false;
 String tempWarning = "normal";
 
+// MQ-2 Smoke Sensor variables
+float smokePercent = 0;
+int smokeRaw = 0;
+String smokeStatus = "normal";
+
 // MQ-7 CO Sensor variables
 float coPpm = 0;
 int coRaw = 0;
@@ -118,6 +123,7 @@ void setup() {
   // Initialize pins (MQ-2 removed, using MQ-7 and MQ-135 only)
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(LED_PIN, OUTPUT);
+  pinMode(MQ2_PIN, INPUT);
   pinMode(MQ7_PIN, INPUT);
   pinMode(MQ135_PIN, INPUT);
   
@@ -338,15 +344,24 @@ void readGasSensors() {
   // No warmup - show real-time readings immediately
   sensorWarmup = false;
   
-  // Read MQ-7 on pin 34 (replacing MQ-2 for gas detection)
+  // Read MQ-2 on pin 35 for smoke detection
+  smokeRaw = analogRead(MQ2_PIN);
+  
+  // Read MQ-7 on pin 34 for CO detection
   coRaw = analogRead(MQ7_PIN);
   
   // Read MQ-135 on pin 32 for AQI
   aqiRaw = analogRead(MQ135_PIN);
   
   // Direct mapping: low ADC = low gas (safe), high ADC = high gas (danger)
-  // Your sensors read ~400-500 in clean air = ~10-12% (safe)
+  // Sensors read ~400-500 in clean air = ~10-12% (safe)
   // Gas detection will increase the ADC value
+  
+  // MQ-2 Smoke percentage
+  smokePercent = map(smokeRaw, 0, 4095, 0, 100);
+  smokePercent = constrain(smokePercent, 0, 100);
+  
+  // MQ-7 Gas percentage (for backward compatibility with gasPercent)
   gasPercent = map(coRaw, 0, 4095, 0, 100);
   gasPercent = constrain(gasPercent, 0, 100);
   
@@ -358,10 +373,21 @@ void readGasSensors() {
   coPpm = gasPercent * 5; // Rough estimate: 100% = 500 PPM
   
   // Debug raw values
-  Serial.printf("Raw ADC - MQ7: %d, MQ135: %d -> Gas: %.1f%%, AQI: %.0f\n", 
-                coRaw, aqiRaw, gasPercent, aqi);
+  Serial.printf("Raw ADC - MQ2: %d, MQ7: %d, MQ135: %d -> Smoke: %.1f%%, Gas: %.1f%%, AQI: %.0f\n", 
+                smokeRaw, coRaw, aqiRaw, smokePercent, gasPercent, aqi);
   
-  // Set status based on gas percentage (using gasThreshold)
+  // Smoke status (MQ-2)
+  if (smokePercent >= gasThreshold + 20) {
+    smokeStatus = "critical";
+  } else if (smokePercent >= gasThreshold) {
+    smokeStatus = "danger";
+  } else if (smokePercent >= gasThreshold - 10) {
+    smokeStatus = "warning";
+  } else {
+    smokeStatus = "normal";
+  }
+  
+  // CO status (MQ-7) based on gas percentage
   if (gasPercent >= gasThreshold + 20) {
     coStatus = "critical";
   } else if (gasPercent >= gasThreshold) {
@@ -372,7 +398,7 @@ void readGasSensors() {
     coStatus = "normal";
   }
   
-  // AQI status
+  // AQI status (MQ-135)
   if (aqi > 150) {
     aqiStatus = "unhealthy";
   } else if (aqi > 100) {
@@ -519,14 +545,17 @@ void performCalibration() {
 }
 
 void updateAlarmState() {
+  // Smoke alarm when MQ-2 reading exceeds threshold
+  bool smokeAlarm = smokePercent >= gasThreshold;
+  
   // Gas alarm when MQ-7 reading exceeds threshold
   bool gasAlarm = gasPercent >= gasThreshold;
   
   // Only trigger temp alarm if sensor is ready AND temp is valid (not I2C error value)
   bool tempAlarm = tempSensorReady && temperature >= tempThreshold && temperature < 100.0;
   
-  // Combined alarm state - gas OR temp triggers alarm
-  alarmActive = gasAlarm || tempAlarm;
+  // Combined alarm state - smoke OR gas OR temp triggers alarm
+  alarmActive = smokeAlarm || gasAlarm || tempAlarm;
   
   // Temperature warning levels
   if (temperature >= tempThreshold) {
@@ -574,7 +603,7 @@ void sendDataToServer() {
   http.addHeader("X-Device-Secret", DEVICE_SECRET);
   
   // Build JSON payload with gas sensor data
-  StaticJsonDocument<768> doc;
+  StaticJsonDocument<1024> doc;
   
   // Existing sensor data
   doc["gas"] = gasPercent;
@@ -588,6 +617,11 @@ void sendDataToServer() {
   doc["sirenEnabled"] = sirenEnabled;
   doc["heap"] = ESP.getFreeHeap();
   doc["timestamp"] = getTimestamp();
+  
+  // MQ-2 Smoke sensor data
+  doc["smoke"] = smokePercent;
+  doc["smokeRaw"] = smokeRaw;
+  doc["smokeStatus"] = smokeStatus;
   
   // MQ-7 CO sensor data
   doc["coPpm"] = coPpm;

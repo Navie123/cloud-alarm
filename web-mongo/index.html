@@ -353,6 +353,23 @@
             <div class="sensor-status"><span class="status-label">Threshold:</span><span class="status-value" id="threshVal">40</span>%</div>
           </div>
           
+          <!-- Smoke Sensor Card (MQ-2) -->
+          <div class="sensor-card smoke-card">
+            <div class="sensor-header">
+              <i class="fas fa-smog"></i><span>Smoke Level</span>
+            </div>
+            <div class="sensor-gauge">
+              <div class="gauge-ring">
+                <svg viewBox="0 0 100 100">
+                  <circle class="gauge-bg" cx="50" cy="50" r="42"/>
+                  <circle class="gauge-fill smoke-gauge" id="smokeGauge" cx="50" cy="50" r="42"/>
+                </svg>
+                <div class="gauge-value"><span class="gauge-number" id="smokeVal">--</span><span class="gauge-unit">%</span></div>
+              </div>
+            </div>
+            <div class="sensor-status"><span class="status-label">Status:</span><span class="status-value" id="smokeStatus">--</span></div>
+          </div>
+          
           <!-- CO Sensor Card -->
           <div class="sensor-card co-card">
             <div class="sensor-header">

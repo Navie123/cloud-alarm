@@ -4049,6 +4049,47 @@ header {
   stroke: #9333ea;
 }
 
+/* Smoke Card Styling (MQ-2) */
+.sensor-card.smoke-card {
+  --card-accent: #78716c; /* Gray/smoke color */
+}
+
+.sensor-card.smoke-card .sensor-header i {
+  color: #a8a29e;
+}
+
+.smoke-gauge {
+  stroke: #a8a29e;
+}
+
+.sensor-card.smoke-card.status-warning {
+  border-color: var(--warn);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.sensor-card.smoke-card.status-warning .smoke-gauge {
+  stroke: var(--warn);
+}
+
+.sensor-card.smoke-card.status-danger {
+  border-color: #f97316;
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+}
+
+.sensor-card.smoke-card.status-danger .smoke-gauge {
+  stroke: #f97316;
+}
+
+.sensor-card.smoke-card.status-critical {
+  border-color: var(--danger);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+  animation: criticalPulse 1s ease-in-out infinite;
+}
+
+.sensor-card.smoke-card.status-critical .smoke-gauge {
+  stroke: var(--danger);
+}
+
 .sensor-card.co-card.status-warning {
   border-color: var(--warn);
   box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
