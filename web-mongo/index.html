@@ -298,6 +298,7 @@
         <div class="tabs">
           <div class="tab active" data-tab="monitor"><i class="fas fa-gauge"></i> <span class="tab-text">Live Monitor</span></div>
           <div class="tab" data-tab="history"><i class="fas fa-clock-rotate-left"></i> <span class="tab-text">History</span></div>
+          <div class="tab" data-tab="notifications"><i class="fas fa-bell"></i> <span class="tab-text">Alerts</span></div>
           <div class="tab" data-tab="settings"><i class="fas fa-sliders"></i> <span class="tab-text">Settings</span></div>
         </div>
         <div class="header-actions">
@@ -472,6 +473,105 @@
         </div>
       </div>
 
+      <!-- NOTIFICATIONS TAB -->
+      <div class="tab-content" id="tab-notifications">
+        <div class="notifications-header">
+          <div class="notif-header-icon">
+            <i class="fas fa-bell"></i>
+          </div>
+          <h2>Alert Notifications</h2>
+          <p>Stay informed when emergencies happen</p>
+        </div>
+
+        <div class="notif-cards-grid">
+          <!-- Push Notifications Card -->
+          <div class="notif-card push-card">
+            <div class="notif-card-icon">
+              <i class="fas fa-mobile-screen-button"></i>
+            </div>
+            <div class="notif-card-content">
+              <h3>Push Notifications</h3>
+              <p>Instant browser alerts when alarm triggers</p>
+              <div class="notif-features">
+                <span><i class="fas fa-check"></i> Real-time alerts</span>
+                <span><i class="fas fa-check"></i> Works in background</span>
+                <span><i class="fas fa-info-circle"></i> Requires browser open</span>
+              </div>
+            </div>
+            <div class="notif-card-action">
+              <label class="notif-toggle">
+                <input type="checkbox" id="pushToggle" onchange="handlePushToggle()">
+                <span class="notif-toggle-slider"></span>
+              </label>
+              <span class="notif-status" id="pushStatusText">Disabled</span>
+            </div>
+          </div>
+
+          <!-- Email Alerts Card -->
+          <div class="notif-card email-card">
+            <div class="notif-card-icon">
+              <i class="fas fa-envelope"></i>
+            </div>
+            <div class="notif-card-content">
+              <h3>Email Alerts</h3>
+              <p>Get notified via email even when offline</p>
+              <div class="notif-features">
+                <span><i class="fas fa-check"></i> Works 24/7</span>
+                <span><i class="fas fa-check"></i> No browser needed</span>
+                <span><i class="fas fa-check"></i> Phone notification</span>
+              </div>
+            </div>
+            <div class="notif-card-action">
+              <label class="notif-toggle">
+                <input type="checkbox" id="emailToggle" onchange="toggleEmailAlert()">
+                <span class="notif-toggle-slider"></span>
+              </label>
+              <span class="notif-status" id="emailStatusText">Disabled</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email Configuration -->
+        <div class="notif-config-card" id="emailConfigCard">
+          <div class="notif-config-header">
+            <i class="fas fa-user-circle"></i>
+            <div class="notif-config-info">
+              <span class="notif-config-email" id="notifUserEmail">Loading...</span>
+              <span class="notif-config-role" id="notifUserRole">--</span>
+            </div>
+          </div>
+          
+          <!-- Member email input (shown if no email) -->
+          <div class="notif-email-setup hidden" id="notifEmailSetup">
+            <p><i class="fas fa-info-circle"></i> Add your email to receive alarm alerts</p>
+            <div class="notif-email-input-group">
+              <input type="email" id="notifMemberEmail" placeholder="your.email@gmail.com">
+              <button class="btn btn-primary" onclick="saveMemberEmail()">
+                <i class="fas fa-save"></i> Save
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info Banner -->
+        <div class="notif-info-banner">
+          <div class="notif-info-item">
+            <i class="fas fa-lightbulb"></i>
+            <div>
+              <strong>Pro Tip</strong>
+              <p>Enable both for maximum coverage. Email works even when your phone is locked!</p>
+            </div>
+          </div>
+          <div class="notif-info-item warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+              <strong>Check Spam Folder</strong>
+              <p>First email may go to spam. Mark as "Not Spam" for future alerts.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- SETTINGS TAB -->
       <div class="tab-content" id="tab-settings">
         <!-- Alarm Sound (Personal) -->
@@ -609,50 +709,6 @@
               <button class="btn btn-danger" onclick="silenceAlarm()"><i class="fas fa-volume-xmark"></i> Silence Alarm</button>
               <button class="btn btn-secondary" onclick="toggleSiren()"><i class="fas fa-bell" id="sirenIcon"></i> <span id="sirenText">Siren On</span></button>
             </div>
-          </div>
-        </div>
-        
-        <!-- Push Notifications -->
-        <div class="card">
-          <div class="card-title"><i class="fas fa-mobile-alt"></i> Push Notifications</div>
-          <p class="card-subtitle">Receive alerts when alarm triggers (requires browser)</p>
-          <button class="btn btn-primary" id="pushBtn" onclick="togglePushNotifications()"><i class="fas fa-bell"></i> Enable Notifications</button>
-          <div class="push-status" id="pushStatus"></div>
-        </div>
-        
-        <!-- Email Alerts -->
-        <div class="card">
-          <div class="card-title"><i class="fas fa-envelope"></i> Email Alerts</div>
-          <p class="card-subtitle">Receive alarm notifications via email (works even when browser is closed)</p>
-          
-          <div class="email-alert-section">
-            <!-- Current user's email alert toggle -->
-            <div class="email-alert-item" id="emailAlertToggle">
-              <div class="email-alert-info">
-                <span class="email-alert-label" id="currentUserEmail">Loading...</span>
-                <span class="email-alert-role" id="currentUserRole"></span>
-              </div>
-              <label class="toggle-switch">
-                <input type="checkbox" id="emailAlertCheckbox" onchange="toggleEmailAlert()">
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-            
-            <!-- Member email input (for non-admin users without email) -->
-            <div class="email-input-group hidden" id="memberEmailInput">
-              <div class="form-group">
-                <label><i class="fas fa-envelope"></i> Your Email</label>
-                <input type="email" id="memberEmailField" placeholder="Enter your email for alerts">
-              </div>
-              <button class="btn btn-primary" onclick="saveMemberEmail()"><i class="fas fa-save"></i> Save Email</button>
-            </div>
-            
-            <div class="email-alert-status" id="emailAlertStatus"></div>
-          </div>
-          
-          <div class="email-alert-note">
-            <i class="fas fa-info-circle"></i>
-            <span>Email alerts are sent instantly when fire/gas is detected. Check spam folder if not receiving emails.</span>
           </div>
         </div>
         

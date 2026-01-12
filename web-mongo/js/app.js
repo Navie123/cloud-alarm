@@ -1472,12 +1472,14 @@ async function initEmailAlerts() {
   try {
     const settings = await api.getEmailAlerts();
     updateEmailAlertUI(settings);
+    updateNotificationTabUI(settings);
   } catch (error) {
     console.error('Failed to load email alert settings:', error);
   }
 }
 
 function updateEmailAlertUI(settings) {
+  // Legacy support for old UI elements (if any remain)
   const emailLabel = document.getElementById('currentUserEmail');
   const roleLabel = document.getElementById('currentUserRole');
   const checkbox = document.getElementById('emailAlertCheckbox');
@@ -1519,32 +1521,96 @@ function updateEmailAlertUI(settings) {
   }
 }
 
+// Update the new Notifications tab UI
+function updateNotificationTabUI(settings) {
+  const emailToggle = document.getElementById('emailToggle');
+  const emailStatus = document.getElementById('emailStatusText');
+  const userEmail = document.getElementById('notifUserEmail');
+  const userRole = document.getElementById('notifUserRole');
+  const emailSetup = document.getElementById('notifEmailSetup');
+  
+  if (emailToggle) {
+    if (settings.isAdmin) {
+      emailToggle.checked = settings.emailAlerts;
+      emailToggle.disabled = false;
+    } else if (settings.hasEmail) {
+      emailToggle.checked = settings.emailAlerts;
+      emailToggle.disabled = false;
+    } else {
+      emailToggle.checked = false;
+      emailToggle.disabled = true;
+    }
+  }
+  
+  if (emailStatus) {
+    if (settings.emailAlerts && (settings.isAdmin || settings.hasEmail)) {
+      emailStatus.textContent = 'Enabled';
+      emailStatus.classList.add('enabled');
+    } else {
+      emailStatus.textContent = 'Disabled';
+      emailStatus.classList.remove('enabled');
+    }
+  }
+  
+  if (userEmail) {
+    userEmail.textContent = settings.email || settings.memberName || 'No email set';
+  }
+  
+  if (userRole) {
+    if (settings.isAdmin) {
+      userRole.textContent = 'Admin Account';
+      userRole.style.color = 'var(--accent)';
+    } else {
+      userRole.textContent = settings.hasEmail ? 'Household Member' : 'Add email to enable alerts';
+      userRole.style.color = settings.hasEmail ? '' : 'var(--warning)';
+    }
+  }
+  
+  if (emailSetup) {
+    if (!settings.isAdmin && !settings.hasEmail) {
+      emailSetup.classList.remove('hidden');
+    } else {
+      emailSetup.classList.add('hidden');
+    }
+  }
+}
+
 async function toggleEmailAlert() {
   const checkbox = document.getElementById('emailAlertCheckbox');
-  const statusDiv = document.getElementById('emailAlertStatus');
+  const emailToggle = document.getElementById('emailToggle');
+  const emailStatus = document.getElementById('emailStatusText');
+  
+  // Get the actual checked state from whichever toggle was clicked
+  const isEnabled = emailToggle ? emailToggle.checked : (checkbox ? checkbox.checked : false);
   
   try {
-    const result = await api.setEmailAlerts(checkbox.checked);
+    const result = await api.setEmailAlerts(isEnabled);
     
-    if (statusDiv) {
+    // Update both UIs
+    if (checkbox) checkbox.checked = result.emailAlerts;
+    if (emailToggle) emailToggle.checked = result.emailAlerts;
+    
+    if (emailStatus) {
       if (result.emailAlerts) {
-        statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Email alerts enabled';
-        statusDiv.className = 'email-alert-status success';
-        showToast('Email alerts enabled');
+        emailStatus.textContent = 'Enabled';
+        emailStatus.classList.add('enabled');
       } else {
-        statusDiv.innerHTML = '';
-        statusDiv.className = 'email-alert-status';
-        showToast('Email alerts disabled');
+        emailStatus.textContent = 'Disabled';
+        emailStatus.classList.remove('enabled');
       }
     }
+    
+    showToast(result.emailAlerts ? 'Email alerts enabled' : 'Email alerts disabled');
   } catch (error) {
-    checkbox.checked = !checkbox.checked; // Revert
+    // Revert toggles
+    if (checkbox) checkbox.checked = !isEnabled;
+    if (emailToggle) emailToggle.checked = !isEnabled;
     showToast('Failed to update email settings', 'error');
   }
 }
 
 async function saveMemberEmail() {
-  const emailField = document.getElementById('memberEmailField');
+  const emailField = document.getElementById('memberEmailField') || document.getElementById('notifMemberEmail');
   const email = emailField?.value?.trim();
   
   if (!email) {
@@ -1557,27 +1623,43 @@ async function saveMemberEmail() {
     showToast('Email saved! Alerts enabled.');
     
     // Refresh the UI
-    const checkbox = document.getElementById('emailAlertCheckbox');
-    const memberEmailInput = document.getElementById('memberEmailInput');
-    const emailLabel = document.getElementById('currentUserEmail');
-    const roleLabel = document.getElementById('currentUserRole');
-    const statusDiv = document.getElementById('emailAlertStatus');
-    
-    if (checkbox) {
-      checkbox.checked = true;
-      checkbox.disabled = false;
-    }
-    if (memberEmailInput) memberEmailInput.classList.add('hidden');
-    if (emailLabel) emailLabel.textContent = email;
-    if (roleLabel) {
-      roleLabel.textContent = 'Member';
-      roleLabel.style.color = '';
-    }
-    if (statusDiv) {
-      statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Email alerts enabled';
-      statusDiv.className = 'email-alert-status success';
-    }
+    initEmailAlerts();
   } catch (error) {
     showToast(error.message || 'Failed to save email', 'error');
+  }
+}
+
+// Handle push notification toggle in new UI
+async function handlePushToggle() {
+  const pushToggle = document.getElementById('pushToggle');
+  const pushStatus = document.getElementById('pushStatusText');
+  
+  if (pushToggle.checked) {
+    await subscribeToPush();
+  } else {
+    await unsubscribeFromPush();
+  }
+  
+  // Update status text
+  updatePushToggleUI();
+}
+
+// Update push toggle UI based on subscription state
+function updatePushToggleUI() {
+  const pushToggle = document.getElementById('pushToggle');
+  const pushStatus = document.getElementById('pushStatusText');
+  
+  if (pushToggle && pushSubscription) {
+    pushToggle.checked = true;
+    if (pushStatus) {
+      pushStatus.textContent = 'Enabled';
+      pushStatus.classList.add('enabled');
+    }
+  } else if (pushToggle) {
+    pushToggle.checked = false;
+    if (pushStatus) {
+      pushStatus.textContent = 'Disabled';
+      pushStatus.classList.remove('enabled');
+    }
   }
 }

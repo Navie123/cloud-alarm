@@ -91,7 +91,10 @@ function togglePushNotifications() {
 function updatePushUI(subscribed) {
   const pushBtn = document.getElementById('pushBtn');
   const pushStatus = document.getElementById('pushStatus');
+  const pushToggle = document.getElementById('pushToggle');
+  const pushStatusText = document.getElementById('pushStatusText');
   
+  // Update old button UI (if exists)
   if (pushBtn) {
     if (subscribed) {
       pushBtn.innerHTML = '<i class="fas fa-bell-slash"></i> Disable Push Notifications';
@@ -107,6 +110,20 @@ function updatePushUI(subscribed) {
       if (pushStatus) {
         pushStatus.innerHTML = '';
       }
+    }
+  }
+  
+  // Update new toggle UI (Notifications tab)
+  if (pushToggle) {
+    pushToggle.checked = subscribed;
+  }
+  if (pushStatusText) {
+    if (subscribed) {
+      pushStatusText.textContent = 'Enabled';
+      pushStatusText.classList.add('enabled');
+    } else {
+      pushStatusText.textContent = 'Disabled';
+      pushStatusText.classList.remove('enabled');
     }
   }
 }
