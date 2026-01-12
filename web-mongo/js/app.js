@@ -666,6 +666,23 @@ function updateUI(data) {
     connectionStatus.textContent = isDeviceOnline ? 'Connected' : 'Disconnected';
   }
   
+  // Update Device tab info (sync with Settings tab)
+  const deviceIdDisplay = document.getElementById('deviceIdDisplay');
+  if (deviceIdDisplay) deviceIdDisplay.textContent = CONFIG.DEVICE_ID;
+  
+  const lastUpdateDisplay = document.getElementById('lastUpdateDisplay');
+  if (lastUpdateDisplay) lastUpdateDisplay.textContent = data.timestamp || '--';
+  
+  const freeHeapDisplay = document.getElementById('freeHeapDisplay');
+  if (freeHeapDisplay && data.freeHeap) {
+    freeHeapDisplay.textContent = (data.freeHeap / 1024).toFixed(1) + ' KB';
+  }
+  
+  const connectionStatusDisplay = document.getElementById('connectionStatusDisplay');
+  if (connectionStatusDisplay) {
+    connectionStatusDisplay.textContent = isDeviceOnline ? 'Connected' : 'Disconnected';
+  }
+  
   updateSidebarInfo(data);
 }
 
