@@ -85,5 +85,24 @@ const api = {
       method: 'POST',
       body: JSON.stringify({ endpoint, deviceId })
     });
+  },
+
+  // Email Alerts
+  async getEmailAlerts() {
+    return this.request('/api/household/email-alerts');
+  },
+
+  async setEmailAlerts(enabled, email = null) {
+    return this.request('/api/household/email-alerts', {
+      method: 'PUT',
+      body: JSON.stringify({ enabled, email })
+    });
+  },
+
+  async saveMemberEmail(email) {
+    return this.request('/api/household/member-email', {
+      method: 'PUT',
+      body: JSON.stringify({ email })
+    });
   }
 };

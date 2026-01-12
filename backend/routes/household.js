@@ -566,4 +566,113 @@ router.post('/admin/factory-reset', verifyAdminSession, async (req, res) => {
   }
 });
 
+// ============ EMAIL ALERTS ============
+
+// Get email alert settings for current user
+router.get('/email-alerts', verifyHouseholdSession, async (req, res) => {
+  try {
+    const h = req.household;
+    const isAdmin = req.session.type === 'admin';
+    
+    if (isAdmin) {
+      res.json({
+        email: h.admin.email,
+        emailAlerts: h.adminEmailAlerts !== false, // Default true
+        isAdmin: true,
+        hasEmail: true
+      });
+    } else {
+      // Find member by memberId
+      const member = h.members.find(m => m._id?.toString() === req.session.memberId);
+      res.json({
+        email: member?.email || null,
+        emailAlerts: member?.emailAlerts || false,
+        isAdmin: false,
+        hasEmail: !!member?.email,
+        memberName: member?.name || 'Member'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get email settings' });
+  }
+});
+
+// Toggle email alerts for current user
+router.put('/email-alerts', verifyHouseholdSession, async (req, res) => {
+  try {
+    const { enabled, email } = req.body;
+    const h = req.household;
+    const isAdmin = req.session.type === 'admin';
+    
+    if (isAdmin) {
+      h.adminEmailAlerts = enabled;
+      await h.save();
+      res.json({ success: true, emailAlerts: enabled });
+    } else {
+      // Find or create member entry
+      let memberIndex = h.members.findIndex(m => m._id?.toString() === req.session.memberId);
+      
+      if (memberIndex === -1) {
+        // Member doesn't exist yet, create one
+        h.members.push({
+          name: 'Member',
+          email: email || null,
+          emailAlerts: enabled
+        });
+        memberIndex = h.members.length - 1;
+      } else {
+        // Update existing member
+        if (email) h.members[memberIndex].email = email;
+        h.members[memberIndex].emailAlerts = enabled;
+      }
+      
+      await h.save();
+      res.json({ 
+        success: true, 
+        emailAlerts: enabled,
+        email: h.members[memberIndex].email
+      });
+    }
+  } catch (error) {
+    console.error('Email alerts error:', error);
+    res.status(500).json({ error: 'Failed to update email settings' });
+  }
+});
+
+// Save member email (for non-admin users)
+router.put('/member-email', verifyHouseholdSession, async (req, res) => {
+  try {
+    const { email } = req.body;
+    const h = req.household;
+    
+    if (req.session.type === 'admin') {
+      return res.status(400).json({ error: 'Admin email cannot be changed here' });
+    }
+    
+    // Validate email format
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    
+    // Find or create member entry
+    let memberIndex = h.members.findIndex(m => m._id?.toString() === req.session.memberId);
+    
+    if (memberIndex === -1) {
+      h.members.push({
+        name: 'Member',
+        email: email,
+        emailAlerts: true
+      });
+    } else {
+      h.members[memberIndex].email = email;
+      h.members[memberIndex].emailAlerts = true;
+    }
+    
+    await h.save();
+    res.json({ success: true, email, emailAlerts: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to save email' });
+  }
+});
+
 module.exports = { router, verifyHouseholdSession, verifyAdminSession };

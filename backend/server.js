@@ -141,19 +141,69 @@ app.ws('/ws/:deviceId', async (ws, req) => {
           const trigger = data.data.gas > (data.data.threshold || 40) && data.data.temperature > (data.data.tempThreshold || 60)
             ? 'both' : data.data.gas > (data.data.threshold || 40) ? 'gas' : 'temperature';
 
+          const alarmTimestamp = new Date().toLocaleString();
+
           await AlarmHistory.create({
             deviceId, trigger,
             gas: data.data.gas,
             temperature: data.data.temperature,
             humidity: data.data.humidity,
-            timestamp: new Date().toLocaleString()
+            timestamp: alarmTimestamp
           });
 
+          // Send Web Push notification
           await sendPushNotification(deviceId, {
             title: '🔥 FIRE ALARM!',
             body: `${trigger === 'gas' ? 'Gas detected' : trigger === 'temperature' ? 'High temperature' : 'Gas + High temp'}`,
             vibrate: [200, 100, 200], tag: 'fire-alarm', requireInteraction: true
           });
+
+          // Send Email notification to household admin and members
+          try {
+            const { sendAlarmEmail } = require('./utils/email');
+            const household = await Household.findOne({ 'devices.deviceId': deviceId });
+            if (household) {
+              const emailPromises = [];
+              
+              // Send to admin if enabled
+              if (household.adminEmailAlerts !== false && household.admin?.email) {
+                emailPromises.push(
+                  sendAlarmEmail(household.admin.email, {
+                    deviceId,
+                    trigger,
+                    gas: data.data.gas,
+                    temperature: data.data.temperature,
+                    humidity: data.data.humidity,
+                    timestamp: alarmTimestamp
+                  }).then(() => console.log(`[Alarm] Email sent to admin: ${household.admin.email}`))
+                    .catch(err => console.error(`[Alarm] Failed to email admin:`, err.message))
+                );
+              }
+              
+              // Send to members with email alerts enabled
+              if (household.members && household.members.length > 0) {
+                for (const member of household.members) {
+                  if (member.emailAlerts && member.email) {
+                    emailPromises.push(
+                      sendAlarmEmail(member.email, {
+                        deviceId,
+                        trigger,
+                        gas: data.data.gas,
+                        temperature: data.data.temperature,
+                        humidity: data.data.humidity,
+                        timestamp: alarmTimestamp
+                      }).then(() => console.log(`[Alarm] Email sent to member: ${member.email}`))
+                        .catch(err => console.error(`[Alarm] Failed to email member:`, err.message))
+                    );
+                  }
+                }
+              }
+              
+              await Promise.allSettled(emailPromises);
+            }
+          } catch (emailError) {
+            console.error('[Alarm] Email notification error:', emailError.message);
+          }
         }
 
         // Broadcast to authenticated web clients in same household

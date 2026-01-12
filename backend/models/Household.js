@@ -45,11 +45,16 @@ const householdSchema = new mongoose.Schema({
     }
   },
 
-  // Household members (display names only)
+  // Household members (with optional email for alerts)
   members: [{
     name: String,
+    email: String, // Optional email for alarm alerts
+    emailAlerts: { type: Boolean, default: false },
     addedAt: { type: Date, default: Date.now }
   }],
+
+  // Admin email alert preference
+  adminEmailAlerts: { type: Boolean, default: true },
 
   // ============ DEVICES ============
   devices: [{

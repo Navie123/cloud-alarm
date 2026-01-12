@@ -64,6 +64,7 @@ function initializeApp() {
   loadAlarmSoundSetting();
   loadMemberPreferences();
   initPushNotifications();
+  initEmailAlerts();
   connectWebSocket();
   loadInitialData();
   loadHistory();
@@ -1462,5 +1463,121 @@ async function loadGasHistory(range = '24h') {
   } catch (error) {
     console.error('Failed to load gas history:', error);
     return [];
+  }
+}
+
+// ============ EMAIL ALERTS ============
+
+async function initEmailAlerts() {
+  try {
+    const settings = await api.getEmailAlerts();
+    updateEmailAlertUI(settings);
+  } catch (error) {
+    console.error('Failed to load email alert settings:', error);
+  }
+}
+
+function updateEmailAlertUI(settings) {
+  const emailLabel = document.getElementById('currentUserEmail');
+  const roleLabel = document.getElementById('currentUserRole');
+  const checkbox = document.getElementById('emailAlertCheckbox');
+  const memberEmailInput = document.getElementById('memberEmailInput');
+  const statusDiv = document.getElementById('emailAlertStatus');
+  
+  if (!emailLabel || !checkbox) return;
+  
+  if (settings.isAdmin) {
+    emailLabel.textContent = settings.email;
+    roleLabel.textContent = 'Admin';
+    roleLabel.style.color = 'var(--accent)';
+    checkbox.checked = settings.emailAlerts;
+    if (memberEmailInput) memberEmailInput.classList.add('hidden');
+  } else {
+    if (settings.hasEmail) {
+      emailLabel.textContent = settings.email;
+      roleLabel.textContent = 'Member';
+      checkbox.checked = settings.emailAlerts;
+      if (memberEmailInput) memberEmailInput.classList.add('hidden');
+    } else {
+      emailLabel.textContent = settings.memberName || 'No email set';
+      roleLabel.textContent = 'Member - Add email to receive alerts';
+      roleLabel.style.color = 'var(--warning)';
+      checkbox.checked = false;
+      checkbox.disabled = true;
+      if (memberEmailInput) memberEmailInput.classList.remove('hidden');
+    }
+  }
+  
+  if (statusDiv) {
+    if (settings.emailAlerts && settings.hasEmail) {
+      statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Email alerts enabled';
+      statusDiv.className = 'email-alert-status success';
+    } else {
+      statusDiv.innerHTML = '';
+      statusDiv.className = 'email-alert-status';
+    }
+  }
+}
+
+async function toggleEmailAlert() {
+  const checkbox = document.getElementById('emailAlertCheckbox');
+  const statusDiv = document.getElementById('emailAlertStatus');
+  
+  try {
+    const result = await api.setEmailAlerts(checkbox.checked);
+    
+    if (statusDiv) {
+      if (result.emailAlerts) {
+        statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Email alerts enabled';
+        statusDiv.className = 'email-alert-status success';
+        showToast('Email alerts enabled');
+      } else {
+        statusDiv.innerHTML = '';
+        statusDiv.className = 'email-alert-status';
+        showToast('Email alerts disabled');
+      }
+    }
+  } catch (error) {
+    checkbox.checked = !checkbox.checked; // Revert
+    showToast('Failed to update email settings', 'error');
+  }
+}
+
+async function saveMemberEmail() {
+  const emailField = document.getElementById('memberEmailField');
+  const email = emailField?.value?.trim();
+  
+  if (!email) {
+    showToast('Please enter your email', 'error');
+    return;
+  }
+  
+  try {
+    const result = await api.saveMemberEmail(email);
+    showToast('Email saved! Alerts enabled.');
+    
+    // Refresh the UI
+    const checkbox = document.getElementById('emailAlertCheckbox');
+    const memberEmailInput = document.getElementById('memberEmailInput');
+    const emailLabel = document.getElementById('currentUserEmail');
+    const roleLabel = document.getElementById('currentUserRole');
+    const statusDiv = document.getElementById('emailAlertStatus');
+    
+    if (checkbox) {
+      checkbox.checked = true;
+      checkbox.disabled = false;
+    }
+    if (memberEmailInput) memberEmailInput.classList.add('hidden');
+    if (emailLabel) emailLabel.textContent = email;
+    if (roleLabel) {
+      roleLabel.textContent = 'Member';
+      roleLabel.style.color = '';
+    }
+    if (statusDiv) {
+      statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Email alerts enabled';
+      statusDiv.className = 'email-alert-status success';
+    }
+  } catch (error) {
+    showToast(error.message || 'Failed to save email', 'error');
   }
 }

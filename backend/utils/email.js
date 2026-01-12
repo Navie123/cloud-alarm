@@ -139,4 +139,85 @@ const sendOTPEmail = async (email, code, purpose) => {
   }
 };
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendOTPEmail };
+// Send alarm alert email
+const sendAlarmEmail = async (email, alarmData) => {
+  const { deviceId, trigger, gas, temperature, humidity, timestamp } = alarmData;
+  const dashboardUrl = process.env.FRONTEND_URL || 'https://cloud-alarm.onrender.com';
+  
+  const triggerMessages = {
+    gas: '🔥 High gas/smoke levels detected!',
+    temperature: '🌡️ Dangerous temperature detected!',
+    both: '🚨 Gas AND high temperature detected!'
+  };
+
+  console.log('[Email] Sending ALARM alert to:', email);
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'FireWire Alert <onboarding@resend.dev>',
+      to: email,
+      subject: '🚨 FIRE ALARM TRIGGERED - Immediate Action Required!',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #d32f2f, #ff5722); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">🚨 FIRE ALARM!</h1>
+            <p style="color: #ffcdd2; margin: 10px 0 0 0; font-size: 16px;">${triggerMessages[trigger] || 'Alarm triggered!'}</p>
+          </div>
+          <div style="padding: 30px; background: #fff3e0; border-left: 4px solid #ff5722;">
+            <h2 style="color: #d32f2f; margin-top: 0;">⚠️ Immediate Action Required</h2>
+            <p style="color: #333; font-size: 16px;">Your FireWire device has detected a potential fire hazard. Please check your home immediately!</p>
+          </div>
+          <div style="padding: 30px; background: #f5f5f5;">
+            <h3 style="color: #333; margin-top: 0;">Sensor Readings:</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Device:</strong></td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">${deviceId}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Gas Level:</strong></td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${gas > 40 ? '#d32f2f' : '#333'};">${gas}% ${gas > 40 ? '⚠️ HIGH' : ''}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Temperature:</strong></td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${temperature > 60 ? '#d32f2f' : '#333'};">${temperature}°C ${temperature > 60 ? '⚠️ HIGH' : ''}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Humidity:</strong></td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">${humidity}%</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px;"><strong>Time:</strong></td>
+                <td style="padding: 10px;">${timestamp}</td>
+              </tr>
+            </table>
+          </div>
+          <div style="padding: 30px; background: #f5f5f5; text-align: center;">
+            <a href="${dashboardUrl}" style="background: #d32f2f; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 18px;">
+              View Dashboard
+            </a>
+          </div>
+          <div style="padding: 20px; background: #333; border-radius: 0 0 10px 10px;">
+            <p style="color: #999; font-size: 12px; margin: 0; text-align: center;">
+              This is an automated alert from your FireWire Smart Fire Alarm System.<br>
+              If this is a false alarm, you can silence it from the dashboard.
+            </p>
+          </div>
+        </div>
+      `
+    });
+
+    if (error) {
+      console.error('[Email] Resend error:', error);
+      throw new Error(error.message);
+    }
+
+    console.log('[Email] ALARM alert sent successfully to:', email, 'ID:', data?.id);
+    return data;
+  } catch (error) {
+    console.error('[Email] Failed to send alarm alert:', error.message);
+    throw error;
+  }
+};
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendOTPEmail, sendAlarmEmail };

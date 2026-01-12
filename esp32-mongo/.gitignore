@@ -1,0 +1,9 @@
+# Secrets - DO NOT COMMIT
+config.h
+
+# IDE workspace files
+*.code-workspace
+
+# Build files
+build/
+.pio/

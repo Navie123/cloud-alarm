@@ -2406,6 +2406,145 @@ body.fullscreen .minimize-btn { display: flex; }
   gap: 8px;
 }
 
+/* ========== EMAIL ALERTS ========== */
+.email-alert-section {
+  margin: 16px 0;
+}
+
+.email-alert-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.email-alert-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.email-alert-label {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.email-alert-role {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: 0.3s;
+  border-radius: 26px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--success);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+.email-input-group {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.email-input-group .form-group {
+  margin-bottom: 12px;
+}
+
+.email-input-group input {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.email-input-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.email-alert-status {
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.email-alert-status.success {
+  color: var(--success);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.email-alert-status.error {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.email-alert-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 152, 0, 0.1);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
+.email-alert-note i {
+  color: var(--warning);
+  margin-top: 2px;
+}
+
 /* ========== CARD HEADER ========== */
 .card-header {
   display: flex;

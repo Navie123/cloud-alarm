@@ -615,9 +615,45 @@
         <!-- Push Notifications -->
         <div class="card">
           <div class="card-title"><i class="fas fa-mobile-alt"></i> Push Notifications</div>
-          <p class="card-subtitle">Receive alerts when alarm triggers</p>
+          <p class="card-subtitle">Receive alerts when alarm triggers (requires browser)</p>
           <button class="btn btn-primary" id="pushBtn" onclick="togglePushNotifications()"><i class="fas fa-bell"></i> Enable Notifications</button>
           <div class="push-status" id="pushStatus"></div>
+        </div>
+        
+        <!-- Email Alerts -->
+        <div class="card">
+          <div class="card-title"><i class="fas fa-envelope"></i> Email Alerts</div>
+          <p class="card-subtitle">Receive alarm notifications via email (works even when browser is closed)</p>
+          
+          <div class="email-alert-section">
+            <!-- Current user's email alert toggle -->
+            <div class="email-alert-item" id="emailAlertToggle">
+              <div class="email-alert-info">
+                <span class="email-alert-label" id="currentUserEmail">Loading...</span>
+                <span class="email-alert-role" id="currentUserRole"></span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="emailAlertCheckbox" onchange="toggleEmailAlert()">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <!-- Member email input (for non-admin users without email) -->
+            <div class="email-input-group hidden" id="memberEmailInput">
+              <div class="form-group">
+                <label><i class="fas fa-envelope"></i> Your Email</label>
+                <input type="email" id="memberEmailField" placeholder="Enter your email for alerts">
+              </div>
+              <button class="btn btn-primary" onclick="saveMemberEmail()"><i class="fas fa-save"></i> Save Email</button>
+            </div>
+            
+            <div class="email-alert-status" id="emailAlertStatus"></div>
+          </div>
+          
+          <div class="email-alert-note">
+            <i class="fas fa-info-circle"></i>
+            <span>Email alerts are sent instantly when fire/gas is detected. Check spam folder if not receiving emails.</span>
+          </div>
         </div>
         
         <!-- Device Info -->
