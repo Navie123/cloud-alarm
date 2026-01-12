@@ -1466,132 +1466,33 @@ async function loadGasHistory(range = '24h') {
   }
 }
 
-// ============ EMAIL ALERTS ============
+// ============ EMAIL ALERTS (Admin Only) ============
 
 async function initEmailAlerts() {
   try {
     const settings = await api.getEmailAlerts();
-    updateEmailAlertUI(settings);
     updateNotificationTabUI(settings);
   } catch (error) {
     console.error('Failed to load email alert settings:', error);
   }
 }
 
-function updateEmailAlertUI(settings) {
-  // Legacy support for old UI elements (if any remain)
-  const emailLabel = document.getElementById('currentUserEmail');
-  const roleLabel = document.getElementById('currentUserRole');
-  const checkbox = document.getElementById('emailAlertCheckbox');
-  const memberEmailInput = document.getElementById('memberEmailInput');
-  const statusDiv = document.getElementById('emailAlertStatus');
-  
-  if (!emailLabel || !checkbox) return;
-  
-  if (settings.isAdmin) {
-    emailLabel.textContent = settings.email;
-    roleLabel.textContent = 'Admin';
-    roleLabel.style.color = 'var(--accent)';
-    checkbox.checked = settings.emailAlerts;
-    if (memberEmailInput) memberEmailInput.classList.add('hidden');
-  } else {
-    if (settings.hasEmail) {
-      emailLabel.textContent = settings.email;
-      roleLabel.textContent = 'Member';
-      checkbox.checked = settings.emailAlerts;
-      if (memberEmailInput) memberEmailInput.classList.add('hidden');
-    } else {
-      emailLabel.textContent = settings.memberName || 'No email set';
-      roleLabel.textContent = 'Member - Add email to receive alerts';
-      roleLabel.style.color = 'var(--warning)';
-      checkbox.checked = false;
-      checkbox.disabled = true;
-      if (memberEmailInput) memberEmailInput.classList.remove('hidden');
-    }
-  }
-  
-  if (statusDiv) {
-    if (settings.emailAlerts && settings.hasEmail) {
-      statusDiv.innerHTML = '<i class="fas fa-check-circle"></i> Email alerts enabled';
-      statusDiv.className = 'email-alert-status success';
-    } else {
-      statusDiv.innerHTML = '';
-      statusDiv.className = 'email-alert-status';
-    }
-  }
-}
-
-// Update the new Notifications tab UI
+// Update the Notifications tab UI
 function updateNotificationTabUI(settings) {
   const emailToggle = document.getElementById('emailToggle');
   const emailStatus = document.getElementById('emailStatusText');
   const userEmail = document.getElementById('notifUserEmail');
   const userRole = document.getElementById('notifUserRole');
-  const emailSetup = document.getElementById('notifEmailSetup');
   
-  if (emailToggle) {
-    if (settings.isAdmin) {
+  // Only show email settings for admin
+  if (settings.isAdmin) {
+    if (emailToggle) {
       emailToggle.checked = settings.emailAlerts;
       emailToggle.disabled = false;
-    } else if (settings.hasEmail) {
-      emailToggle.checked = settings.emailAlerts;
-      emailToggle.disabled = false;
-    } else {
-      emailToggle.checked = false;
-      emailToggle.disabled = true;
     }
-  }
-  
-  if (emailStatus) {
-    if (settings.emailAlerts && (settings.isAdmin || settings.hasEmail)) {
-      emailStatus.textContent = 'Enabled';
-      emailStatus.classList.add('enabled');
-    } else {
-      emailStatus.textContent = 'Disabled';
-      emailStatus.classList.remove('enabled');
-    }
-  }
-  
-  if (userEmail) {
-    userEmail.textContent = settings.email || settings.memberName || 'No email set';
-  }
-  
-  if (userRole) {
-    if (settings.isAdmin) {
-      userRole.textContent = 'Admin Account';
-      userRole.style.color = 'var(--accent)';
-    } else {
-      userRole.textContent = settings.hasEmail ? 'Household Member' : 'Add email to enable alerts';
-      userRole.style.color = settings.hasEmail ? '' : 'var(--warning)';
-    }
-  }
-  
-  if (emailSetup) {
-    if (!settings.isAdmin && !settings.hasEmail) {
-      emailSetup.classList.remove('hidden');
-    } else {
-      emailSetup.classList.add('hidden');
-    }
-  }
-}
-
-async function toggleEmailAlert() {
-  const checkbox = document.getElementById('emailAlertCheckbox');
-  const emailToggle = document.getElementById('emailToggle');
-  const emailStatus = document.getElementById('emailStatusText');
-  
-  // Get the actual checked state from whichever toggle was clicked
-  const isEnabled = emailToggle ? emailToggle.checked : (checkbox ? checkbox.checked : false);
-  
-  try {
-    const result = await api.setEmailAlerts(isEnabled);
-    
-    // Update both UIs
-    if (checkbox) checkbox.checked = result.emailAlerts;
-    if (emailToggle) emailToggle.checked = result.emailAlerts;
     
     if (emailStatus) {
-      if (result.emailAlerts) {
+      if (settings.emailAlerts) {
         emailStatus.textContent = 'Enabled';
         emailStatus.classList.add('enabled');
       } else {
@@ -1600,106 +1501,41 @@ async function toggleEmailAlert() {
       }
     }
     
-    showToast(result.emailAlerts ? 'Email alerts enabled' : 'Email alerts disabled');
+    if (userEmail) {
+      userEmail.textContent = settings.email || 'No email';
+    }
+    
+    if (userRole) {
+      userRole.textContent = 'Admin Account';
+      userRole.style.color = 'var(--accent)';
+    }
+  }
+}
+
+async function toggleEmailAlert() {
+  const emailToggle = document.getElementById('emailToggle');
+  const emailStatus = document.getElementById('emailStatusText');
+  
+  const isEnabled = emailToggle ? emailToggle.checked : false;
+  
+  try {
+    const result = await api.setEmailAlerts(isEnabled);
+    
+    if (emailStatus) {
+      if (result.emailAlerts) {
+        emailStatus.textContent = 'Enabled';
+        emailStatus.classList.add('enabled');
+        showToast('Email alerts enabled');
+      } else {
+        emailStatus.textContent = 'Disabled';
+        emailStatus.classList.remove('enabled');
+        showToast('Email alerts disabled');
+      }
+    }
   } catch (error) {
-    // Revert toggles
-    if (checkbox) checkbox.checked = !isEnabled;
     if (emailToggle) emailToggle.checked = !isEnabled;
     showToast('Failed to update email settings', 'error');
   }
-}
-
-async function saveMemberEmail() {
-  // Redirect to new verification flow
-  await requestEmailVerification();
-}
-
-// Request email verification code
-async function requestEmailVerification() {
-  const emailField = document.getElementById('notifMemberEmail');
-  const email = emailField?.value?.trim();
-  const errorDiv = document.getElementById('emailVerifyError');
-  
-  if (!email) {
-    if (errorDiv) errorDiv.textContent = 'Please enter your email';
-    showToast('Please enter your email', 'error');
-    return;
-  }
-  
-  // Basic email format validation
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    if (errorDiv) errorDiv.textContent = 'Invalid email format';
-    showToast('Invalid email format', 'error');
-    return;
-  }
-  
-  try {
-    if (errorDiv) errorDiv.textContent = '';
-    showToast('Sending verification code...');
-    
-    await api.requestEmailCode(email);
-    
-    // Show step 2
-    document.getElementById('emailStep1')?.classList.add('hidden');
-    document.getElementById('emailStep2')?.classList.remove('hidden');
-    document.getElementById('pendingEmailDisplay').textContent = email;
-    document.getElementById('emailVerifyCode')?.focus();
-    
-    showToast('Verification code sent! Check your email.');
-  } catch (error) {
-    if (errorDiv) errorDiv.textContent = error.message || 'Failed to send code';
-    showToast(error.message || 'Failed to send verification code', 'error');
-  }
-}
-
-// Verify the email code
-async function verifyMemberEmail() {
-  const codeField = document.getElementById('emailVerifyCode');
-  const code = codeField?.value?.trim();
-  const errorDiv = document.getElementById('emailVerifyError');
-  
-  if (!code || code.length !== 6) {
-    if (errorDiv) errorDiv.textContent = 'Please enter the 6-digit code';
-    showToast('Please enter the 6-digit code', 'error');
-    return;
-  }
-  
-  try {
-    if (errorDiv) errorDiv.textContent = '';
-    
-    const result = await api.verifyEmailCode(code);
-    
-    showToast('Email verified successfully!');
-    
-    // Refresh the notification UI
-    initEmailAlerts();
-  } catch (error) {
-    if (errorDiv) errorDiv.textContent = error.message || 'Invalid code';
-    showToast(error.message || 'Verification failed', 'error');
-  }
-}
-
-// Resend verification code
-async function resendEmailCode() {
-  const errorDiv = document.getElementById('emailVerifyError');
-  
-  try {
-    if (errorDiv) errorDiv.textContent = '';
-    
-    await api.resendEmailCode();
-    showToast('New verification code sent!');
-  } catch (error) {
-    if (errorDiv) errorDiv.textContent = error.message || 'Failed to resend';
-    showToast(error.message || 'Failed to resend code', 'error');
-  }
-}
-
-// Go back to email input
-function changeEmail() {
-  document.getElementById('emailStep1')?.classList.remove('hidden');
-  document.getElementById('emailStep2')?.classList.add('hidden');
-  document.getElementById('emailVerifyCode').value = '';
-  document.getElementById('emailVerifyError').textContent = '';
 }
 
 // Handle push notification toggle in new UI

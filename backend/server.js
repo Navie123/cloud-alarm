@@ -158,48 +158,20 @@ app.ws('/ws/:deviceId', async (ws, req) => {
             vibrate: [200, 100, 200], tag: 'fire-alarm', requireInteraction: true
           });
 
-          // Send Email notification to household admin and members
+          // Send Email notification to household admin only
           try {
             const { sendAlarmEmail } = require('./utils/email');
             const household = await Household.findOne({ 'devices.deviceId': deviceId });
-            if (household) {
-              const emailPromises = [];
-              
-              // Send to admin if enabled
-              if (household.adminEmailAlerts !== false && household.admin?.email) {
-                emailPromises.push(
-                  sendAlarmEmail(household.admin.email, {
-                    deviceId,
-                    trigger,
-                    gas: data.data.gas,
-                    temperature: data.data.temperature,
-                    humidity: data.data.humidity,
-                    timestamp: alarmTimestamp
-                  }).then(() => console.log(`[Alarm] Email sent to admin: ${household.admin.email}`))
-                    .catch(err => console.error(`[Alarm] Failed to email admin:`, err.message))
-                );
-              }
-              
-              // Send to members with email alerts enabled
-              if (household.members && household.members.length > 0) {
-                for (const member of household.members) {
-                  if (member.emailAlerts && member.email) {
-                    emailPromises.push(
-                      sendAlarmEmail(member.email, {
-                        deviceId,
-                        trigger,
-                        gas: data.data.gas,
-                        temperature: data.data.temperature,
-                        humidity: data.data.humidity,
-                        timestamp: alarmTimestamp
-                      }).then(() => console.log(`[Alarm] Email sent to member: ${member.email}`))
-                        .catch(err => console.error(`[Alarm] Failed to email member:`, err.message))
-                    );
-                  }
-                }
-              }
-              
-              await Promise.allSettled(emailPromises);
+            if (household && household.adminEmailAlerts !== false && household.admin?.email) {
+              await sendAlarmEmail(household.admin.email, {
+                deviceId,
+                trigger,
+                gas: data.data.gas,
+                temperature: data.data.temperature,
+                humidity: data.data.humidity,
+                timestamp: alarmTimestamp
+              });
+              console.log(`[Alarm] Email sent to admin: ${household.admin.email}`);
             }
           } catch (emailError) {
             console.error('[Alarm] Email notification error:', emailError.message);
