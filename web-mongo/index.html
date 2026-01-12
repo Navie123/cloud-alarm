@@ -541,15 +541,35 @@
             </div>
           </div>
           
-          <!-- Member email input (shown if no email) -->
+          <!-- Member email verification (shown if no email) -->
           <div class="notif-email-setup hidden" id="notifEmailSetup">
-            <p><i class="fas fa-info-circle"></i> Add your email to receive alarm alerts</p>
-            <div class="notif-email-input-group">
-              <input type="email" id="notifMemberEmail" placeholder="your.email@gmail.com">
-              <button class="btn btn-primary" onclick="saveMemberEmail()">
-                <i class="fas fa-save"></i> Save
-              </button>
+            <!-- Step 1: Enter Email -->
+            <div id="emailStep1">
+              <p><i class="fas fa-envelope"></i> Add your email to receive alarm alerts</p>
+              <div class="notif-email-input-group">
+                <input type="email" id="notifMemberEmail" placeholder="your.email@gmail.com">
+                <button class="btn btn-primary" onclick="requestEmailVerification()">
+                  <i class="fas fa-paper-plane"></i> Send Code
+                </button>
+              </div>
             </div>
+            
+            <!-- Step 2: Enter Verification Code -->
+            <div id="emailStep2" class="hidden">
+              <p><i class="fas fa-shield-check"></i> Enter the 6-digit code sent to <strong id="pendingEmailDisplay"></strong></p>
+              <div class="notif-verify-group">
+                <input type="text" id="emailVerifyCode" placeholder="• • • • • •" maxlength="6" class="verify-code-input">
+                <button class="btn btn-primary" onclick="verifyMemberEmail()">
+                  <i class="fas fa-check"></i> Verify
+                </button>
+              </div>
+              <div class="verify-actions">
+                <button class="btn-link" onclick="resendEmailCode()"><i class="fas fa-redo"></i> Resend Code</button>
+                <button class="btn-link" onclick="changeEmail()"><i class="fas fa-edit"></i> Change Email</button>
+              </div>
+            </div>
+            
+            <div id="emailVerifyError" class="verify-error"></div>
           </div>
         </div>
 

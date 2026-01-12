@@ -99,10 +99,24 @@ const api = {
     });
   },
 
-  async saveMemberEmail(email) {
-    return this.request('/api/household/member-email', {
-      method: 'PUT',
+  // Member email verification
+  async requestEmailCode(email) {
+    return this.request('/api/household/member-email/request-code', {
+      method: 'POST',
       body: JSON.stringify({ email })
+    });
+  },
+
+  async verifyEmailCode(code) {
+    return this.request('/api/household/member-email/verify', {
+      method: 'POST',
+      body: JSON.stringify({ code })
+    });
+  },
+
+  async resendEmailCode() {
+    return this.request('/api/household/member-email/resend', {
+      method: 'POST'
     });
   }
 };

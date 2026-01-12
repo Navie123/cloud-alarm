@@ -2812,6 +2812,92 @@ body.fullscreen .minimize-btn { display: flex; }
   white-space: nowrap;
 }
 
+/* Email Verification Styles */
+.notif-verify-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.verify-code-input {
+  flex: 1;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 1.2rem;
+  letter-spacing: 8px;
+  text-align: center;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.verify-code-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255, 87, 34, 0.05);
+}
+
+.verify-code-input::placeholder {
+  letter-spacing: 4px;
+  color: var(--text-muted);
+}
+
+.verify-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-link:hover {
+  color: var(--accent);
+  background: rgba(255, 87, 34, 0.1);
+}
+
+.verify-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: 12px;
+  text-align: center;
+  min-height: 20px;
+}
+
+.notif-email-setup p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notif-email-setup p i {
+  color: var(--accent);
+}
+
+.notif-email-setup p strong {
+  color: var(--text);
+}
+
+#emailStep2 p i {
+  color: var(--success);
+}
+
 .notif-info-banner {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

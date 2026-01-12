@@ -639,8 +639,10 @@ router.put('/email-alerts', verifyHouseholdSession, async (req, res) => {
   }
 });
 
-// Save member email (for non-admin users)
-router.put('/member-email', verifyHouseholdSession, async (req, res) => {
+// ============ MEMBER EMAIL VERIFICATION ============
+
+// Step 1: Request email verification code
+router.post('/member-email/request-code', verifyHouseholdSession, async (req, res) => {
   try {
     const { email } = req.body;
     const h = req.household;
@@ -654,24 +656,119 @@ router.put('/member-email', verifyHouseholdSession, async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
     
+    // Generate 6-digit verification code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    
     // Find or create member entry
     let memberIndex = h.members.findIndex(m => m._id?.toString() === req.session.memberId);
     
     if (memberIndex === -1) {
       h.members.push({
         name: 'Member',
-        email: email,
-        emailAlerts: true
+        pendingEmail: email,
+        verificationCode: code,
+        verificationExpires: expiresAt
       });
     } else {
-      h.members[memberIndex].email = email;
-      h.members[memberIndex].emailAlerts = true;
+      h.members[memberIndex].pendingEmail = email;
+      h.members[memberIndex].verificationCode = code;
+      h.members[memberIndex].verificationExpires = expiresAt;
     }
     
     await h.save();
-    res.json({ success: true, email, emailAlerts: true });
+    
+    // Send verification email
+    await sendOTPEmail(email, code, 'setup');
+    
+    res.json({ success: true, message: 'Verification code sent to your email' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to save email' });
+    console.error('Member email request error:', error);
+    res.status(500).json({ error: 'Failed to send verification code' });
+  }
+});
+
+// Step 2: Verify code and save email
+router.post('/member-email/verify', verifyHouseholdSession, async (req, res) => {
+  try {
+    const { code } = req.body;
+    const h = req.household;
+    
+    if (req.session.type === 'admin') {
+      return res.status(400).json({ error: 'Admin email cannot be changed here' });
+    }
+    
+    // Find member
+    let memberIndex = h.members.findIndex(m => m._id?.toString() === req.session.memberId);
+    
+    if (memberIndex === -1) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+    
+    const member = h.members[memberIndex];
+    
+    // Check if code matches and not expired
+    if (!member.verificationCode || member.verificationCode !== code) {
+      return res.status(400).json({ error: 'Invalid verification code' });
+    }
+    
+    if (new Date() > member.verificationExpires) {
+      return res.status(400).json({ error: 'Verification code expired. Please request a new one.' });
+    }
+    
+    // Verify and save email
+    h.members[memberIndex].email = member.pendingEmail;
+    h.members[memberIndex].emailVerified = true;
+    h.members[memberIndex].emailAlerts = true;
+    h.members[memberIndex].pendingEmail = undefined;
+    h.members[memberIndex].verificationCode = undefined;
+    h.members[memberIndex].verificationExpires = undefined;
+    
+    await h.save();
+    
+    res.json({ 
+      success: true, 
+      email: h.members[memberIndex].email,
+      emailAlerts: true,
+      message: 'Email verified successfully!' 
+    });
+  } catch (error) {
+    console.error('Member email verify error:', error);
+    res.status(500).json({ error: 'Failed to verify email' });
+  }
+});
+
+// Resend verification code
+router.post('/member-email/resend', verifyHouseholdSession, async (req, res) => {
+  try {
+    const h = req.household;
+    
+    if (req.session.type === 'admin') {
+      return res.status(400).json({ error: 'Admin email cannot be changed here' });
+    }
+    
+    // Find member
+    let memberIndex = h.members.findIndex(m => m._id?.toString() === req.session.memberId);
+    
+    if (memberIndex === -1 || !h.members[memberIndex].pendingEmail) {
+      return res.status(400).json({ error: 'No pending email verification' });
+    }
+    
+    // Generate new code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    
+    h.members[memberIndex].verificationCode = code;
+    h.members[memberIndex].verificationExpires = expiresAt;
+    
+    await h.save();
+    
+    // Send verification email
+    await sendOTPEmail(h.members[memberIndex].pendingEmail, code, 'setup');
+    
+    res.json({ success: true, message: 'New verification code sent' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to resend code' });
   }
 });
 

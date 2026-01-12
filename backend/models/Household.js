@@ -49,7 +49,11 @@ const householdSchema = new mongoose.Schema({
   members: [{
     name: String,
     email: String, // Optional email for alarm alerts
+    emailVerified: { type: Boolean, default: false },
     emailAlerts: { type: Boolean, default: false },
+    pendingEmail: String, // Email awaiting verification
+    verificationCode: String,
+    verificationExpires: Date,
     addedAt: { type: Date, default: Date.now }
   }],
 

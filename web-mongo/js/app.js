@@ -1610,23 +1610,96 @@ async function toggleEmailAlert() {
 }
 
 async function saveMemberEmail() {
-  const emailField = document.getElementById('memberEmailField') || document.getElementById('notifMemberEmail');
+  // Redirect to new verification flow
+  await requestEmailVerification();
+}
+
+// Request email verification code
+async function requestEmailVerification() {
+  const emailField = document.getElementById('notifMemberEmail');
   const email = emailField?.value?.trim();
+  const errorDiv = document.getElementById('emailVerifyError');
   
   if (!email) {
+    if (errorDiv) errorDiv.textContent = 'Please enter your email';
     showToast('Please enter your email', 'error');
     return;
   }
   
+  // Basic email format validation
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (errorDiv) errorDiv.textContent = 'Invalid email format';
+    showToast('Invalid email format', 'error');
+    return;
+  }
+  
   try {
-    const result = await api.saveMemberEmail(email);
-    showToast('Email saved! Alerts enabled.');
+    if (errorDiv) errorDiv.textContent = '';
+    showToast('Sending verification code...');
     
-    // Refresh the UI
+    await api.requestEmailCode(email);
+    
+    // Show step 2
+    document.getElementById('emailStep1')?.classList.add('hidden');
+    document.getElementById('emailStep2')?.classList.remove('hidden');
+    document.getElementById('pendingEmailDisplay').textContent = email;
+    document.getElementById('emailVerifyCode')?.focus();
+    
+    showToast('Verification code sent! Check your email.');
+  } catch (error) {
+    if (errorDiv) errorDiv.textContent = error.message || 'Failed to send code';
+    showToast(error.message || 'Failed to send verification code', 'error');
+  }
+}
+
+// Verify the email code
+async function verifyMemberEmail() {
+  const codeField = document.getElementById('emailVerifyCode');
+  const code = codeField?.value?.trim();
+  const errorDiv = document.getElementById('emailVerifyError');
+  
+  if (!code || code.length !== 6) {
+    if (errorDiv) errorDiv.textContent = 'Please enter the 6-digit code';
+    showToast('Please enter the 6-digit code', 'error');
+    return;
+  }
+  
+  try {
+    if (errorDiv) errorDiv.textContent = '';
+    
+    const result = await api.verifyEmailCode(code);
+    
+    showToast('Email verified successfully!');
+    
+    // Refresh the notification UI
     initEmailAlerts();
   } catch (error) {
-    showToast(error.message || 'Failed to save email', 'error');
+    if (errorDiv) errorDiv.textContent = error.message || 'Invalid code';
+    showToast(error.message || 'Verification failed', 'error');
   }
+}
+
+// Resend verification code
+async function resendEmailCode() {
+  const errorDiv = document.getElementById('emailVerifyError');
+  
+  try {
+    if (errorDiv) errorDiv.textContent = '';
+    
+    await api.resendEmailCode();
+    showToast('New verification code sent!');
+  } catch (error) {
+    if (errorDiv) errorDiv.textContent = error.message || 'Failed to resend';
+    showToast(error.message || 'Failed to resend code', 'error');
+  }
+}
+
+// Go back to email input
+function changeEmail() {
+  document.getElementById('emailStep1')?.classList.remove('hidden');
+  document.getElementById('emailStep2')?.classList.add('hidden');
+  document.getElementById('emailVerifyCode').value = '';
+  document.getElementById('emailVerifyError').textContent = '';
 }
 
 // Handle push notification toggle in new UI
