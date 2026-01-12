@@ -482,7 +482,7 @@ function updateGreeting(hours) {
     iconClass = 'fa-cloud-moon';
     timeClass = 'evening';
   } else {
-    greeting = `Good Night${userName}!`;
+    greeting = `Good Evening${userName}!`;
     iconClass = 'fa-moon';
     timeClass = 'night';
   }
