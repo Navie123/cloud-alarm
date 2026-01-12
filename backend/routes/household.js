@@ -204,13 +204,21 @@ router.post('/join', async (req, res) => {
     }
 
     household.cleanSessions();
-    const memberId = crypto.randomBytes(8).toString('hex');
-    const { token, expiresAt } = household.createSession('household', memberId);
-
-    // Add member name if provided
+    
+    // Add member and get their _id
+    let memberId;
     if (memberName) {
-      household.members.push({ name: memberName });
+      const newMember = { name: memberName };
+      household.members.push(newMember);
+      // Get the _id of the newly added member
+      memberId = household.members[household.members.length - 1]._id.toString();
+    } else {
+      // Create anonymous member entry
+      household.members.push({ name: 'Member' });
+      memberId = household.members[household.members.length - 1]._id.toString();
     }
+    
+    const { token, expiresAt } = household.createSession('household', memberId);
 
     await household.save();
 
@@ -647,6 +655,8 @@ router.post('/member-email/request-code', verifyHouseholdSession, async (req, re
     const { email } = req.body;
     const h = req.household;
     
+    console.log('[Email Verify] Request for session:', req.session.memberId, 'type:', req.session.type);
+    
     if (req.session.type === 'admin') {
       return res.status(400).json({ error: 'Admin email cannot be changed here' });
     }
@@ -660,16 +670,27 @@ router.post('/member-email/request-code', verifyHouseholdSession, async (req, re
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     
-    // Find or create member entry
+    // Find member by session memberId
     let memberIndex = h.members.findIndex(m => m._id?.toString() === req.session.memberId);
+    console.log('[Email Verify] Member index:', memberIndex, 'Total members:', h.members.length);
     
     if (memberIndex === -1) {
-      h.members.push({
+      // Member not found - create new entry with the session's memberId reference
+      // This handles legacy sessions that don't have proper member entries
+      const newMember = {
         name: 'Member',
         pendingEmail: email,
         verificationCode: code,
         verificationExpires: expiresAt
-      });
+      };
+      h.members.push(newMember);
+      memberIndex = h.members.length - 1;
+      
+      // Update session to use the new member's _id
+      const session = h.sessions.find(s => s.memberId === req.session.memberId);
+      if (session) {
+        session.memberId = h.members[memberIndex]._id.toString();
+      }
     } else {
       h.members[memberIndex].pendingEmail = email;
       h.members[memberIndex].verificationCode = code;
@@ -679,6 +700,7 @@ router.post('/member-email/request-code', verifyHouseholdSession, async (req, re
     await h.save();
     
     // Send verification email
+    console.log('[Email Verify] Sending OTP to:', email);
     await sendOTPEmail(email, code, 'setup');
     
     res.json({ success: true, message: 'Verification code sent to your email' });
@@ -698,11 +720,16 @@ router.post('/member-email/verify', verifyHouseholdSession, async (req, res) => 
       return res.status(400).json({ error: 'Admin email cannot be changed here' });
     }
     
-    // Find member
+    // Find member - check both by _id and by having a pending verification
     let memberIndex = h.members.findIndex(m => m._id?.toString() === req.session.memberId);
     
+    // If not found by session ID, find by pending email verification
     if (memberIndex === -1) {
-      return res.status(404).json({ error: 'Member not found' });
+      memberIndex = h.members.findIndex(m => m.verificationCode && m.pendingEmail);
+    }
+    
+    if (memberIndex === -1) {
+      return res.status(404).json({ error: 'No pending verification found. Please request a new code.' });
     }
     
     const member = h.members[memberIndex];
