@@ -14,8 +14,27 @@ const Household = require('./models/Household');
 const app = express();
 const wsInstance = expressWs(app);
 
-// Middleware
-app.use(cors({ origin: '*', credentials: true }));
+// Middleware - CORS Configuration
+// Restrict API access to trusted origins only
+const allowedOrigins = [
+  'https://cloud-alarm.onrender.com',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (ESP32 devices, mobile apps, Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // Serve static frontend files
@@ -173,17 +192,6 @@ app.use('/api/push', pushRoutes);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Reset database (DEV ONLY - remove in production)
-app.post('/api/reset-db', async (req, res) => {
-  try {
-    await Household.collection.drop().catch(() => {});
-    await Household.collection.dropIndexes().catch(() => {});
-    res.json({ success: true, message: 'Database reset' });
-  } catch (error) {
-    res.json({ success: true, message: 'Reset attempted' });
-  }
 });
 
 // Serve frontend
