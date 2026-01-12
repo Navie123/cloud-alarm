@@ -701,12 +701,17 @@ router.post('/member-email/request-code', verifyHouseholdSession, async (req, re
     
     // Send verification email
     console.log('[Email Verify] Sending OTP to:', email);
-    await sendOTPEmail(email, code, 'setup');
+    try {
+      await sendOTPEmail(email, code, 'member');
+    } catch (emailError) {
+      console.error('[Email Verify] Email send failed:', emailError);
+      return res.status(500).json({ error: 'Failed to send email. Please try again.' });
+    }
     
     res.json({ success: true, message: 'Verification code sent to your email' });
   } catch (error) {
     console.error('Member email request error:', error);
-    res.status(500).json({ error: 'Failed to send verification code' });
+    res.status(500).json({ error: error.message || 'Failed to send verification code' });
   }
 });
 

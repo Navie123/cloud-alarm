@@ -94,9 +94,10 @@ const sendPasswordResetEmail = async (email, token) => {
 // Send OTP email for admin verification
 const sendOTPEmail = async (email, code, purpose) => {
   const purposeText = {
-    setup: 'complete your Admin setup',
+    setup: 'complete your setup',
     login: 'log in as Admin',
-    reset: 'reset your Admin PIN'
+    reset: 'reset your Admin PIN',
+    member: 'verify your email for alarm alerts'
   };
 
   console.log('[Email] Sending OTP to:', email, 'Purpose:', purpose);
