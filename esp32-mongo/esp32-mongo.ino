@@ -174,7 +174,15 @@ void setup() {
   // Setup WiFiManager (captive portal)
   setupWiFiManager();
   
+  // Fetch thresholds from server on startup
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("Fetching thresholds from server...");
+    checkCommands();  // This will get any pending threshold commands
+  }
+  
   Serial.println("Sensors ready - showing real-time readings");
+  Serial.printf("Current thresholds - Gas: %d%%, Smoke: %d%%, Temp: %d°C\n", 
+                gasThreshold, smokeThreshold, tempThreshold);
 }
 
 void loop() {
@@ -410,12 +418,12 @@ void readGasSensors() {
   Serial.printf("Raw ADC - MQ2: %d, MQ7: %d, MQ135: %d -> Smoke: %.1f%%, Gas: %.1f%%, AQI: %.0f\n", 
                 smokeRaw, coRaw, aqiRaw, smokePercent, gasPercent, aqi);
   
-  // Smoke status (MQ-2)
-  if (smokePercent >= gasThreshold + 20) {
+  // Smoke status (MQ-2) - use smokeThreshold
+  if (smokePercent >= smokeThreshold + 20) {
     smokeStatus = "critical";
-  } else if (smokePercent >= gasThreshold) {
+  } else if (smokePercent >= smokeThreshold) {
     smokeStatus = "danger";
-  } else if (smokePercent >= gasThreshold - 10) {
+  } else if (smokePercent >= smokeThreshold - 10) {
     smokeStatus = "warning";
   } else {
     smokeStatus = "normal";
@@ -589,7 +597,16 @@ void updateAlarmState() {
   bool tempAlarm = tempSensorReady && temperature >= tempThreshold && temperature < 100.0;
   
   // Combined alarm state - smoke OR gas OR temp triggers alarm
+  bool wasAlarm = alarmActive;
   alarmActive = smokeAlarm || gasAlarm || tempAlarm;
+  
+  // Debug output when alarm state changes
+  if (alarmActive != wasAlarm) {
+    Serial.printf("ALARM STATE CHANGED: %s\n", alarmActive ? "ACTIVE" : "CLEARED");
+    Serial.printf("  Smoke: %.1f%% vs threshold %d%% -> %s\n", smokePercent, smokeThreshold, smokeAlarm ? "TRIGGERED" : "ok");
+    Serial.printf("  Gas: %.1f%% vs threshold %d%% -> %s\n", gasPercent, gasThreshold, gasAlarm ? "TRIGGERED" : "ok");
+    Serial.printf("  Temp: %.1f°C vs threshold %d°C -> %s\n", temperature, tempThreshold, tempAlarm ? "TRIGGERED" : "ok");
+  }
   
   // Temperature warning levels
   if (temperature >= tempThreshold) {
