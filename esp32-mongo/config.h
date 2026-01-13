@@ -36,7 +36,7 @@
 #define DEVICE_SECRET "6195d9a4faa9ef076a21eab5810e4ef8"  // Nailon household
 
 // Sensor Pins
-#define MQ2_PIN 35           // MQ-2 Smoke sensor
+#define MQ2_PIN 33           // MQ-2 Smoke sensor (moved from 35 for better stability)
 #define MQ7_PIN 34           // MQ-7 Carbon Monoxide sensor
 #define MQ135_PIN 32         // MQ-135 Air Quality sensor
 #define BUZZER_PIN 25        // Buzzer pin

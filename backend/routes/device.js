@@ -180,18 +180,34 @@ router.post('/:deviceId/data', async (req, res) => {
 
     // Handle fire alarm
     if (!wasAlarm && isAlarm) {
-      const trigger = data.gas > (data.threshold || 40) && data.temperature > (data.tempThreshold || 60)
-        ? 'both' : data.gas > (data.threshold || 40) ? 'gas' : 'temperature';
+      // Determine what triggered the alarm
+      const gasTriggered = data.gas > (data.threshold || 40);
+      const smokeTriggered = data.smoke > (data.threshold || 40);
+      const tempTriggered = data.temperature > (data.tempThreshold || 60);
+      
+      let trigger = 'unknown';
+      if ((gasTriggered || smokeTriggered) && tempTriggered) {
+        trigger = 'both';
+      } else if (gasTriggered) {
+        trigger = 'gas';
+      } else if (smokeTriggered) {
+        trigger = 'smoke';
+      } else if (tempTriggered) {
+        trigger = 'temperature';
+      }
       
       await AlarmHistory.create({
         deviceId, trigger,
-        gas: data.gas, temperature: data.temperature, humidity: data.humidity,
+        gas: data.gas, 
+        smoke: data.smoke,
+        temperature: data.temperature, 
+        humidity: data.humidity,
         timestamp: new Date().toLocaleString()
       });
 
       await sendPushNotification(deviceId, {
         title: '🔥 FIRE ALARM!',
-        body: `${trigger === 'gas' ? 'Gas' : trigger === 'temperature' ? 'Temp' : 'Gas+Temp'} - ${data.gas?.toFixed(1)}%, ${data.temperature?.toFixed(1)}°C`,
+        body: `${trigger === 'gas' ? 'Gas' : trigger === 'smoke' ? 'Smoke' : trigger === 'temperature' ? 'Temp' : 'Gas+Temp'} - Gas: ${data.gas?.toFixed(1)}%, Smoke: ${data.smoke?.toFixed(1)}%, Temp: ${data.temperature?.toFixed(1)}°C`,
         vibrate: [200, 100, 200], tag: 'fire-alarm', requireInteraction: true
       });
     }

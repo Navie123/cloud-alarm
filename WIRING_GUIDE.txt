@@ -41,7 +41,7 @@ ESP32 GPIO PIN          COMPONENT               WIRE COLOR (suggested)
 
 ANALOG INPUTS (ADC1 - Works with WiFi):
   GPIO 34 (ADC1_CH6)    MQ-7 AO (Analog Out)    Orange
-  GPIO 35 (ADC1_CH7)    MQ-2 AO (Analog Out)    Yellow
+  GPIO 33 (ADC1_CH5)    MQ-2 AO (Analog Out)    Yellow
   GPIO 32 (ADC1_CH4)    MQ-135 AO (Analog Out)  Green
 
 I2C BUS (Default Pins):
@@ -74,11 +74,11 @@ POWER PINS:
    ---------     ---------       -----
    VCC           5V (VIN)        Requires 5V for heater
    GND           GND             Common ground
-   AO            GPIO 35         Analog output (0-4095 on ESP32)
+   AO            GPIO 33         Analog output (0-4095 on ESP32)
    DO            Not connected   Digital output not used
 
    Note: The blue PCB module has built-in load resistor and potentiometer.
-         No external resistors needed.
+         No external resistors needed. GPIO 33 provides more stable readings.
 
 ------------------------------------------------------------------------------
 2. MQ-7 CARBON MONOXIDE SENSOR (Blue PCB Module)
@@ -151,7 +151,7 @@ POWER PINS:
                          ┌─────────────────────┐
                          │                     │
          MQ-7 AO ────────┤ GPIO 34        3V3  ├──────── HDC1080 VCC
-         MQ-2 AO ────────┤ GPIO 35        GND  ├──────┬─ All GND
+         MQ-2 AO ────────┤ GPIO 33        GND  ├──────┬─ All GND
         MQ-135 AO ───────┤ GPIO 32        5V   ├──────┼─ MQ-2 VCC
                          │                     │      ├─ MQ-7 VCC
      HDC1080 SDA ────┬───┤ GPIO 21             │      ├─ MQ-135 VCC
@@ -205,7 +205,7 @@ ESP32 has two ADC units:
 
 This project uses ADC1 pins only:
   • GPIO 34 (ADC1_CH6) - MQ-7
-  • GPIO 35 (ADC1_CH7) - MQ-2
+  • GPIO 33 (ADC1_CH5) - MQ-2
   • GPIO 32 (ADC1_CH4) - MQ-135
 
 DO NOT use ADC2 pins for sensors if WiFi is required!

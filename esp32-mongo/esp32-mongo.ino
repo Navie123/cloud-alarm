@@ -113,6 +113,11 @@ void blinkSetupMode();
 
 void setup() {
   Serial.begin(115200);
+  
+  // IMMEDIATELY set buzzer LOW to prevent startup beep
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);
+  
   Serial.println("\n=== FireWire Smart Fire Alarm ===");
   Serial.println("With MQ-7 (CO) and MQ-135 (AQI) support");
   Serial.println("WiFiManager enabled for easy setup");
@@ -120,12 +125,15 @@ void setup() {
   // Record boot time for warmup calculation
   bootTime = millis();
   
-  // Initialize pins (MQ-2 removed, using MQ-7 and MQ-135 only)
-  pinMode(BUZZER_PIN, OUTPUT);
+  // Initialize other pins
   pinMode(LED_PIN, OUTPUT);
   pinMode(MQ2_PIN, INPUT);
   pinMode(MQ7_PIN, INPUT);
   pinMode(MQ135_PIN, INPUT);
+  
+  // Keep buzzer off
+  digitalWrite(BUZZER_PIN, LOW);
+  digitalWrite(LED_PIN, LOW);
   
   // Check for reset button (hold during boot to reset WiFi)
   // Using built-in BOOT button on GPIO 0
@@ -135,13 +143,23 @@ void setup() {
     resetWiFiSettings();
   }
   
-  digitalWrite(BUZZER_PIN, LOW);
-  digitalWrite(LED_PIN, LOW);
-  
-  // Initialize HDC1080
+  // Initialize HDC1080 with retry
   Wire.begin();
+  delay(100);  // Give I2C time to stabilize
   hdc1080.begin(0x40);
-  Serial.println("HDC1080 initialized");
+  delay(50);
+  
+  // Try to get initial reading
+  float testTemp = hdc1080.readTemperature();
+  float testHum = hdc1080.readHumidity();
+  if (testTemp < 124.0 && testTemp > -40.0) {
+    temperature = testTemp;
+    tempSensorReady = true;
+  }
+  if (testHum <= 100.0 && testHum >= 0.0) {
+    humidity = testHum;
+  }
+  Serial.printf("HDC1080 initialized - Temp: %.1f°C, Hum: %.1f%%\n", temperature, humidity);
   
   // Load calibration from preferences
   loadCalibration();
@@ -296,40 +314,40 @@ void blinkSetupMode() {
 }
 
 void readSensors() {
-  // MQ-2 removed - gasPercent now derived from MQ-7 CO readings
-  // Will be set in readGasSensors()
-  
-  // Read HDC1080 with error checking
+  // Read HDC1080 with better error handling
   float newTemp = hdc1080.readTemperature();
   float newHum = hdc1080.readHumidity();
   
-  // Validate readings - HDC1080 returns 125°C on I2C error
-  bool validReading = true;
-  if (newTemp >= 124.0 || newTemp < -40.0) {
-    Serial.println("WARNING: Invalid temperature reading (I2C error), keeping previous value");
-    validReading = false;
-  }
-  if (newHum > 100.0 || newHum < 0.0) {
-    Serial.println("WARNING: Invalid humidity reading (I2C error), keeping previous value");
-    validReading = false;
+  // Validate readings - HDC1080 returns 125°C or -40°C on I2C error
+  bool tempValid = (newTemp > -39.0 && newTemp < 85.0);  // Reasonable range
+  bool humValid = (newHum >= 0.0 && newHum <= 100.0);
+  
+  if (tempValid) {
+    temperature = newTemp;
+    tempSensorReady = true;
+  } else {
+    Serial.printf("WARNING: Invalid temp reading: %.1f°C (I2C error)\n", newTemp);
   }
   
-  if (validReading) {
-    temperature = newTemp;
+  if (humValid) {
     humidity = newHum;
-    tempSensorReady = true;  // Got valid reading
   } else {
-    // Don't set tempSensorReady to false - keep last valid reading
+    Serial.printf("WARNING: Invalid humidity reading: %.1f%% (I2C error)\n", newHum);
+    // Try to reinitialize sensor
     static unsigned long lastReinit = 0;
-    if (millis() - lastReinit > 5000) {
+    if (millis() - lastReinit > 3000) {
       Serial.println("Reinitializing HDC1080...");
+      Wire.end();
+      delay(50);
+      Wire.begin();
+      delay(50);
       hdc1080.begin(0x40);
       lastReinit = millis();
     }
   }
   
-  // Read voltage (ESP32 ADC2 - use different pin since 35 might conflict)
-  voltage = 3.3; // Fixed value since we're using pin 35 for other purposes
+  // Read voltage (fixed value)
+  voltage = 3.3;
   
   // Read MQ-7 and MQ-135 gas sensors
   readGasSensors();
@@ -344,14 +362,29 @@ void readGasSensors() {
   // No warmup - show real-time readings immediately
   sensorWarmup = false;
   
-  // Read MQ-2 on pin 35 for smoke detection
-  smokeRaw = analogRead(MQ2_PIN);
+  // Read MQ-2 on pin 35 for smoke detection (take multiple samples)
+  long smokeSum = 0;
+  for (int i = 0; i < 5; i++) {
+    smokeSum += analogRead(MQ2_PIN);
+    delayMicroseconds(100);
+  }
+  smokeRaw = smokeSum / 5;
   
-  // Read MQ-7 on pin 34 for CO detection
-  coRaw = analogRead(MQ7_PIN);
+  // Read MQ-7 on pin 34 for CO detection (take multiple samples)
+  long coSum = 0;
+  for (int i = 0; i < 5; i++) {
+    coSum += analogRead(MQ7_PIN);
+    delayMicroseconds(100);
+  }
+  coRaw = coSum / 5;
   
-  // Read MQ-135 on pin 32 for AQI
-  aqiRaw = analogRead(MQ135_PIN);
+  // Read MQ-135 on pin 32 for AQI (take multiple samples)
+  long aqiSum = 0;
+  for (int i = 0; i < 5; i++) {
+    aqiSum += analogRead(MQ135_PIN);
+    delayMicroseconds(100);
+  }
+  aqiRaw = aqiSum / 5;
   
   // Direct mapping: low ADC = low gas (safe), high ADC = high gas (danger)
   // Sensors read ~400-500 in clean air = ~10-12% (safe)
