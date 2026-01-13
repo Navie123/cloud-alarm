@@ -219,8 +219,14 @@ router.post('/:deviceId/data', async (req, res) => {
       // Send Email notification to household admin
       try {
         const { sendAlarmEmail } = require('../utils/email');
+        console.log('[Alarm] Checking email conditions:');
+        console.log('  - household exists:', !!household);
+        console.log('  - adminEmailAlerts:', household?.adminEmailAlerts);
+        console.log('  - admin email:', household?.admin?.email);
+        
         if (household && household.adminEmailAlerts !== false && household.admin?.email) {
-          await sendAlarmEmail(household.admin.email, {
+          console.log('[Alarm] Attempting to send email to:', household.admin.email);
+          const emailResult = await sendAlarmEmail(household.admin.email, {
             deviceId,
             trigger,
             gas: data.gas,
@@ -229,10 +235,12 @@ router.post('/:deviceId/data', async (req, res) => {
             humidity: data.humidity,
             timestamp: new Date().toLocaleString()
           });
-          console.log(`[Alarm] Email sent to admin: ${household.admin.email}`);
+          console.log(`[Alarm] Email sent successfully to admin: ${household.admin.email}`, emailResult);
+        } else {
+          console.log('[Alarm] Email NOT sent - conditions not met');
         }
       } catch (emailError) {
-        console.error('[Alarm] Email notification error:', emailError.message);
+        console.error('[Alarm] Email notification error:', emailError.message, emailError.stack);
       }
     }
 
