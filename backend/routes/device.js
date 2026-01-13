@@ -128,16 +128,19 @@ router.post('/:deviceId/data', async (req, res) => {
       );
     }
 
+    // Don't let ESP32 data overwrite stored thresholds
+    const { threshold: _, smokeThreshold: __, tempThreshold: ___, sirenEnabled: ____, ...dataWithoutThresholds } = data;
+    
     device.current = {
       ...device.current, 
-      ...data,
+      ...dataWithoutThresholds,
       coStatus,
       aqiStatus,
       fireRisk,
-      threshold: storedThreshold ?? data.threshold ?? 40,
-      smokeThreshold: storedSmokeThreshold ?? data.smokeThreshold ?? 40,
-      tempThreshold: storedTempThreshold ?? data.tempThreshold ?? 60,
-      sirenEnabled: storedSirenEnabled ?? data.sirenEnabled ?? true,
+      threshold: storedThreshold ?? 40,
+      smokeThreshold: storedSmokeThreshold ?? 40,
+      tempThreshold: storedTempThreshold ?? 60,
+      sirenEnabled: storedSirenEnabled ?? true,
       timestamp: new Date().toLocaleString()
     };
     device.lastSeen = new Date();
