@@ -17,6 +17,11 @@ const deviceSchema = new mongoose.Schema({
     timestamp: String,
     heap: Number,
     
+    // MQ-2 Smoke sensor fields
+    smoke: { type: Number, default: 0 },
+    smokeRaw: { type: Number, default: 0 },
+    smokeStatus: { type: String, default: 'normal', enum: ['normal', 'warning', 'danger', 'critical'] },
+    
     // MQ-7 Carbon Monoxide sensor fields
     coPpm: { type: Number, default: 0 },
     coRaw: { type: Number, default: 0 },
