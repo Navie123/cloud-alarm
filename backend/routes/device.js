@@ -273,10 +273,39 @@ router.get('/:deviceId/commands', async (req, res) => {
     const device = await Device.findOne({ deviceId: req.params.deviceId });
     if (!device) return res.json({});
     
-    const commands = device.commands || {};
-    device.commands = {};
-    await device.save();
-    res.json(commands);
+    // Build response with thresholds from device.current (persistent)
+    // and action commands from device.commands (one-time)
+    const response = {};
+    
+    // Always include current thresholds so ESP32 stays in sync
+    if (device.current) {
+      if (device.current.threshold !== undefined) response.threshold = device.current.threshold;
+      if (device.current.smokeThreshold !== undefined) response.smokeThreshold = device.current.smokeThreshold;
+      if (device.current.tempThreshold !== undefined) response.tempThreshold = device.current.tempThreshold;
+      if (device.current.sirenEnabled !== undefined) response.sirenEnabled = device.current.sirenEnabled;
+    }
+    
+    // Include CO thresholds from commands (they persist there)
+    if (device.commands) {
+      if (device.commands.coWarningThreshold !== undefined) response.coWarningThreshold = device.commands.coWarningThreshold;
+      if (device.commands.coDangerThreshold !== undefined) response.coDangerThreshold = device.commands.coDangerThreshold;
+      if (device.commands.coCriticalThreshold !== undefined) response.coCriticalThreshold = device.commands.coCriticalThreshold;
+      
+      // One-time action commands - include then clear
+      if (device.commands.silence) response.silence = true;
+      if (device.commands.calibrate) response.calibrate = true;
+      if (device.commands.resetWifi) response.resetWifi = true;
+    }
+    
+    // Clear only the one-time action commands
+    if (device.commands) {
+      device.commands.silence = undefined;
+      device.commands.calibrate = undefined;
+      device.commands.resetWifi = undefined;
+      await device.save();
+    }
+    
+    res.json(response);
   } catch (error) {
     res.status(500).json({ error: 'Failed to get commands' });
   }
