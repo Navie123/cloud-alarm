@@ -5681,3 +5681,109 @@ header {
     height: 36px;
   }
 }
+
+
+/* Household Members List */
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.member-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff5722, #ff9800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+  font-size: 1rem;
+}
+
+.member-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.member-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.member-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.member-badge.admin {
+  background: linear-gradient(135deg, #ff5722, #ff9800);
+  color: white;
+}
+
+.member-badge.member {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+}
+
+.member-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.member-actions button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.btn-remove-member {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.btn-remove-member:hover {
+  background: rgba(239, 68, 68, 0.4);
+}
+
+.loading-members {
+  text-align: center;
+  padding: 20px;
+  color: var(--muted);
+}
+
+.no-members {
+  text-align: center;
+  padding: 20px;
+  color: var(--muted);
+}

@@ -38,6 +38,14 @@ const api = {
     return this.request('/api/household/info');
   },
 
+  async getHouseholdMembers() {
+    return this.request('/api/household/members');
+  },
+
+  async removeMember(memberId) {
+    return this.request(`/api/household/members/${memberId}`, { method: 'DELETE' });
+  },
+
   logout() {
     this.request('/api/household/logout', { method: 'POST' }).catch(() => {});
     this.setToken(null);

@@ -665,6 +665,16 @@
         
         <!-- Factory Reset (Admin Only) -->
         <div class="admin-only">
+          <!-- Manage Members -->
+          <div class="card">
+            <div class="card-title"><i class="fas fa-users"></i> Household Members</div>
+            <p class="card-subtitle">View and manage members who have access to this household</p>
+            <div id="membersList" class="members-list">
+              <div class="loading-members"><i class="fas fa-spinner fa-spin"></i> Loading members...</div>
+            </div>
+            <button class="btn btn-secondary" onclick="loadHouseholdMembers()"><i class="fas fa-refresh"></i> Refresh</button>
+          </div>
+          
           <div class="card card-danger">
             <div class="card-title"><i class="fas fa-triangle-exclamation"></i> Danger Zone</div>
             <p class="card-subtitle">Irreversible actions that affect all users</p>

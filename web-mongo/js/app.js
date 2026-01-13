@@ -1684,3 +1684,95 @@ function updatePushToggleUI() {
     }
   }
 }
+
+
+// ============ HOUSEHOLD MEMBERS MANAGEMENT ============
+async function loadHouseholdMembers() {
+  const membersList = document.getElementById('membersList');
+  if (!membersList) return;
+  
+  membersList.innerHTML = '<div class="loading-members"><i class="fas fa-spinner fa-spin"></i> Loading members...</div>';
+  
+  try {
+    const data = await api.getHouseholdMembers();
+    
+    if (!data.members || data.members.length === 0) {
+      membersList.innerHTML = '<div class="no-members"><i class="fas fa-users"></i> No members yet</div>';
+      return;
+    }
+    
+    let html = '';
+    
+    // Show admin first
+    if (data.admin) {
+      const adminInitial = data.admin.email.charAt(0).toUpperCase();
+      html += `
+        <div class="member-item">
+          <div class="member-info">
+            <div class="member-avatar">${adminInitial}</div>
+            <div class="member-details">
+              <span class="member-name">${data.admin.email.split('@')[0]}</span>
+              <span class="member-meta">${data.admin.email}</span>
+            </div>
+          </div>
+          <span class="member-badge admin"><i class="fas fa-crown"></i> Admin</span>
+        </div>
+      `;
+    }
+    
+    // Show members
+    data.members.forEach(member => {
+      const initial = member.name.charAt(0).toUpperCase();
+      const addedDate = member.addedAt ? new Date(member.addedAt).toLocaleDateString() : 'Unknown';
+      
+      html += `
+        <div class="member-item" data-member-id="${member.id}">
+          <div class="member-info">
+            <div class="member-avatar">${initial}</div>
+            <div class="member-details">
+              <span class="member-name">${member.name}</span>
+              <span class="member-meta">Joined ${addedDate}</span>
+            </div>
+          </div>
+          <div class="member-actions">
+            <span class="member-badge member">Member</span>
+            <button class="btn-remove-member" onclick="removeMember('${member.id}', '${member.name}')" title="Remove member">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    });
+    
+    membersList.innerHTML = html;
+  } catch (error) {
+    console.error('Failed to load members:', error);
+    membersList.innerHTML = '<div class="no-members"><i class="fas fa-exclamation-circle"></i> Failed to load members</div>';
+  }
+}
+
+async function removeMember(memberId, memberName) {
+  if (!confirm(`Remove "${memberName}" from this household?\n\nThey will need to re-enter their name to access again.`)) {
+    return;
+  }
+  
+  try {
+    await api.removeMember(memberId);
+    showToast(`Removed ${memberName}`);
+    loadHouseholdMembers(); // Refresh list
+  } catch (error) {
+    showToast('Failed to remove member', 'error');
+  }
+}
+
+// Load members when Settings tab is opened (for admin)
+document.addEventListener('DOMContentLoaded', () => {
+  const settingsTab = document.querySelector('[data-tab="settings"]');
+  if (settingsTab) {
+    settingsTab.addEventListener('click', () => {
+      if (typeof isAdmin === 'function' && isAdmin()) {
+        loadHouseholdMembers();
+      }
+    });
+  }
+});

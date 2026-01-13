@@ -205,17 +205,26 @@ router.post('/join', async (req, res) => {
 
     household.cleanSessions();
     
-    // Add member and get their _id
+    // Check if member with this name already exists (case-insensitive)
     let memberId;
-    if (memberName) {
-      const newMember = { name: memberName };
-      household.members.push(newMember);
-      // Get the _id of the newly added member
-      memberId = household.members[household.members.length - 1]._id.toString();
+    let isReturningMember = false;
+    const normalizedName = (memberName || 'Member').trim().toLowerCase();
+    
+    const existingMember = household.members.find(m => 
+      m.name && m.name.trim().toLowerCase() === normalizedName
+    );
+    
+    if (existingMember) {
+      // Returning member - use existing ID
+      memberId = existingMember._id.toString();
+      isReturningMember = true;
+      console.log(`[Household] Returning member: ${existingMember.name}`);
     } else {
-      // Create anonymous member entry
-      household.members.push({ name: 'Member' });
+      // New member - add to list
+      const displayName = memberName ? memberName.trim() : 'Member';
+      household.members.push({ name: displayName });
       memberId = household.members[household.members.length - 1]._id.toString();
+      console.log(`[Household] New member joined: ${displayName}`);
     }
     
     const { token, expiresAt } = household.createSession('household', memberId);
@@ -227,6 +236,7 @@ router.post('/join', async (req, res) => {
       token,
       expiresAt,
       memberId,
+      isReturningMember,
       householdName: household.name,
       accessType: 'household',
       devices: household.devices.map(d => ({ deviceId: d.deviceId, name: d.name }))
@@ -382,6 +392,49 @@ router.get('/info', verifyHouseholdSession, (req, res) => {
     devices: h.devices.map(d => ({ deviceId: d.deviceId, name: d.name })),
     members: h.members.map(m => m.name)
   });
+});
+
+// Get detailed members list (Admin only)
+router.get('/members', verifyAdminSession, (req, res) => {
+  const h = req.household;
+  res.json({
+    admin: {
+      email: h.admin.email,
+      createdAt: h.admin.createdAt
+    },
+    members: h.members.map(m => ({
+      id: m._id,
+      name: m.name,
+      email: m.email || null,
+      emailAlerts: m.emailAlerts || false,
+      addedAt: m.addedAt
+    })),
+    totalMembers: h.members.length
+  });
+});
+
+// Remove a member (Admin only)
+router.delete('/members/:memberId', verifyAdminSession, async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    
+    const memberIndex = req.household.members.findIndex(m => m._id.toString() === memberId);
+    if (memberIndex === -1) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+    
+    const removedMember = req.household.members[memberIndex];
+    req.household.members.splice(memberIndex, 1);
+    
+    // Also remove any sessions for this member
+    req.household.sessions = req.household.sessions.filter(s => s.memberId !== memberId);
+    
+    await req.household.save();
+    
+    res.json({ success: true, message: `Removed ${removedMember.name}` });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to remove member' });
+  }
 });
 
 // Logout
