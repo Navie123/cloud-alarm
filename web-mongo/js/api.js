@@ -46,6 +46,28 @@ const api = {
     return this.request(`/api/household/members/${memberId}`, { method: 'DELETE' });
   },
 
+  async clearAllMembers() {
+    return this.request('/api/household/members/clear', { method: 'DELETE' });
+  },
+
+  async verifyAdminPin(pin) {
+    return this.request('/api/household/verify-pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin })
+    });
+  },
+
+  async getHouseholdCredentials() {
+    return this.request('/api/household/credentials');
+  },
+
+  async changeAccessCode(newCode) {
+    return this.request('/api/household/access-code', {
+      method: 'PUT',
+      body: JSON.stringify({ newCode })
+    });
+  },
+
   logout() {
     this.request('/api/household/logout', { method: 'POST' }).catch(() => {});
     this.setToken(null);

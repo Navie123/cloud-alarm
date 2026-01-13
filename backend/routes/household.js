@@ -437,6 +437,53 @@ router.delete('/members/:memberId', verifyAdminSession, async (req, res) => {
   }
 });
 
+// Clear all members (Admin only)
+router.delete('/members/clear', verifyAdminSession, async (req, res) => {
+  try {
+    const count = req.household.members.length;
+    req.household.members = [];
+    
+    // Remove all household sessions (keep admin sessions)
+    req.household.sessions = req.household.sessions.filter(s => s.type === 'admin');
+    
+    await req.household.save();
+    
+    res.json({ success: true, message: `Removed ${count} members` });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to clear members' });
+  }
+});
+
+// Verify admin PIN (for sensitive actions)
+router.post('/verify-pin', verifyAdminSession, async (req, res) => {
+  try {
+    const { pin } = req.body;
+    
+    if (!pin) {
+      return res.status(400).json({ error: 'PIN required' });
+    }
+    
+    const isValid = req.household.verifyPin(pin);
+    
+    if (isValid) {
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ error: 'Invalid PIN' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// Get household credentials (Admin only)
+router.get('/credentials', verifyAdminSession, (req, res) => {
+  res.json({
+    householdId: req.household.householdId,
+    accessCode: req.household.accessCode,
+    adminEmail: req.household.admin.email
+  });
+});
+
 // Logout
 router.post('/logout', verifyHouseholdSession, async (req, res) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');

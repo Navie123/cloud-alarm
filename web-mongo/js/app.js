@@ -1687,8 +1687,109 @@ function updatePushToggleUI() {
 
 
 // ============ HOUSEHOLD MEMBERS MANAGEMENT ============
-async function loadHouseholdMembers() {
-  const membersList = document.getElementById('membersList');
+let membersTabVerified = false;
+let accessCodeVisible = false;
+
+// Handle Members tab click - require PIN verification
+function setupMembersTab() {
+  const membersTab = document.querySelector('[data-tab="members"]');
+  if (membersTab) {
+    membersTab.addEventListener('click', (e) => {
+      // Reset verification when tab is clicked
+      if (!membersTabVerified) {
+        showMembersPinScreen();
+      }
+    });
+  }
+}
+
+function showMembersPinScreen() {
+  const pinScreen = document.getElementById('membersPinScreen');
+  const content = document.getElementById('membersContent');
+  const pinInput = document.getElementById('membersPinInput');
+  const pinError = document.getElementById('membersPinError');
+  
+  if (pinScreen) pinScreen.classList.remove('hidden');
+  if (content) content.classList.add('hidden');
+  if (pinInput) {
+    pinInput.value = '';
+    pinInput.focus();
+  }
+  if (pinError) pinError.textContent = '';
+}
+
+async function verifyMembersPin() {
+  const pinInput = document.getElementById('membersPinInput');
+  const pinError = document.getElementById('membersPinError');
+  const pin = pinInput?.value || '';
+  
+  if (!pin || pin.length < 4) {
+    if (pinError) pinError.textContent = 'Please enter your PIN';
+    return;
+  }
+  
+  try {
+    // Verify PIN with server
+    const result = await api.verifyAdminPin(pin);
+    
+    if (result.success) {
+      membersTabVerified = true;
+      showMembersContent();
+      loadMembersFullList();
+      loadHouseholdInfoForMembers();
+    } else {
+      if (pinError) pinError.textContent = 'Invalid PIN';
+      if (pinInput) pinInput.value = '';
+    }
+  } catch (error) {
+    if (pinError) pinError.textContent = error.message || 'Verification failed';
+    if (pinInput) pinInput.value = '';
+  }
+}
+
+function showMembersContent() {
+  const pinScreen = document.getElementById('membersPinScreen');
+  const content = document.getElementById('membersContent');
+  
+  if (pinScreen) pinScreen.classList.add('hidden');
+  if (content) content.classList.remove('hidden');
+}
+
+async function loadHouseholdInfoForMembers() {
+  try {
+    const info = await api.getHouseholdCredentials();
+    
+    const householdIdEl = document.getElementById('membersHouseholdId');
+    const accessCodeEl = document.getElementById('membersAccessCode');
+    
+    if (householdIdEl) householdIdEl.textContent = info.householdId || '--';
+    if (accessCodeEl) {
+      accessCodeEl.dataset.code = info.accessCode || '------';
+      accessCodeEl.textContent = accessCodeVisible ? info.accessCode : '******';
+    }
+  } catch (error) {
+    console.error('Failed to load household info:', error);
+  }
+}
+
+function toggleAccessCode() {
+  const accessCodeEl = document.getElementById('membersAccessCode');
+  const btn = document.querySelector('.btn-show-code i');
+  
+  accessCodeVisible = !accessCodeVisible;
+  
+  if (accessCodeEl) {
+    accessCodeEl.textContent = accessCodeVisible ? accessCodeEl.dataset.code : '******';
+  }
+  if (btn) {
+    btn.className = accessCodeVisible ? 'fas fa-eye-slash' : 'fas fa-eye';
+  }
+}
+
+async function loadMembersFullList() {
+  const membersList = document.getElementById('membersListFull');
+  const totalCount = document.getElementById('membersTotalCount');
+  
   if (!membersList) return;
   
   membersList.innerHTML = '<div class="loading-members"><i class="fas fa-spinner fa-spin"></i> Loading members...</div>';
@@ -1696,23 +1797,22 @@ async function loadHouseholdMembers() {
   try {
     const data = await api.getHouseholdMembers();
     
-    if (!data.members || data.members.length === 0) {
-      membersList.innerHTML = '<div class="no-members"><i class="fas fa-users"></i> No members yet</div>';
-      return;
-    }
+    if (totalCount) totalCount.textContent = (data.members?.length || 0) + 1; // +1 for admin
     
     let html = '';
     
     // Show admin first
     if (data.admin) {
       const adminInitial = data.admin.email.charAt(0).toUpperCase();
+      const adminDate = data.admin.createdAt ? new Date(data.admin.createdAt).toLocaleDateString() : 'Unknown';
       html += `
-        <div class="member-item">
+        <div class="member-item admin-member">
           <div class="member-info">
-            <div class="member-avatar">${adminInitial}</div>
+            <div class="member-avatar" style="background: linear-gradient(135deg, #ff5722, #ff9800);">${adminInitial}</div>
             <div class="member-details">
               <span class="member-name">${data.admin.email.split('@')[0]}</span>
-              <span class="member-meta">${data.admin.email}</span>
+              <span class="member-meta"><i class="fas fa-envelope"></i> ${data.admin.email}</span>
+              <span class="member-meta"><i class="fas fa-calendar"></i> Created ${adminDate}</span>
             </div>
           </div>
           <span class="member-badge admin"><i class="fas fa-crown"></i> Admin</span>
@@ -1721,28 +1821,32 @@ async function loadHouseholdMembers() {
     }
     
     // Show members
-    data.members.forEach(member => {
-      const initial = member.name.charAt(0).toUpperCase();
-      const addedDate = member.addedAt ? new Date(member.addedAt).toLocaleDateString() : 'Unknown';
-      
-      html += `
-        <div class="member-item" data-member-id="${member.id}">
-          <div class="member-info">
-            <div class="member-avatar">${initial}</div>
-            <div class="member-details">
-              <span class="member-name">${member.name}</span>
-              <span class="member-meta">Joined ${addedDate}</span>
+    if (data.members && data.members.length > 0) {
+      data.members.forEach(member => {
+        const initial = member.name.charAt(0).toUpperCase();
+        const addedDate = member.addedAt ? new Date(member.addedAt).toLocaleDateString() : 'Unknown';
+        
+        html += `
+          <div class="member-item" data-member-id="${member.id}">
+            <div class="member-info">
+              <div class="member-avatar">${initial}</div>
+              <div class="member-details">
+                <span class="member-name">${member.name}</span>
+                <span class="member-meta"><i class="fas fa-calendar"></i> Joined ${addedDate}</span>
+              </div>
+            </div>
+            <div class="member-actions">
+              <span class="member-badge member">Member</span>
+              <button class="btn-remove-member" onclick="removeMember('${member.id}', '${member.name}')" title="Remove member">
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
           </div>
-          <div class="member-actions">
-            <span class="member-badge member">Member</span>
-            <button class="btn-remove-member" onclick="removeMember('${member.id}', '${member.name}')" title="Remove member">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </div>
-      `;
-    });
+        `;
+      });
+    } else {
+      html += '<div class="no-members"><i class="fas fa-user-plus"></i> No household members yet. Share your access code to invite members.</div>';
+    }
     
     membersList.innerHTML = html;
   } catch (error) {
@@ -1759,20 +1863,50 @@ async function removeMember(memberId, memberName) {
   try {
     await api.removeMember(memberId);
     showToast(`Removed ${memberName}`);
-    loadHouseholdMembers(); // Refresh list
+    loadMembersFullList();
   } catch (error) {
     showToast('Failed to remove member', 'error');
   }
 }
 
-// Load members when Settings tab is opened (for admin)
-document.addEventListener('DOMContentLoaded', () => {
-  const settingsTab = document.querySelector('[data-tab="settings"]');
-  if (settingsTab) {
-    settingsTab.addEventListener('click', () => {
-      if (typeof isAdmin === 'function' && isAdmin()) {
-        loadHouseholdMembers();
-      }
-    });
+async function clearAllMembers() {
+  if (!confirm('Remove ALL household members?\n\nThis will log out everyone except the admin. They will need to re-enter their names to access again.')) {
+    return;
   }
+  
+  try {
+    await api.clearAllMembers();
+    showToast('All members removed');
+    loadMembersFullList();
+  } catch (error) {
+    showToast('Failed to clear members', 'error');
+  }
+}
+
+async function changeAccessCode() {
+  const input = document.getElementById('newAccessCodeInput');
+  const newCode = input?.value || '';
+  
+  if (!/^\d{6}$/.test(newCode)) {
+    showToast('Access code must be 6 digits', 'error');
+    return;
+  }
+  
+  if (!confirm('Change access code?\n\nThis will log out all current household members.')) {
+    return;
+  }
+  
+  try {
+    await api.changeAccessCode(newCode);
+    showToast('Access code updated');
+    if (input) input.value = '';
+    loadHouseholdInfoForMembers();
+  } catch (error) {
+    showToast('Failed to change access code', 'error');
+  }
+}
+
+// Initialize members tab on page load
+document.addEventListener('DOMContentLoaded', () => {
+  setupMembersTab();
 });

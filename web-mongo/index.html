@@ -275,6 +275,7 @@
           <div class="tab" data-tab="notifications"><i class="fas fa-bell"></i> <span class="tab-text">Alerts</span></div>
           <div class="tab" data-tab="settings"><i class="fas fa-sliders"></i> <span class="tab-text">Settings</span></div>
           <div class="tab admin-only" data-tab="device"><i class="fas fa-microchip"></i> <span class="tab-text">Device</span></div>
+          <div class="tab admin-only" data-tab="members"><i class="fas fa-users-gear"></i> <span class="tab-text">Members</span></div>
         </div>
         <div class="header-actions">
           <button class="action-btn" onclick="toggleFullscreen()" title="Fullscreen"><i class="fas fa-expand" id="fullscreenIcon"></i></button>
@@ -665,16 +666,6 @@
         
         <!-- Factory Reset (Admin Only) -->
         <div class="admin-only">
-          <!-- Manage Members -->
-          <div class="card">
-            <div class="card-title"><i class="fas fa-users"></i> Household Members</div>
-            <p class="card-subtitle">View and manage members who have access to this household</p>
-            <div id="membersList" class="members-list">
-              <div class="loading-members"><i class="fas fa-spinner fa-spin"></i> Loading members...</div>
-            </div>
-            <button class="btn btn-secondary" onclick="loadHouseholdMembers()"><i class="fas fa-refresh"></i> Refresh</button>
-          </div>
-          
           <div class="card card-danger">
             <div class="card-title"><i class="fas fa-triangle-exclamation"></i> Danger Zone</div>
             <p class="card-subtitle">Irreversible actions that affect all users</p>
@@ -789,6 +780,82 @@
                 <span class="device-stat-value" id="connectionStatusDisplay">--</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MEMBERS TAB (Admin Only - PIN Protected) -->
+      <div class="tab-content" id="tab-members">
+        <!-- PIN Verification Screen -->
+        <div id="membersPinScreen" class="members-pin-screen">
+          <div class="pin-verify-card">
+            <div class="pin-verify-icon">
+              <i class="fas fa-shield-halved"></i>
+            </div>
+            <h2>Admin Verification Required</h2>
+            <p>Enter your admin PIN to access member management</p>
+            <div class="pin-input-group">
+              <input type="password" id="membersPinInput" class="pin-input" maxlength="6" placeholder="Enter PIN" onkeypress="if(event.key==='Enter')verifyMembersPin()">
+            </div>
+            <p id="membersPinError" class="pin-error"></p>
+            <button class="btn btn-primary btn-full" onclick="verifyMembersPin()">
+              <i class="fas fa-unlock"></i> Verify PIN
+            </button>
+          </div>
+        </div>
+
+        <!-- Members Management (shown after PIN verification) -->
+        <div id="membersContent" class="members-content hidden">
+          <div class="members-header">
+            <div class="members-header-icon">
+              <i class="fas fa-users-gear"></i>
+            </div>
+            <h2>Household Members</h2>
+            <p>Manage who has access to your FireWire system</p>
+          </div>
+
+          <!-- Household Info Card -->
+          <div class="card members-info-card">
+            <div class="card-title"><i class="fas fa-home"></i> Household Information</div>
+            <div class="household-info-grid">
+              <div class="household-info-item">
+                <span class="info-label">Household ID</span>
+                <span class="info-value" id="membersHouseholdId">--</span>
+              </div>
+              <div class="household-info-item">
+                <span class="info-label">Access Code</span>
+                <span class="info-value access-code" id="membersAccessCode">******</span>
+                <button class="btn-show-code" onclick="toggleAccessCode()"><i class="fas fa-eye"></i></button>
+              </div>
+              <div class="household-info-item">
+                <span class="info-label">Total Members</span>
+                <span class="info-value" id="membersTotalCount">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Members List -->
+          <div class="card">
+            <div class="card-title"><i class="fas fa-users"></i> Member List</div>
+            <p class="card-subtitle">All users who have accessed this household</p>
+            <div id="membersListFull" class="members-list-full">
+              <div class="loading-members"><i class="fas fa-spinner fa-spin"></i> Loading members...</div>
+            </div>
+            <div class="members-actions">
+              <button class="btn btn-secondary" onclick="loadMembersFullList()"><i class="fas fa-refresh"></i> Refresh</button>
+              <button class="btn btn-danger" onclick="clearAllMembers()"><i class="fas fa-trash"></i> Clear All Members</button>
+            </div>
+          </div>
+
+          <!-- Access Code Management -->
+          <div class="card">
+            <div class="card-title"><i class="fas fa-key"></i> Change Access Code</div>
+            <p class="card-subtitle">Generate a new 6-digit access code for household members</p>
+            <div class="access-code-input-group">
+              <input type="text" id="newAccessCodeInput" class="access-code-input" maxlength="6" placeholder="Enter new 6-digit code" pattern="[0-9]{6}">
+              <button class="btn btn-primary" onclick="changeAccessCode()"><i class="fas fa-save"></i> Update Code</button>
+            </div>
+            <p class="access-code-note"><i class="fas fa-info-circle"></i> Changing the code will log out all current household members</p>
           </div>
         </div>
       </div>
