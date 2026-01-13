@@ -799,20 +799,8 @@ void checkCommands() {
 }
 
 void activateBuzzer(bool state) {
-  static bool lastState = false;
-  static unsigned long lastToggle = 0;
-  
-  if (state) {
-    // Pulsing buzzer pattern
-    if (millis() - lastToggle >= 500) {
-      lastState = !lastState;
-      digitalWrite(BUZZER_PIN, lastState ? HIGH : LOW);
-      lastToggle = millis();
-    }
-  } else {
-    digitalWrite(BUZZER_PIN, LOW);
-    lastState = false;
-  }
+  // Continuous buzzer - stays on during alarm
+  digitalWrite(BUZZER_PIN, state ? HIGH : LOW);
 }
 
 String getTimestamp() {
