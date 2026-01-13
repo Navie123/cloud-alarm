@@ -46,6 +46,13 @@ const api = {
     return this.request(`/api/household/members/${memberId}`, { method: 'DELETE' });
   },
 
+  async removeMultipleMembers(memberIds) {
+    return this.request('/api/household/members/batch', {
+      method: 'DELETE',
+      body: JSON.stringify({ memberIds })
+    });
+  },
+
   async clearAllMembers() {
     return this.request('/api/household/members/clear', { method: 'DELETE' });
   },

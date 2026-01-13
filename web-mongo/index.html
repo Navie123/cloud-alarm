@@ -838,12 +838,30 @@
           <div class="card">
             <div class="card-title"><i class="fas fa-users"></i> Member List</div>
             <p class="card-subtitle">All users who have accessed this household</p>
+            
+            <!-- Selection toolbar -->
+            <div id="membersToolbar" class="members-toolbar hidden">
+              <div class="toolbar-left">
+                <label class="select-all-checkbox">
+                  <input type="checkbox" id="selectAllMembers" onchange="toggleSelectAll()">
+                  <span>Select All</span>
+                </label>
+                <span class="selected-count" id="selectedCount">0 selected</span>
+              </div>
+              <div class="toolbar-right">
+                <button class="btn btn-danger btn-sm" onclick="deleteSelectedMembers()">
+                  <i class="fas fa-trash"></i> Delete Selected
+                </button>
+              </div>
+            </div>
+            
             <div id="membersListFull" class="members-list-full">
               <div class="loading-members"><i class="fas fa-spinner fa-spin"></i> Loading members...</div>
             </div>
             <div class="members-actions">
               <button class="btn btn-secondary" onclick="loadMembersFullList()"><i class="fas fa-refresh"></i> Refresh</button>
-              <button class="btn btn-danger" onclick="clearAllMembers()"><i class="fas fa-trash"></i> Clear All Members</button>
+              <button class="btn btn-outline" onclick="toggleSelectionMode()"><i class="fas fa-check-square"></i> Select Mode</button>
+              <button class="btn btn-danger" onclick="clearAllMembers()"><i class="fas fa-trash"></i> Clear All</button>
             </div>
           </div>
 

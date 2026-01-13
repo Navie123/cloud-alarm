@@ -6013,3 +6013,118 @@ header {
     width: 100%;
   }
 }
+
+
+/* Members Selection Mode */
+.members-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background: rgba(255, 140, 0, 0.1);
+  border: 1px solid rgba(255, 140, 0, 0.3);
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.members-toolbar.hidden {
+  display: none;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.select-all-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.select-all-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.selected-count {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.toolbar-right {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-sm {
+  padding: 8px 15px;
+  font-size: 0.85rem;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+}
+
+.btn-outline:hover {
+  background: var(--accent);
+  color: white;
+}
+
+/* Member item with checkbox */
+.member-item.selectable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.member-item.selectable:hover {
+  background: rgba(255, 140, 0, 0.1);
+}
+
+.member-item.selected {
+  background: rgba(255, 140, 0, 0.15);
+  border-color: var(--accent);
+}
+
+.member-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+.member-item .member-info {
+  flex: 1;
+}
+
+/* Selection mode active state */
+.members-list-full.selection-mode .member-item:not(.admin-member) {
+  padding-left: 10px;
+}
+
+.members-list-full.selection-mode .member-item.admin-member {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+@media (max-width: 600px) {
+  .members-toolbar {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .toolbar-left, .toolbar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

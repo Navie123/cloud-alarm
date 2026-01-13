@@ -1689,6 +1689,8 @@ function updatePushToggleUI() {
 // ============ HOUSEHOLD MEMBERS MANAGEMENT ============
 let membersTabVerified = false;
 let accessCodeVisible = false;
+let selectionMode = false;
+let selectedMembers = new Set();
 
 // Handle Members tab click - require PIN verification
 function setupMembersTab() {
@@ -1786,6 +1788,75 @@ function toggleAccessCode() {
   }
 }
 
+function toggleSelectionMode() {
+  selectionMode = !selectionMode;
+  selectedMembers.clear();
+  
+  const toolbar = document.getElementById('membersToolbar');
+  const membersList = document.getElementById('membersListFull');
+  const selectAllCheckbox = document.getElementById('selectAllMembers');
+  
+  if (toolbar) toolbar.classList.toggle('hidden', !selectionMode);
+  if (membersList) membersList.classList.toggle('selection-mode', selectionMode);
+  if (selectAllCheckbox) selectAllCheckbox.checked = false;
+  
+  updateSelectedCount();
+  loadMembersFullList();
+}
+
+function toggleSelectAll() {
+  const selectAllCheckbox = document.getElementById('selectAllMembers');
+  const checkboxes = document.querySelectorAll('.member-checkbox');
+  
+  checkboxes.forEach(cb => {
+    cb.checked = selectAllCheckbox.checked;
+    const memberId = cb.dataset.memberId;
+    if (selectAllCheckbox.checked) {
+      selectedMembers.add(memberId);
+    } else {
+      selectedMembers.delete(memberId);
+    }
+    
+    // Update visual state
+    const memberItem = cb.closest('.member-item');
+    if (memberItem) {
+      memberItem.classList.toggle('selected', selectAllCheckbox.checked);
+    }
+  });
+  
+  updateSelectedCount();
+}
+
+function toggleMemberSelection(memberId, checkbox) {
+  if (checkbox.checked) {
+    selectedMembers.add(memberId);
+  } else {
+    selectedMembers.delete(memberId);
+  }
+  
+  // Update visual state
+  const memberItem = checkbox.closest('.member-item');
+  if (memberItem) {
+    memberItem.classList.toggle('selected', checkbox.checked);
+  }
+  
+  // Update select all checkbox
+  const allCheckboxes = document.querySelectorAll('.member-checkbox');
+  const selectAllCheckbox = document.getElementById('selectAllMembers');
+  if (selectAllCheckbox) {
+    selectAllCheckbox.checked = selectedMembers.size === allCheckboxes.length && allCheckboxes.length > 0;
+  }
+  
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  const countEl = document.getElementById('selectedCount');
+  if (countEl) {
+    countEl.textContent = `${selectedMembers.size} selected`;
+  }
+}
+
 async function loadMembersFullList() {
   const membersList = document.getElementById('membersListFull');
   const totalCount = document.getElementById('membersTotalCount');
@@ -1801,7 +1872,7 @@ async function loadMembersFullList() {
     
     let html = '';
     
-    // Show admin first
+    // Show admin first (not selectable)
     if (data.admin) {
       const adminInitial = data.admin.email.charAt(0).toUpperCase();
       const adminDate = data.admin.createdAt ? new Date(data.admin.createdAt).toLocaleDateString() : 'Unknown';
@@ -1825,22 +1896,30 @@ async function loadMembersFullList() {
       data.members.forEach(member => {
         const initial = member.name.charAt(0).toUpperCase();
         const addedDate = member.addedAt ? new Date(member.addedAt).toLocaleDateString() : 'Unknown';
+        const isSelected = selectedMembers.has(member.id);
         
         html += `
-          <div class="member-item" data-member-id="${member.id}">
-            <div class="member-info">
+          <div class="member-item ${selectionMode ? 'selectable' : ''} ${isSelected ? 'selected' : ''}" data-member-id="${member.id}">
+            ${selectionMode ? `
+              <input type="checkbox" class="member-checkbox" data-member-id="${member.id}" 
+                ${isSelected ? 'checked' : ''} 
+                onchange="toggleMemberSelection('${member.id}', this)">
+            ` : ''}
+            <div class="member-info" ${selectionMode ? `onclick="document.querySelector('.member-checkbox[data-member-id=\\'${member.id}\\']').click()"` : ''}>
               <div class="member-avatar">${initial}</div>
               <div class="member-details">
                 <span class="member-name">${member.name}</span>
                 <span class="member-meta"><i class="fas fa-calendar"></i> Joined ${addedDate}</span>
               </div>
             </div>
-            <div class="member-actions">
-              <span class="member-badge member">Member</span>
-              <button class="btn-remove-member" onclick="removeMember('${member.id}', '${member.name}')" title="Remove member">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
+            ${!selectionMode ? `
+              <div class="member-actions">
+                <span class="member-badge member">Member</span>
+                <button class="btn-remove-member" onclick="removeMember('${member.id}', '${member.name}')" title="Remove member">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            ` : ''}
           </div>
         `;
       });
@@ -1849,9 +1928,37 @@ async function loadMembersFullList() {
     }
     
     membersList.innerHTML = html;
+    if (selectionMode) membersList.classList.add('selection-mode');
   } catch (error) {
     console.error('Failed to load members:', error);
     membersList.innerHTML = '<div class="no-members"><i class="fas fa-exclamation-circle"></i> Failed to load members</div>';
+  }
+}
+
+async function deleteSelectedMembers() {
+  if (selectedMembers.size === 0) {
+    showToast('No members selected', 'error');
+    return;
+  }
+  
+  if (!confirm(`Delete ${selectedMembers.size} selected member(s)?\n\nThey will need to re-enter their names to access again.`)) {
+    return;
+  }
+  
+  try {
+    const memberIds = Array.from(selectedMembers);
+    await api.removeMultipleMembers(memberIds);
+    
+    showToast(`Removed ${selectedMembers.size} member(s)`);
+    selectedMembers.clear();
+    updateSelectedCount();
+    loadMembersFullList();
+    
+    // Update select all checkbox
+    const selectAllCheckbox = document.getElementById('selectAllMembers');
+    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+  } catch (error) {
+    showToast('Failed to remove members', 'error');
   }
 }
 
@@ -1877,6 +1984,8 @@ async function clearAllMembers() {
   try {
     await api.clearAllMembers();
     showToast('All members removed');
+    selectedMembers.clear();
+    updateSelectedCount();
     loadMembersFullList();
   } catch (error) {
     showToast('Failed to clear members', 'error');

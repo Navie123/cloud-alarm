@@ -454,6 +454,36 @@ router.delete('/members/clear', verifyAdminSession, async (req, res) => {
   }
 });
 
+// Batch delete members (Admin only)
+router.delete('/members/batch', verifyAdminSession, async (req, res) => {
+  try {
+    const { memberIds } = req.body;
+    
+    if (!memberIds || !Array.isArray(memberIds) || memberIds.length === 0) {
+      return res.status(400).json({ error: 'No members specified' });
+    }
+    
+    let removedCount = 0;
+    
+    memberIds.forEach(memberId => {
+      const index = req.household.members.findIndex(m => m._id.toString() === memberId);
+      if (index !== -1) {
+        req.household.members.splice(index, 1);
+        removedCount++;
+        
+        // Also remove sessions for this member
+        req.household.sessions = req.household.sessions.filter(s => s.memberId !== memberId);
+      }
+    });
+    
+    await req.household.save();
+    
+    res.json({ success: true, message: `Removed ${removedCount} members`, removedCount });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to remove members' });
+  }
+});
+
 // Verify admin PIN (for sensitive actions)
 router.post('/verify-pin', verifyAdminSession, async (req, res) => {
   try {
