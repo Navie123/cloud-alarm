@@ -413,31 +413,7 @@ router.get('/members', verifyAdminSession, (req, res) => {
   });
 });
 
-// Remove a member (Admin only)
-router.delete('/members/:memberId', verifyAdminSession, async (req, res) => {
-  try {
-    const { memberId } = req.params;
-    
-    const memberIndex = req.household.members.findIndex(m => m._id.toString() === memberId);
-    if (memberIndex === -1) {
-      return res.status(404).json({ error: 'Member not found' });
-    }
-    
-    const removedMember = req.household.members[memberIndex];
-    req.household.members.splice(memberIndex, 1);
-    
-    // Also remove any sessions for this member
-    req.household.sessions = req.household.sessions.filter(s => s.memberId !== memberId);
-    
-    await req.household.save();
-    
-    res.json({ success: true, message: `Removed ${removedMember.name}` });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to remove member' });
-  }
-});
-
-// Clear all members (Admin only)
+// Clear all members (Admin only) - MUST be before :memberId route
 router.delete('/members/clear', verifyAdminSession, async (req, res) => {
   try {
     const count = req.household.members.length;
@@ -454,7 +430,7 @@ router.delete('/members/clear', verifyAdminSession, async (req, res) => {
   }
 });
 
-// Batch delete members (Admin only)
+// Batch delete members (Admin only) - MUST be before :memberId route
 router.delete('/members/batch', verifyAdminSession, async (req, res) => {
   try {
     const { memberIds } = req.body;
@@ -481,6 +457,30 @@ router.delete('/members/batch', verifyAdminSession, async (req, res) => {
     res.json({ success: true, message: `Removed ${removedCount} members`, removedCount });
   } catch (error) {
     res.status(500).json({ error: 'Failed to remove members' });
+  }
+});
+
+// Remove a single member (Admin only) - Parameterized route MUST be last
+router.delete('/members/:memberId', verifyAdminSession, async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    
+    const memberIndex = req.household.members.findIndex(m => m._id.toString() === memberId);
+    if (memberIndex === -1) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+    
+    const removedMember = req.household.members[memberIndex];
+    req.household.members.splice(memberIndex, 1);
+    
+    // Also remove any sessions for this member
+    req.household.sessions = req.household.sessions.filter(s => s.memberId !== memberId);
+    
+    await req.household.save();
+    
+    res.json({ success: true, message: `Removed ${removedMember.name}` });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to remove member' });
   }
 });
 
