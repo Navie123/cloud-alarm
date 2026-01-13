@@ -19,6 +19,7 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 // Track slider interaction
 let sliderActive = false;
 let tempSliderActive = false;
+let smokeSliderActive = false;
 
 // DOM Elements
 const elements = {
@@ -45,6 +46,8 @@ const elements = {
   tempThresholdSlider: document.getElementById('tempThresholdSlider'),
   tempSliderValue: document.getElementById('tempSliderValue'),
   tempThreshVal: document.getElementById('tempThreshVal'),
+  smokeThresholdSlider: document.getElementById('smokeThresholdSlider'),
+  smokeSliderValue: document.getElementById('smokeSliderValue'),
   sirenIcon: document.getElementById('sirenIcon'),
   sirenText: document.getElementById('sirenText'),
   deviceId: document.getElementById('deviceId'),
@@ -266,6 +269,8 @@ function connectWebSocket() {
       const message = JSON.parse(event.data);
       if (message.type === 'data') {
         updateUI(message.data);
+      } else if (message.type === 'thresholds') {
+        updateCOThresholds(message.data);
       }
     } catch (error) {
       console.error('WebSocket message error:', error);
@@ -299,8 +304,32 @@ async function loadInitialData() {
     if (device && device.current) {
       updateUI(device.current);
     }
+    // Also load CO thresholds from device.commands
+    if (device && device.commands) {
+      updateCOThresholds(device.commands);
+    }
   } catch (error) {
     console.error('Failed to load initial data:', error);
+  }
+}
+
+// Update CO threshold sliders from server data
+function updateCOThresholds(commands) {
+  const coWarningSlider = document.getElementById('coWarningSlider');
+  const coDangerSlider = document.getElementById('coDangerSlider');
+  const coCriticalSlider = document.getElementById('coCriticalSlider');
+  
+  if (coWarningSlider && commands.coWarningThreshold !== undefined) {
+    coWarningSlider.value = commands.coWarningThreshold;
+    updateCOSliderValue('coWarningSlider', 'coWarningVal');
+  }
+  if (coDangerSlider && commands.coDangerThreshold !== undefined) {
+    coDangerSlider.value = commands.coDangerThreshold;
+    updateCOSliderValue('coDangerSlider', 'coDangerVal');
+  }
+  if (coCriticalSlider && commands.coCriticalThreshold !== undefined) {
+    coCriticalSlider.value = commands.coCriticalThreshold;
+    updateCOSliderValue('coCriticalSlider', 'coCriticalVal');
   }
 }
 
@@ -453,6 +482,28 @@ function setupSlider() {
   };
   
   setupTempSlider(elements.tempThresholdSlider, elements.tempSliderValue);
+  
+  // Setup smoke threshold slider
+  const setupSmokeSlider = (slider, valueEl) => {
+    if (!slider) return;
+    
+    slider.addEventListener('mousedown', () => { smokeSliderActive = true; });
+    slider.addEventListener('touchstart', () => { smokeSliderActive = true; });
+    slider.addEventListener('mouseup', () => { smokeSliderActive = false; });
+    slider.addEventListener('touchend', () => { smokeSliderActive = false; });
+    
+    slider.addEventListener('input', (e) => {
+      const value = parseInt(e.target.value);
+      const level = getGasLevel(value);
+      
+      if (elements.smokeSliderValue) {
+        elements.smokeSliderValue.textContent = value + '%';
+        updateSliderColors(slider, elements.smokeSliderValue, level);
+      }
+    });
+  };
+  
+  setupSmokeSlider(elements.smokeThresholdSlider, elements.smokeSliderValue);
 }
 
 function setupDateTime() {
@@ -610,6 +661,17 @@ function updateUI(data) {
       elements.tempSliderValue.textContent = currentTempThreshold + '°C';
       const tempLevel = getTempLevel(currentTempThreshold);
       updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, tempLevel);
+    }
+  }
+  
+  // Update smoke threshold slider from server data
+  if (!smokeSliderActive && elements.smokeThresholdSlider) {
+    const smokeThreshold = data.smokeThreshold || 40;
+    elements.smokeThresholdSlider.value = smokeThreshold;
+    if (elements.smokeSliderValue) {
+      elements.smokeSliderValue.textContent = smokeThreshold + '%';
+      const smokeLevel = getGasLevel(smokeThreshold);
+      updateSliderColors(elements.smokeThresholdSlider, elements.smokeSliderValue, smokeLevel);
     }
   }
   
