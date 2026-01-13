@@ -45,6 +45,7 @@ String tempWarning = "normal";
 float smokePercent = 0;
 int smokeRaw = 0;
 String smokeStatus = "normal";
+int smokeThreshold = DEFAULT_GAS_THRESHOLD;  // Separate threshold for smoke
 
 // MQ-7 CO Sensor variables
 float coPpm = 0;
@@ -578,10 +579,10 @@ void performCalibration() {
 }
 
 void updateAlarmState() {
-  // Smoke alarm when MQ-2 reading exceeds threshold
-  bool smokeAlarm = smokePercent >= gasThreshold;
+  // Smoke alarm when MQ-2 reading exceeds smoke threshold
+  bool smokeAlarm = smokePercent >= smokeThreshold;
   
-  // Gas alarm when MQ-7 reading exceeds threshold
+  // Gas alarm when MQ-7 reading exceeds gas threshold
   bool gasAlarm = gasPercent >= gasThreshold;
   
   // Only trigger temp alarm if sensor is ready AND temp is valid (not I2C error value)
@@ -644,6 +645,7 @@ void sendDataToServer() {
   doc["humidity"] = humidity;
   doc["voltage"] = voltage;
   doc["threshold"] = gasThreshold;
+  doc["smokeThreshold"] = smokeThreshold;
   doc["tempThreshold"] = tempThreshold;
   doc["alarm"] = alarmActive;
   doc["tempWarning"] = tempWarning;
@@ -723,6 +725,11 @@ void checkCommands() {
       if (doc.containsKey("tempThreshold")) {
         tempThreshold = doc["tempThreshold"].as<int>();
         Serial.printf("Temp threshold updated: %d°C\n", tempThreshold);
+      }
+      
+      if (doc.containsKey("smokeThreshold")) {
+        smokeThreshold = doc["smokeThreshold"].as<int>();
+        Serial.printf("Smoke threshold updated: %d%%\n", smokeThreshold);
       }
       
       if (doc.containsKey("sirenEnabled")) {

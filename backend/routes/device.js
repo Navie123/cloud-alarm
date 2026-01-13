@@ -91,6 +91,7 @@ router.post('/:deviceId/data', async (req, res) => {
     const wasFireRisk = device.current?.fireRisk;
 
     const storedThreshold = device.current?.threshold;
+    const storedSmokeThreshold = device.current?.smokeThreshold;
     const storedTempThreshold = device.current?.tempThreshold;
     const storedSirenEnabled = device.current?.sirenEnabled;
 
@@ -134,6 +135,7 @@ router.post('/:deviceId/data', async (req, res) => {
       aqiStatus,
       fireRisk,
       threshold: storedThreshold ?? data.threshold ?? 40,
+      smokeThreshold: storedSmokeThreshold ?? data.smokeThreshold ?? 40,
       tempThreshold: storedTempThreshold ?? data.tempThreshold ?? 60,
       sirenEnabled: storedSirenEnabled ?? data.sirenEnabled ?? true,
       timestamp: new Date().toLocaleString()

@@ -10,6 +10,7 @@ const deviceSchema = new mongoose.Schema({
     humidity: { type: Number, default: 0 },
     voltage: { type: Number, default: 0 },
     threshold: { type: Number, default: 40 },
+    smokeThreshold: { type: Number, default: 40 },
     tempThreshold: { type: Number, default: 60 },
     alarm: { type: Boolean, default: false },
     tempWarning: { type: String, default: 'normal' },
@@ -45,6 +46,7 @@ const deviceSchema = new mongoose.Schema({
   commands: {
     // Existing commands
     threshold: Number,
+    smokeThreshold: Number,
     tempThreshold: Number,
     sirenEnabled: Boolean,
     silence: Boolean,
