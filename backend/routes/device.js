@@ -185,21 +185,36 @@ router.post('/:deviceId/data', async (req, res) => {
 
     // Handle fire alarm
     if (!wasAlarm && isAlarm) {
-      // Determine what triggered the alarm
-      const gasTriggered = data.gas > (data.threshold || 40);
-      const smokeTriggered = data.smoke > (data.threshold || 40);
-      const tempTriggered = data.temperature > (data.tempThreshold || 60);
+      // Determine what triggered the alarm using stored thresholds
+      const gasThreshold = storedThreshold ?? 40;
+      const smokeThresholdVal = storedSmokeThreshold ?? 40;
+      const tempThresholdVal = storedTempThreshold ?? 60;
+      
+      const gasTriggered = data.gas >= gasThreshold;
+      const smokeTriggered = data.smoke >= smokeThresholdVal;
+      const tempTriggered = data.temperature >= tempThresholdVal;
       
       let trigger = 'unknown';
       if ((gasTriggered || smokeTriggered) && tempTriggered) {
         trigger = 'both';
-      } else if (gasTriggered) {
-        trigger = 'gas';
       } else if (smokeTriggered) {
         trigger = 'smoke';
+      } else if (gasTriggered) {
+        trigger = 'gas';
       } else if (tempTriggered) {
         trigger = 'temperature';
       }
+      
+      // Log for debugging
+      console.log('[Alarm] Trigger detection:', {
+        gas: data.gas, gasThreshold, gasTriggered,
+        smoke: data.smoke, smokeThreshold: smokeThresholdVal, smokeTriggered,
+        temp: data.temperature, tempThreshold: tempThresholdVal, tempTriggered,
+        trigger
+      });
+      
+      // Format timestamp in Philippines timezone
+      const phTime = new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
       
       await AlarmHistory.create({
         deviceId, trigger,
@@ -207,7 +222,7 @@ router.post('/:deviceId/data', async (req, res) => {
         smoke: data.smoke,
         temperature: data.temperature, 
         humidity: data.humidity,
-        timestamp: new Date().toLocaleString()
+        timestamp: phTime
       });
 
       await sendPushNotification(deviceId, {
@@ -226,6 +241,7 @@ router.post('/:deviceId/data', async (req, res) => {
         
         if (household && household.adminEmailAlerts !== false && household.admin?.email) {
           console.log('[Alarm] Attempting to send email to:', household.admin.email);
+          const phTimeEmail = new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
           const emailResult = await sendAlarmEmail(household.admin.email, {
             deviceId,
             trigger,
@@ -233,7 +249,7 @@ router.post('/:deviceId/data', async (req, res) => {
             smoke: data.smoke,
             temperature: data.temperature,
             humidity: data.humidity,
-            timestamp: new Date().toLocaleString()
+            timestamp: phTimeEmail
           });
           console.log(`[Alarm] Email sent successfully to admin: ${household.admin.email}`, emailResult);
         } else {
