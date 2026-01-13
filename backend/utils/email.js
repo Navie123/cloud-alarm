@@ -142,13 +142,14 @@ const sendOTPEmail = async (email, code, purpose) => {
 
 // Send alarm alert email
 const sendAlarmEmail = async (email, alarmData) => {
-  const { deviceId, trigger, gas, temperature, humidity, timestamp } = alarmData;
+  const { deviceId, trigger, gas, smoke, temperature, humidity, timestamp } = alarmData;
   const dashboardUrl = process.env.FRONTEND_URL || 'https://cloud-alarm.onrender.com';
   
   const triggerMessages = {
-    gas: '🔥 High gas/smoke levels detected!',
+    gas: '🔥 High gas levels detected!',
+    smoke: '💨 High smoke levels detected!',
     temperature: '🌡️ Dangerous temperature detected!',
-    both: '🚨 Gas AND high temperature detected!'
+    both: '🚨 Gas/Smoke AND high temperature detected!'
   };
 
   console.log('[Email] Sending ALARM alert to:', email);
@@ -177,15 +178,19 @@ const sendAlarmEmail = async (email, alarmData) => {
               </tr>
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Gas Level:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${gas > 40 ? '#d32f2f' : '#333'};">${gas}% ${gas > 40 ? '⚠️ HIGH' : ''}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${gas > 40 ? '#d32f2f' : '#333'};">${gas?.toFixed(1) || 0}% ${gas > 40 ? '⚠️ HIGH' : ''}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Smoke Level:</strong></td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${smoke > 40 ? '#d32f2f' : '#333'};">${smoke?.toFixed(1) || 0}% ${smoke > 40 ? '⚠️ HIGH' : ''}</td>
               </tr>
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Temperature:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${temperature > 60 ? '#d32f2f' : '#333'};">${temperature}°C ${temperature > 60 ? '⚠️ HIGH' : ''}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${temperature > 60 ? '#d32f2f' : '#333'};">${temperature?.toFixed(1) || 0}°C ${temperature > 60 ? '⚠️ HIGH' : ''}</td>
               </tr>
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Humidity:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;">${humidity}%</td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">${humidity?.toFixed(1) || 0}%</td>
               </tr>
               <tr>
                 <td style="padding: 10px;"><strong>Time:</strong></td>

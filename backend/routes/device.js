@@ -215,6 +215,25 @@ router.post('/:deviceId/data', async (req, res) => {
         body: `${trigger === 'gas' ? 'Gas' : trigger === 'smoke' ? 'Smoke' : trigger === 'temperature' ? 'Temp' : 'Gas+Temp'} - Gas: ${data.gas?.toFixed(1)}%, Smoke: ${data.smoke?.toFixed(1)}%, Temp: ${data.temperature?.toFixed(1)}°C`,
         vibrate: [200, 100, 200], tag: 'fire-alarm', requireInteraction: true
       });
+
+      // Send Email notification to household admin
+      try {
+        const { sendAlarmEmail } = require('../utils/email');
+        if (household && household.adminEmailAlerts !== false && household.admin?.email) {
+          await sendAlarmEmail(household.admin.email, {
+            deviceId,
+            trigger,
+            gas: data.gas,
+            smoke: data.smoke,
+            temperature: data.temperature,
+            humidity: data.humidity,
+            timestamp: new Date().toLocaleString()
+          });
+          console.log(`[Alarm] Email sent to admin: ${household.admin.email}`);
+        }
+      } catch (emailError) {
+        console.error('[Alarm] Email notification error:', emailError.message);
+      }
     }
 
     // Handle fire risk alert (new)
