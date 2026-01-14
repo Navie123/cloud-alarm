@@ -1370,29 +1370,34 @@ let currentTheme = localStorage.getItem('theme') || 'dark';
 
 function initTheme() {
   const savedTheme = localStorage.getItem('theme') || 'dark';
-  setTheme(savedTheme);
+  setTheme(savedTheme, false);
 }
 
 function toggleTheme() {
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
   setTheme(newTheme);
-  localStorage.setItem('theme', newTheme);
-  showToast(`${newTheme === 'light' ? 'Light' : 'Dark'} theme enabled`);
 }
 
-function setTheme(theme) {
+function setTheme(theme, showNotification = true) {
   currentTheme = theme;
-  const themeIcon = document.getElementById('themeIcon');
-  const themeBtn = document.getElementById('themeToggleBtn');
+  localStorage.setItem('theme', theme);
+  
+  // Update theme options in sidebar
+  const darkOption = document.getElementById('darkThemeOption');
+  const lightOption = document.getElementById('lightThemeOption');
   
   if (theme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
-    if (themeIcon) themeIcon.className = 'fas fa-sun';
-    if (themeBtn) themeBtn.classList.add('light-mode');
+    if (darkOption) darkOption.classList.remove('active');
+    if (lightOption) lightOption.classList.add('active');
   } else {
     document.documentElement.removeAttribute('data-theme');
-    if (themeIcon) themeIcon.className = 'fas fa-moon';
-    if (themeBtn) themeBtn.classList.remove('light-mode');
+    if (darkOption) darkOption.classList.add('active');
+    if (lightOption) lightOption.classList.remove('active');
+  }
+  
+  if (showNotification) {
+    showToast(`${theme === 'light' ? 'Light' : 'Dark'} theme enabled`);
   }
 }
 

@@ -22,12 +22,12 @@
 
 /* Light Theme */
 [data-theme="light"] {
-  --bg: #f5f5f7;
-  --bg2: #ffffff;
+  --bg: #f0f2f5;
+  --bg2: #e4e6eb;
   --card: #ffffff;
-  --border: #e0e0e0;
-  --text: #1a1a1a;
-  --muted: #666666;
+  --border: #d1d5db;
+  --text: #1c1e21;
+  --muted: #65676b;
   --accent: #ff5722;
   --accent-light: #ff8a50;
   --danger: #dc2626;
@@ -41,43 +41,47 @@
 }
 
 [data-theme="light"] .card {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="light"] .card:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="light"] .sensor-card {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
 }
 
 [data-theme="light"] .gauge-bg {
-  stroke: #e8e8e8;
+  stroke: #e5e7eb;
 }
 
 [data-theme="light"] .quick-stat {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  background: #ffffff;
 }
 
 [data-theme="light"] .alarm-banner {
-  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-  border-color: #a5d6a7;
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  border-color: #86efac;
 }
 
 [data-theme="light"] .alarm-banner .alarm-title {
-  color: #2e7d32;
+  color: #166534;
 }
 
 [data-theme="light"] .alarm-banner .alarm-subtitle {
-  color: #388e3c;
+  color: #15803d;
 }
 
 [data-theme="light"] .notif-card {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
 }
 
 [data-theme="light"] .sidebar {
+  background: #ffffff;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
 }
 
@@ -86,53 +90,135 @@
 }
 
 [data-theme="light"] header {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="light"] .header-row-brand,
 [data-theme="light"] .header-row-info {
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  background: #f8f9fa;
+  box-shadow: none;
+  border: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .tab {
+  color: #65676b;
+}
+
+[data-theme="light"] .tab:hover {
+  background: #f3f4f6;
+  color: #1c1e21;
 }
 
 [data-theme="light"] .tab.active {
-  box-shadow: 0 2px 8px rgba(255, 87, 34, 0.2);
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 2px 8px rgba(255, 87, 34, 0.25);
 }
 
 [data-theme="light"] .btn-secondary {
-  background: #f0f0f0;
-  border-color: #d0d0d0;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #374151;
 }
 
 [data-theme="light"] .btn-secondary:hover {
-  background: #e5e5e5;
+  background: #e5e7eb;
 }
 
 [data-theme="light"] .history-item {
-  background: #f8f8f8;
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
 }
 
 [data-theme="light"] .history-item:hover {
-  background: #f0f0f0;
+  background: #f3f4f6;
 }
 
 [data-theme="light"] .slider {
-  background: #e0e0e0;
+  background: #e5e7eb;
 }
 
 [data-theme="light"] .access-card,
 [data-theme="light"] .setup-step-content {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
 }
 
 [data-theme="light"] .input-wrapper input,
 [data-theme="light"] .form-group input:not(.otp-input) {
-  background: #f8f8f8;
-  border-color: #d0d0d0;
+  background: #f8f9fa;
+  border-color: #d1d5db;
 }
 
 [data-theme="light"] .input-wrapper input:focus,
 [data-theme="light"] .form-group input:not(.otp-input):focus {
   background: #ffffff;
+  border-color: var(--accent);
+}
+
+[data-theme="light"] .action-btn {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+[data-theme="light"] .action-btn i {
+  color: #374151;
+}
+
+[data-theme="light"] .greeting-card {
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .weather-icon {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+}
+
+[data-theme="light"] .weather-icon i {
+  color: #d97706;
+}
+
+[data-theme="light"] .status-badge {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+[data-theme="light"] .sidebar-section {
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .sidebar-section-title {
+  color: #374151;
+}
+
+[data-theme="light"] .stats-toggle-btn {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .session-stats-panel {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .stats-sensor-block {
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+}
+
+[data-theme="light"] .notif-info-item {
+  background: rgba(22, 163, 74, 0.08);
+}
+
+[data-theme="light"] .notif-info-item.warning {
+  background: rgba(217, 119, 6, 0.08);
+}
+
+[data-theme="light"] .alarm-controls-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
 }
 
 body {
@@ -1829,6 +1915,53 @@ main.container {
 .sidebar-section-title i {
   margin-right: 6px;
   color: var(--accent);
+}
+
+/* Theme Toggle in Sidebar */
+.theme-toggle-container {
+  display: flex;
+  gap: 8px;
+  background: var(--bg);
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.theme-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-option:hover {
+  color: var(--text);
+  background: var(--card);
+}
+
+.theme-option.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 2px 8px rgba(255, 87, 34, 0.3);
+}
+
+.theme-option i {
+  font-size: 0.9rem;
+}
+
+[data-theme="light"] .theme-toggle-container {
+  background: #e5e7eb;
+}
+
+[data-theme="light"] .theme-option:hover {
+  background: #ffffff;
 }
 
 .overlay {
@@ -3744,24 +3877,6 @@ body.fullscreen .minimize-btn { display: flex; }
 
 .action-btn:active {
   transform: translateY(0) scale(0.95);
-}
-
-/* Theme Toggle Button */
-.theme-toggle-btn {
-  position: relative;
-  overflow: hidden;
-}
-
-.theme-toggle-btn i {
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-}
-
-.theme-toggle-btn.light-mode i {
-  color: #f59e0b;
-}
-
-[data-theme="light"] .theme-toggle-btn:hover::before {
-  background: linear-gradient(135deg, #f59e0b, #fbbf24);
 }
 
 /* Tab text hide on mobile */
