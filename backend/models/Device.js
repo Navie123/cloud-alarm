@@ -41,7 +41,12 @@ const deviceSchema = new mongoose.Schema({
     // Calibration info
     lastCalibration: { type: Date },
     coRo: { type: Number, default: 10000 },
-    aqiRo: { type: Number, default: 10000 }
+    aqiRo: { type: Number, default: 10000 },
+    
+    // WiFi info
+    wifiSSID: { type: String, default: '' },
+    wifiRSSI: { type: Number, default: 0 },
+    uptime: { type: Number, default: 0 }
   },
   commands: {
     // Existing commands

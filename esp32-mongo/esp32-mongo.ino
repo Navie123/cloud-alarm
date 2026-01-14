@@ -743,6 +743,11 @@ void sendDataToServer() {
   doc["aqiRo"] = aqiRo;
   doc["lastCalibration"] = lastCalibration;
   
+  // WiFi info
+  doc["wifiSSID"] = WiFi.SSID();
+  doc["wifiRSSI"] = WiFi.RSSI();
+  doc["uptime"] = millis() / 1000;  // Uptime in seconds
+  
   String payload;
   serializeJson(doc, payload);
   

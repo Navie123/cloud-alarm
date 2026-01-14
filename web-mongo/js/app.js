@@ -746,7 +746,38 @@ function updateUI(data) {
     connectionStatusDisplay.textContent = isDeviceOnline ? 'Connected' : 'Disconnected';
   }
   
+  // Update WiFi Configuration card info
+  const currentWifiName = document.getElementById('currentWifiName');
+  if (currentWifiName) {
+    currentWifiName.textContent = data.wifiSSID || '--';
+  }
+  
+  const deviceUptime = document.getElementById('deviceUptime');
+  if (deviceUptime && data.uptime !== undefined) {
+    deviceUptime.textContent = formatUptime(data.uptime);
+  }
+  
   updateSidebarInfo(data);
+}
+
+// Format uptime in human readable format
+function formatUptime(seconds) {
+  if (!seconds || seconds < 0) return '--';
+  
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  
+  if (days > 0) {
+    return `${days}d ${hours}h ${mins}m`;
+  } else if (hours > 0) {
+    return `${hours}h ${mins}m ${secs}s`;
+  } else if (mins > 0) {
+    return `${mins}m ${secs}s`;
+  } else {
+    return `${secs}s`;
+  }
 }
 
 // Update circular gauge
