@@ -341,14 +341,14 @@ router.get('/:deviceId/commands', async (req, res) => {
       if (device.commands.calibrate) response.calibrate = true;
       if (device.commands.resetWifi) {
         response.resetWifi = true;
-        console.log(`[Commands] Sending resetWifi=true to device ${deviceId}`);
+        console.log(`[Commands] Sending resetWifi=true to device ${req.params.deviceId}`);
       }
     }
     
     // Clear only the one-time action commands
     if (device.commands) {
       if (device.commands.silence || device.commands.calibrate || device.commands.resetWifi) {
-        console.log(`[Commands] Clearing one-time commands for device ${deviceId}`);
+        console.log(`[Commands] Clearing one-time commands for device ${req.params.deviceId}`);
       }
       device.commands.silence = undefined;
       device.commands.calibrate = undefined;
