@@ -942,24 +942,195 @@
             <div class="device-card-content">
               <h3>WiFi Configuration</h3>
               <p>Change the device's WiFi network connection</p>
-              <div class="wifi-steps">
-                <div class="wifi-step">
+              <div class="wifi-current-status" id="wifiCurrentStatus">
+                <div class="wifi-status-item">
                   <i class="fas fa-signal"></i>
-                  <span>Device will restart in setup mode</span>
+                  <span>Connected to: <strong id="currentWifiName">--</strong></span>
                 </div>
-                <div class="wifi-step">
-                  <i class="fas fa-mobile-alt"></i>
-                  <span>Connect to "FireWire-Setup" network</span>
-                </div>
-                <div class="wifi-step">
-                  <i class="fas fa-key"></i>
-                  <span>Password: <strong>firewire123</strong></span>
+                <div class="wifi-status-item">
+                  <i class="fas fa-clock"></i>
+                  <span>Uptime: <strong id="deviceUptime">--</strong></span>
                 </div>
               </div>
             </div>
-            <button class="btn btn-secondary btn-full" onclick="resetDeviceWifi()">
+            <button class="btn btn-secondary btn-full" onclick="openWifiWizard()">
               <i class="fas fa-rotate"></i> Change WiFi Network
             </button>
+          </div>
+
+          <!-- WiFi Configuration Wizard Modal -->
+          <div class="wifi-wizard-modal hidden" id="wifiWizardModal">
+            <div class="wifi-wizard">
+              <div class="wifi-wizard-header">
+                <h2><i class="fas fa-wifi"></i> WiFi Configuration</h2>
+                <button class="close-btn" onclick="closeWifiWizard()"><i class="fas fa-times"></i></button>
+              </div>
+
+              <!-- Progress Steps -->
+              <div class="wifi-wizard-progress">
+                <div class="wifi-progress-step active" id="wifiStep1Indicator">
+                  <div class="step-circle">1</div>
+                  <span>Confirm</span>
+                </div>
+                <div class="wifi-progress-line" id="wifiLine1"></div>
+                <div class="wifi-progress-step" id="wifiStep2Indicator">
+                  <div class="step-circle">2</div>
+                  <span>Reset</span>
+                </div>
+                <div class="wifi-progress-line" id="wifiLine2"></div>
+                <div class="wifi-progress-step" id="wifiStep3Indicator">
+                  <div class="step-circle">3</div>
+                  <span>Connect</span>
+                </div>
+                <div class="wifi-progress-line" id="wifiLine3"></div>
+                <div class="wifi-progress-step" id="wifiStep4Indicator">
+                  <div class="step-circle">4</div>
+                  <span>Configure</span>
+                </div>
+              </div>
+
+              <!-- Step 1: Confirmation -->
+              <div class="wifi-wizard-step active" id="wifiWizardStep1">
+                <div class="wifi-step-icon warning">
+                  <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Change WiFi Network?</h3>
+                <p class="wifi-step-desc">This will temporarily disconnect your FireWire device from the internet. The device will restart in setup mode.</p>
+                
+                <div class="wifi-warning-box">
+                  <i class="fas fa-info-circle"></i>
+                  <div>
+                    <strong>What will happen:</strong>
+                    <ul>
+                      <li>Device will restart and create a hotspot</li>
+                      <li>You'll need to connect to the hotspot</li>
+                      <li>Configure new WiFi through a web page</li>
+                      <li>Device will reconnect automatically</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="wifi-wizard-actions">
+                  <button class="btn btn-secondary" onclick="closeWifiWizard()">
+                    <i class="fas fa-times"></i> Cancel
+                  </button>
+                  <button class="btn btn-primary" onclick="startWifiReset()">
+                    <i class="fas fa-arrow-right"></i> Continue
+                  </button>
+                </div>
+              </div>
+
+              <!-- Step 2: Sending Reset Command -->
+              <div class="wifi-wizard-step hidden" id="wifiWizardStep2">
+                <div class="wifi-step-icon processing">
+                  <i class="fas fa-satellite-dish"></i>
+                  <div class="wifi-pulse-ring"></div>
+                </div>
+                <h3>Sending Reset Command...</h3>
+                <p class="wifi-step-desc">Communicating with your FireWire device</p>
+                
+                <div class="wifi-progress-bar">
+                  <div class="wifi-progress-fill" id="wifiResetProgress"></div>
+                </div>
+                <p class="wifi-progress-text" id="wifiResetStatus">Connecting to server...</p>
+              </div>
+
+              <!-- Step 3: Connect to Hotspot -->
+              <div class="wifi-wizard-step hidden" id="wifiWizardStep3">
+                <div class="wifi-step-icon success">
+                  <i class="fas fa-broadcast-tower"></i>
+                  <div class="wifi-broadcast-waves">
+                    <span></span><span></span><span></span>
+                  </div>
+                </div>
+                <h3>Connect to FireWire Hotspot</h3>
+                <p class="wifi-step-desc">Your device is now in setup mode. Follow these steps:</p>
+                
+                <div class="wifi-connect-steps">
+                  <div class="wifi-connect-step">
+                    <div class="connect-step-num">1</div>
+                    <div class="connect-step-content">
+                      <strong>Open WiFi Settings</strong>
+                      <p>Go to your phone/computer WiFi settings</p>
+                    </div>
+                    <i class="fas fa-mobile-screen"></i>
+                  </div>
+                  
+                  <div class="wifi-connect-step highlight">
+                    <div class="connect-step-num">2</div>
+                    <div class="connect-step-content">
+                      <strong>Connect to Network</strong>
+                      <div class="wifi-network-badge">
+                        <i class="fas fa-wifi"></i>
+                        <span>FireWire-Setup</span>
+                      </div>
+                    </div>
+                    <button class="btn-copy-small" onclick="copyToClipboard('FireWire-Setup')" title="Copy network name">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
+                  
+                  <div class="wifi-connect-step highlight">
+                    <div class="connect-step-num">3</div>
+                    <div class="connect-step-content">
+                      <strong>Enter Password</strong>
+                      <div class="wifi-password-badge">
+                        <i class="fas fa-key"></i>
+                        <span id="wifiPasswordDisplay">firewire123</span>
+                      </div>
+                    </div>
+                    <button class="btn-copy-small" onclick="copyToClipboard('firewire123')" title="Copy password">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="wifi-wizard-actions">
+                  <button class="btn btn-primary btn-full" onclick="goToWifiStep(4)">
+                    <i class="fas fa-check"></i> I'm Connected to FireWire-Setup
+                  </button>
+                </div>
+              </div>
+
+              <!-- Step 4: Configure New WiFi -->
+              <div class="wifi-wizard-step hidden" id="wifiWizardStep4">
+                <div class="wifi-step-icon info">
+                  <i class="fas fa-globe"></i>
+                </div>
+                <h3>Configure New WiFi</h3>
+                <p class="wifi-step-desc">Open the configuration page to select your new WiFi network</p>
+                
+                <div class="wifi-config-box">
+                  <div class="config-url-display">
+                    <i class="fas fa-link"></i>
+                    <span>192.168.4.1</span>
+                    <button class="btn-copy-small" onclick="copyToClipboard('192.168.4.1')" title="Copy URL">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
+                  <a href="http://192.168.4.1" target="_blank" class="btn btn-primary btn-full">
+                    <i class="fas fa-external-link-alt"></i> Open Configuration Page
+                  </a>
+                </div>
+
+                <div class="wifi-final-steps">
+                  <h4><i class="fas fa-list-check"></i> On the configuration page:</h4>
+                  <ol>
+                    <li>Click <strong>"Configure WiFi"</strong></li>
+                    <li>Select your home WiFi network</li>
+                    <li>Enter your WiFi password</li>
+                    <li>Click <strong>"Save"</strong></li>
+                  </ol>
+                  <p class="wifi-note"><i class="fas fa-info-circle"></i> Device will automatically reconnect after saving</p>
+                </div>
+
+                <div class="wifi-wizard-actions">
+                  <button class="btn btn-success btn-full" onclick="closeWifiWizard()">
+                    <i class="fas fa-check-circle"></i> Done
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Sensor Calibration Card -->

@@ -1528,18 +1528,78 @@ async function startCalibration() {
   }
 }
 
-// Reset device WiFi (triggers captive portal)
-async function resetDeviceWifi() {
+// ============ WIFI CONFIGURATION WIZARD ============
+
+let wifiWizardStep = 1;
+
+function openWifiWizard() {
   if (!isAdmin()) {
     showToast('Admin access required', 'error');
     return;
   }
   
-  if (!confirm('Reset device WiFi?\n\nThe device will restart in setup mode.\nConnect to "FireWire-Setup" network (password: firewire123) to configure new WiFi.')) {
-    return;
+  const modal = document.getElementById('wifiWizardModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    goToWifiStep(1);
+  }
+}
+
+function closeWifiWizard() {
+  const modal = document.getElementById('wifiWizardModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+  wifiWizardStep = 1;
+}
+
+function goToWifiStep(step) {
+  wifiWizardStep = step;
+  
+  // Hide all steps
+  for (let i = 1; i <= 4; i++) {
+    const stepEl = document.getElementById(`wifiWizardStep${i}`);
+    const indicator = document.getElementById(`wifiStep${i}Indicator`);
+    const line = document.getElementById(`wifiLine${i}`);
+    
+    if (stepEl) stepEl.classList.add('hidden');
+    if (indicator) {
+      indicator.classList.remove('active', 'completed');
+      if (i < step) indicator.classList.add('completed');
+      if (i === step) indicator.classList.add('active');
+    }
+    if (line && i < step) line.classList.add('active');
+    if (line && i >= step) line.classList.remove('active');
   }
   
+  // Show current step
+  const currentStep = document.getElementById(`wifiWizardStep${step}`);
+  if (currentStep) {
+    currentStep.classList.remove('hidden');
+  }
+}
+
+async function startWifiReset() {
+  goToWifiStep(2);
+  
+  const progressBar = document.getElementById('wifiResetProgress');
+  const statusText = document.getElementById('wifiResetStatus');
+  
+  // Animate progress
+  let progress = 0;
+  const progressInterval = setInterval(() => {
+    progress += 2;
+    if (progressBar) progressBar.style.width = Math.min(progress, 90) + '%';
+  }, 50);
+  
   try {
+    if (statusText) statusText.textContent = 'Connecting to server...';
+    await new Promise(r => setTimeout(r, 500));
+    
+    if (statusText) statusText.textContent = 'Sending reset command...';
+    
     const response = await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/reset-wifi`, {
       method: 'POST',
       headers: {
@@ -1548,16 +1608,47 @@ async function resetDeviceWifi() {
       }
     });
     
+    clearInterval(progressInterval);
+    
     if (response.ok) {
-      const result = await response.json();
-      showToast('WiFi reset command sent!');
-      alert('Device will restart in setup mode.\n\n1. Wait for "FireWire-Setup" network to appear\n2. Connect to it (password: firewire123)\n3. Open 192.168.4.1 in browser\n4. Select your new WiFi network');
+      if (progressBar) progressBar.style.width = '100%';
+      if (statusText) statusText.textContent = 'Command sent successfully!';
+      
+      await new Promise(r => setTimeout(r, 800));
+      goToWifiStep(3);
+      showToast('WiFi reset command sent!', 'success');
     } else {
-      throw new Error('Failed to reset WiFi');
+      throw new Error('Failed to send reset command');
     }
   } catch (error) {
-    showToast('Error resetting WiFi', 'error');
+    clearInterval(progressInterval);
+    if (progressBar) progressBar.style.width = '0%';
+    if (statusText) statusText.textContent = 'Failed to send command';
+    showToast('Error: Could not reset WiFi', 'error');
+    
+    // Go back to step 1 after delay
+    await new Promise(r => setTimeout(r, 1500));
+    goToWifiStep(1);
   }
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast(`Copied: ${text}`, 'success');
+    
+    // Visual feedback on button
+    event.target.closest('.btn-copy-small')?.classList.add('copied');
+    setTimeout(() => {
+      event.target.closest('.btn-copy-small')?.classList.remove('copied');
+    }, 1500);
+  }).catch(() => {
+    showToast('Failed to copy', 'error');
+  });
+}
+
+// Reset device WiFi (legacy function - now uses wizard)
+async function resetDeviceWifi() {
+  openWifiWizard();
 }
 
 // Load gas history for charts
