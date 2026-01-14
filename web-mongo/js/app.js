@@ -107,6 +107,7 @@ function initializeApp() {
   startHistoryAutoRefresh();
   startDeviceStatusChecker();
   setupAllThresholdSliders();
+  loadCalibrationStatus();
 }
 
 // Setup all threshold sliders with dynamic colors
@@ -2288,3 +2289,347 @@ function loadStatsPanelState() {
 
 // Initialize stats panel state on load
 document.addEventListener('DOMContentLoaded', loadStatsPanelState);
+
+
+// ============ CALIBRATION WIZARD ============
+let calibrationWizardStep = 1;
+let calibrationCheckInterval = null;
+let wizardDataInterval = null;
+
+function openCalibrationWizard() {
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
+  
+  const modal = document.getElementById('calibrationModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    resetCalibrationWizard();
+    goToWizardStep(1);
+  }
+}
+
+function closeCalibrationWizard() {
+  const modal = document.getElementById('calibrationModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+  
+  // Clear intervals
+  if (calibrationCheckInterval) {
+    clearInterval(calibrationCheckInterval);
+    calibrationCheckInterval = null;
+  }
+  if (wizardDataInterval) {
+    clearInterval(wizardDataInterval);
+    wizardDataInterval = null;
+  }
+}
+
+function resetCalibrationWizard() {
+  calibrationWizardStep = 1;
+  
+  // Reset checkboxes
+  for (let i = 1; i <= 4; i++) {
+    const check = document.getElementById(`check${i}`);
+    if (check) check.checked = false;
+  }
+  
+  // Reset button states
+  const step1Btn = document.getElementById('step1NextBtn');
+  const step2Btn = document.getElementById('step2NextBtn');
+  if (step1Btn) step1Btn.disabled = true;
+  if (step2Btn) step2Btn.disabled = true;
+  
+  // Reset progress
+  const progressFill = document.getElementById('calibrationProgressFill');
+  const progressText = document.getElementById('calibrationProgressText');
+  if (progressFill) progressFill.style.width = '0%';
+  if (progressText) progressText.textContent = '0%';
+}
+
+function goToWizardStep(step) {
+  calibrationWizardStep = step;
+  
+  // Hide all steps
+  for (let i = 1; i <= 4; i++) {
+    const stepContent = document.getElementById(`wizardStep${i}`);
+    const stepIndicator = document.querySelector(`.wizard-step[data-step="${i}"]`);
+    
+    if (stepContent) stepContent.classList.add('hidden');
+    if (stepIndicator) {
+      stepIndicator.classList.remove('active', 'completed');
+      if (i < step) stepIndicator.classList.add('completed');
+      if (i === step) stepIndicator.classList.add('active');
+    }
+  }
+  
+  // Show current step
+  const currentStep = document.getElementById(`wizardStep${step}`);
+  if (currentStep) currentStep.classList.remove('hidden');
+  
+  // Step-specific actions
+  if (step === 2) {
+    startWarmupCheck();
+  } else if (step === 3) {
+    startCalibrationProcess();
+  }
+}
+
+function updateWizardChecklist() {
+  const allChecked = 
+    document.getElementById('check1')?.checked &&
+    document.getElementById('check2')?.checked &&
+    document.getElementById('check3')?.checked &&
+    document.getElementById('check4')?.checked;
+  
+  const nextBtn = document.getElementById('step1NextBtn');
+  if (nextBtn) nextBtn.disabled = !allChecked;
+}
+
+function startWarmupCheck() {
+  // Start updating sensor readings
+  updateWizardSensorData();
+  wizardDataInterval = setInterval(updateWizardSensorData, 2000);
+  
+  // Check warmup status after a short delay
+  setTimeout(checkSensorWarmup, 1500);
+}
+
+function updateWizardSensorData() {
+  // Get current sensor data from the main UI
+  const coRaw = document.getElementById('coVal')?.textContent || '--';
+  const aqiRaw = document.getElementById('aqiVal')?.textContent || '--';
+  const smokeRaw = document.getElementById('smokeVal')?.textContent || '--';
+  const temp = document.getElementById('tempVal')?.textContent || '--';
+  
+  // Update wizard display
+  const wizardCoRaw = document.getElementById('wizardCoRaw');
+  const wizardAqiRaw = document.getElementById('wizardAqiRaw');
+  const wizardSmokeRaw = document.getElementById('wizardSmokeRaw');
+  const wizardTemp = document.getElementById('wizardTemp');
+  
+  if (wizardCoRaw) wizardCoRaw.textContent = coRaw;
+  if (wizardAqiRaw) wizardAqiRaw.textContent = aqiRaw;
+  if (wizardSmokeRaw) wizardSmokeRaw.textContent = smokeRaw;
+  if (wizardTemp) wizardTemp.textContent = temp + '°C';
+}
+
+function checkSensorWarmup() {
+  // Check if device is online
+  const deviceStatus = document.getElementById('deviceStatus')?.textContent;
+  const isOnline = deviceStatus === 'Online';
+  
+  // Update CO sensor status
+  const coStatus = document.getElementById('coWarmupStatus');
+  const coIndicator = document.getElementById('coWarmupIndicator');
+  if (coStatus && coIndicator) {
+    if (isOnline) {
+      coStatus.textContent = 'Ready';
+      coStatus.classList.add('ready');
+      coIndicator.innerHTML = '<i class="fas fa-check-circle"></i>';
+      coIndicator.classList.add('ready');
+    } else {
+      coStatus.textContent = 'Device offline';
+      coStatus.classList.add('warning');
+      coIndicator.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+      coIndicator.classList.add('warning');
+    }
+  }
+  
+  // Update AQI sensor status
+  const aqiStatus = document.getElementById('aqiWarmupStatus');
+  const aqiIndicator = document.getElementById('aqiWarmupIndicator');
+  if (aqiStatus && aqiIndicator) {
+    if (isOnline) {
+      aqiStatus.textContent = 'Ready';
+      aqiStatus.classList.add('ready');
+      aqiIndicator.innerHTML = '<i class="fas fa-check-circle"></i>';
+      aqiIndicator.classList.add('ready');
+    } else {
+      aqiStatus.textContent = 'Device offline';
+      aqiStatus.classList.add('warning');
+      aqiIndicator.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+      aqiIndicator.classList.add('warning');
+    }
+  }
+  
+  // Update Smoke sensor status
+  const smokeStatus = document.getElementById('smokeWarmupStatus');
+  const smokeIndicator = document.getElementById('smokeWarmupIndicator');
+  if (smokeStatus && smokeIndicator) {
+    if (isOnline) {
+      smokeStatus.textContent = 'Ready';
+      smokeStatus.classList.add('ready');
+      smokeIndicator.innerHTML = '<i class="fas fa-check-circle"></i>';
+      smokeIndicator.classList.add('ready');
+    } else {
+      smokeStatus.textContent = 'Device offline';
+      smokeStatus.classList.add('warning');
+      smokeIndicator.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+      smokeIndicator.classList.add('warning');
+    }
+  }
+  
+  // Enable next button if device is online
+  const step2Btn = document.getElementById('step2NextBtn');
+  if (step2Btn) step2Btn.disabled = !isOnline;
+}
+
+async function startCalibrationProcess() {
+  // Clear data interval
+  if (wizardDataInterval) {
+    clearInterval(wizardDataInterval);
+    wizardDataInterval = null;
+  }
+  
+  const progressFill = document.getElementById('calibrationProgressFill');
+  const progressText = document.getElementById('calibrationProgressText');
+  const statusBox = document.getElementById('calibrationStatusBox');
+  
+  // Update status messages
+  const statusMessages = [
+    { progress: 10, message: 'Sending calibration command to device...' },
+    { progress: 25, message: 'Sampling clean air readings...' },
+    { progress: 50, message: 'Calculating baseline resistance (Ro)...' },
+    { progress: 75, message: 'Storing calibration values...' },
+    { progress: 90, message: 'Verifying calibration...' },
+    { progress: 100, message: 'Calibration complete!' }
+  ];
+  
+  let currentStatus = 0;
+  
+  // Send calibration command to ESP32
+  try {
+    const response = await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/calibrate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('householdToken')}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to send calibration command');
+    }
+    
+    // Animate progress
+    const animateProgress = () => {
+      if (currentStatus < statusMessages.length) {
+        const status = statusMessages[currentStatus];
+        
+        if (progressFill) progressFill.style.width = status.progress + '%';
+        if (progressText) progressText.textContent = status.progress + '%';
+        if (statusBox) {
+          statusBox.innerHTML = `
+            <div class="calib-status-item">
+              <i class="fas ${status.progress < 100 ? 'fa-circle-notch fa-spin' : 'fa-check-circle'}"></i>
+              <span>${status.message}</span>
+            </div>
+          `;
+        }
+        
+        currentStatus++;
+        
+        if (currentStatus < statusMessages.length) {
+          setTimeout(animateProgress, 1500);
+        } else {
+          // Calibration complete - wait a bit then show results
+          setTimeout(() => {
+            fetchCalibrationResults();
+          }, 1000);
+        }
+      }
+    };
+    
+    animateProgress();
+    
+  } catch (error) {
+    console.error('Calibration error:', error);
+    if (statusBox) {
+      statusBox.innerHTML = `
+        <div class="calib-status-item" style="color: var(--danger);">
+          <i class="fas fa-exclamation-circle"></i>
+          <span>Calibration failed: ${error.message}</span>
+        </div>
+      `;
+    }
+    showToast('Calibration failed', 'error');
+  }
+}
+
+async function fetchCalibrationResults() {
+  try {
+    const response = await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/calibration-status`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('householdToken')}`
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Update results display
+      const newCoRo = document.getElementById('newCoRo');
+      const newAqiRo = document.getElementById('newAqiRo');
+      const calibrationTime = document.getElementById('calibrationTime');
+      
+      if (newCoRo) newCoRo.textContent = (data.coRo || 10000).toLocaleString() + ' Ω';
+      if (newAqiRo) newAqiRo.textContent = (data.aqiRo || 10000).toLocaleString() + ' Ω';
+      if (calibrationTime) {
+        calibrationTime.textContent = data.lastCalibration 
+          ? new Date(data.lastCalibration).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })
+          : 'Just now';
+      }
+      
+      // Update main display
+      const lastCalibEl = document.getElementById('lastCalibration');
+      const coRoEl = document.getElementById('coRoValue');
+      const aqiRoEl = document.getElementById('aqiRoValue');
+      
+      if (lastCalibEl) lastCalibEl.textContent = calibrationTime?.textContent || 'Just now';
+      if (coRoEl) coRoEl.textContent = (data.coRo || 10000).toLocaleString() + ' Ω';
+      if (aqiRoEl) aqiRoEl.textContent = (data.aqiRo || 10000).toLocaleString() + ' Ω';
+    }
+    
+    // Go to completion step
+    goToWizardStep(4);
+    showToast('Calibration completed successfully!', 'success');
+    
+  } catch (error) {
+    console.error('Failed to fetch calibration results:', error);
+    goToWizardStep(4);
+  }
+}
+
+// Load calibration status on page load
+async function loadCalibrationStatus() {
+  try {
+    const response = await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/calibration-status`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('householdToken')}`
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      const lastCalibEl = document.getElementById('lastCalibration');
+      const coRoEl = document.getElementById('coRoValue');
+      const aqiRoEl = document.getElementById('aqiRoValue');
+      
+      if (lastCalibEl) {
+        lastCalibEl.textContent = data.lastCalibration 
+          ? new Date(data.lastCalibration).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila' })
+          : 'Never';
+      }
+      if (coRoEl) coRoEl.textContent = (data.coRo || 10000).toLocaleString() + ' Ω';
+      if (aqiRoEl) aqiRoEl.textContent = (data.aqiRo || 10000).toLocaleString() + ' Ω';
+    }
+  } catch (error) {
+    console.error('Failed to load calibration status:', error);
+  }
+}

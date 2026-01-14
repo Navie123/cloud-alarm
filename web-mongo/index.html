@@ -947,7 +947,9 @@
             <div class="device-card-content">
               <h3>Sensor Calibration</h3>
               <p>Calibrate gas sensors for accurate readings</p>
-              <div class="calibration-stats">
+              
+              <!-- Calibration Status -->
+              <div class="calibration-stats" id="calibrationStats">
                 <div class="calib-stat">
                   <span class="calib-label">Last Calibration</span>
                   <span class="calib-value" id="lastCalibration">Never</span>
@@ -961,11 +963,228 @@
                   <span class="calib-value" id="aqiRoValue">10000 Ω</span>
                 </div>
               </div>
+              
               <p class="calib-note"><i class="fas fa-info-circle"></i> Ensure sensors are in clean air before calibrating</p>
             </div>
-            <button class="btn btn-primary btn-full" onclick="startCalibration()">
-              <i class="fas fa-sync"></i> Calibrate Sensors
+            <button class="btn btn-primary btn-full" onclick="openCalibrationWizard()">
+              <i class="fas fa-wand-magic-sparkles"></i> Start Calibration Wizard
             </button>
+          </div>
+        </div>
+
+        <!-- Calibration Wizard Modal -->
+        <div class="calibration-modal hidden" id="calibrationModal">
+          <div class="calibration-wizard">
+            <button class="wizard-close-btn" onclick="closeCalibrationWizard()">
+              <i class="fas fa-times"></i>
+            </button>
+            
+            <div class="wizard-header">
+              <div class="wizard-icon">
+                <i class="fas fa-sliders"></i>
+              </div>
+              <h2>Sensor Calibration Wizard</h2>
+              <p>Follow these steps for accurate sensor readings</p>
+            </div>
+
+            <!-- Progress Steps -->
+            <div class="wizard-progress">
+              <div class="wizard-step active" data-step="1">
+                <div class="step-number">1</div>
+                <span>Prepare</span>
+              </div>
+              <div class="wizard-step" data-step="2">
+                <div class="step-number">2</div>
+                <span>Warmup</span>
+              </div>
+              <div class="wizard-step" data-step="3">
+                <div class="step-number">3</div>
+                <span>Calibrate</span>
+              </div>
+              <div class="wizard-step" data-step="4">
+                <div class="step-number">4</div>
+                <span>Complete</span>
+              </div>
+            </div>
+
+            <!-- Step 1: Preparation -->
+            <div class="wizard-content" id="wizardStep1">
+              <div class="wizard-step-icon">
+                <i class="fas fa-wind"></i>
+              </div>
+              <h3>Prepare Your Environment</h3>
+              <div class="wizard-checklist">
+                <label class="checklist-item">
+                  <input type="checkbox" id="check1" onchange="updateWizardChecklist()">
+                  <span class="checkmark"></span>
+                  <span>Move device to a well-ventilated area with clean air</span>
+                </label>
+                <label class="checklist-item">
+                  <input type="checkbox" id="check2" onchange="updateWizardChecklist()">
+                  <span class="checkmark"></span>
+                  <span>No smoke, cooking fumes, or strong odors nearby</span>
+                </label>
+                <label class="checklist-item">
+                  <input type="checkbox" id="check3" onchange="updateWizardChecklist()">
+                  <span class="checkmark"></span>
+                  <span>Device has been powered on for at least 5 minutes</span>
+                </label>
+                <label class="checklist-item">
+                  <input type="checkbox" id="check4" onchange="updateWizardChecklist()">
+                  <span class="checkmark"></span>
+                  <span>Room temperature is between 20-30°C</span>
+                </label>
+              </div>
+              <div class="wizard-tip">
+                <i class="fas fa-lightbulb"></i>
+                <span>For best results, calibrate outdoors or near an open window</span>
+              </div>
+              <button class="btn btn-primary btn-full wizard-next-btn" id="step1NextBtn" disabled onclick="goToWizardStep(2)">
+                <span>Continue</span>
+                <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+
+            <!-- Step 2: Sensor Warmup -->
+            <div class="wizard-content hidden" id="wizardStep2">
+              <div class="wizard-step-icon warmup">
+                <i class="fas fa-temperature-half"></i>
+              </div>
+              <h3>Sensor Warmup Check</h3>
+              <p class="wizard-desc">Checking if sensors are ready for calibration...</p>
+              
+              <div class="sensor-warmup-status">
+                <div class="warmup-sensor">
+                  <div class="warmup-sensor-icon co">
+                    <i class="fas fa-skull-crossbones"></i>
+                  </div>
+                  <div class="warmup-sensor-info">
+                    <span class="warmup-sensor-name">MQ-7 (CO Sensor)</span>
+                    <span class="warmup-sensor-status" id="coWarmupStatus">Checking...</span>
+                  </div>
+                  <div class="warmup-indicator" id="coWarmupIndicator">
+                    <i class="fas fa-spinner fa-spin"></i>
+                  </div>
+                </div>
+                <div class="warmup-sensor">
+                  <div class="warmup-sensor-icon aqi">
+                    <i class="fas fa-wind"></i>
+                  </div>
+                  <div class="warmup-sensor-info">
+                    <span class="warmup-sensor-name">MQ-135 (Air Quality)</span>
+                    <span class="warmup-sensor-status" id="aqiWarmupStatus">Checking...</span>
+                  </div>
+                  <div class="warmup-indicator" id="aqiWarmupIndicator">
+                    <i class="fas fa-spinner fa-spin"></i>
+                  </div>
+                </div>
+                <div class="warmup-sensor">
+                  <div class="warmup-sensor-icon smoke">
+                    <i class="fas fa-smog"></i>
+                  </div>
+                  <div class="warmup-sensor-info">
+                    <span class="warmup-sensor-name">MQ-2 (Smoke Sensor)</span>
+                    <span class="warmup-sensor-status" id="smokeWarmupStatus">Checking...</span>
+                  </div>
+                  <div class="warmup-indicator" id="smokeWarmupIndicator">
+                    <i class="fas fa-spinner fa-spin"></i>
+                  </div>
+                </div>
+              </div>
+
+              <div class="current-readings-box">
+                <h4><i class="fas fa-chart-line"></i> Current Raw Readings</h4>
+                <div class="readings-grid">
+                  <div class="reading-item">
+                    <span class="reading-label">CO Raw</span>
+                    <span class="reading-value" id="wizardCoRaw">--</span>
+                  </div>
+                  <div class="reading-item">
+                    <span class="reading-label">AQI Raw</span>
+                    <span class="reading-value" id="wizardAqiRaw">--</span>
+                  </div>
+                  <div class="reading-item">
+                    <span class="reading-label">Smoke Raw</span>
+                    <span class="reading-value" id="wizardSmokeRaw">--</span>
+                  </div>
+                  <div class="reading-item">
+                    <span class="reading-label">Temperature</span>
+                    <span class="reading-value" id="wizardTemp">--°C</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="wizard-buttons">
+                <button class="btn btn-secondary" onclick="goToWizardStep(1)">
+                  <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <button class="btn btn-primary wizard-next-btn" id="step2NextBtn" disabled onclick="goToWizardStep(3)">
+                  <span>Start Calibration</span>
+                  <i class="fas fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 3: Calibrating -->
+            <div class="wizard-content hidden" id="wizardStep3">
+              <div class="wizard-step-icon calibrating">
+                <i class="fas fa-sync fa-spin"></i>
+              </div>
+              <h3>Calibrating Sensors</h3>
+              <p class="wizard-desc">Please wait while sensors are being calibrated...</p>
+              
+              <div class="calibration-progress-container">
+                <div class="calibration-progress-bar">
+                  <div class="calibration-progress-fill" id="calibrationProgressFill"></div>
+                </div>
+                <span class="calibration-progress-text" id="calibrationProgressText">0%</span>
+              </div>
+
+              <div class="calibration-status-box" id="calibrationStatusBox">
+                <div class="calib-status-item">
+                  <i class="fas fa-circle-notch fa-spin"></i>
+                  <span>Sampling clean air readings...</span>
+                </div>
+              </div>
+
+              <div class="wizard-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Do not move the device or introduce any gases during calibration</span>
+              </div>
+            </div>
+
+            <!-- Step 4: Complete -->
+            <div class="wizard-content hidden" id="wizardStep4">
+              <div class="wizard-step-icon success">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <h3>Calibration Complete!</h3>
+              <p class="wizard-desc">Your sensors have been calibrated successfully</p>
+              
+              <div class="calibration-results">
+                <div class="result-item">
+                  <span class="result-label">CO Sensor (Ro)</span>
+                  <span class="result-value" id="newCoRo">--</span>
+                </div>
+                <div class="result-item">
+                  <span class="result-label">AQI Sensor (Ro)</span>
+                  <span class="result-value" id="newAqiRo">--</span>
+                </div>
+                <div class="result-item">
+                  <span class="result-label">Calibration Time</span>
+                  <span class="result-value" id="calibrationTime">--</span>
+                </div>
+              </div>
+
+              <div class="wizard-tip success">
+                <i class="fas fa-check"></i>
+                <span>Sensors are now calibrated for accurate readings in your environment</span>
+              </div>
+
+              <button class="btn btn-primary btn-full" onclick="closeCalibrationWizard()">
+                <i class="fas fa-check"></i> Done
+              </button>
+            </div>
           </div>
         </div>
 
