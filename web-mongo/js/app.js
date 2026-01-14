@@ -2134,6 +2134,9 @@ function renderSessionStats() {
   // Total readings
   const totalReadingsEl = document.getElementById('totalReadings');
   if (totalReadingsEl) totalReadingsEl.textContent = sessionStats.readings;
+  
+  // Update toggle button badge
+  updateStatsBadge();
 }
 
 // Update individual stat display
@@ -2247,3 +2250,41 @@ function updateSessionDuration() {
 
 // Start session duration timer
 setInterval(updateSessionDuration, 1000);
+
+
+// Toggle session statistics panel visibility
+function toggleSessionStats() {
+  const panel = document.getElementById('sessionStatsPanel');
+  const btn = document.getElementById('statsToggleBtn');
+  
+  if (panel && btn) {
+    panel.classList.toggle('visible');
+    btn.classList.toggle('active');
+    
+    // Save preference
+    localStorage.setItem('statsExpanded', panel.classList.contains('visible'));
+  }
+}
+
+// Update the badge on the toggle button
+function updateStatsBadge() {
+  const badge = document.getElementById('statsReadingsBadge');
+  if (badge) {
+    badge.textContent = sessionStats.readings;
+  }
+}
+
+// Load stats panel state from localStorage
+function loadStatsPanelState() {
+  const expanded = localStorage.getItem('statsExpanded') === 'true';
+  const panel = document.getElementById('sessionStatsPanel');
+  const btn = document.getElementById('statsToggleBtn');
+  
+  if (expanded && panel && btn) {
+    panel.classList.add('visible');
+    btn.classList.add('active');
+  }
+}
+
+// Initialize stats panel state on load
+document.addEventListener('DOMContentLoaded', loadStatsPanelState);

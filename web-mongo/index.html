@@ -431,8 +431,16 @@
           </div>
         </div>
 
-        <!-- Session Statistics Panel -->
-        <div class="session-stats-panel">
+        <!-- Session Statistics Toggle Button -->
+        <button class="stats-toggle-btn" id="statsToggleBtn" onclick="toggleSessionStats()">
+          <i class="fas fa-chart-line"></i>
+          <span>Session Statistics</span>
+          <span class="stats-toggle-badge" id="statsReadingsBadge">0</span>
+          <i class="fas fa-chevron-down toggle-arrow" id="statsToggleArrow"></i>
+        </button>
+
+        <!-- Session Statistics Panel (Hidden by default) -->
+        <div class="session-stats-panel hidden" id="sessionStatsPanel">
           <div class="stats-panel-header">
             <div class="stats-panel-title">
               <i class="fas fa-chart-line"></i>

@@ -6437,3 +6437,83 @@ header {
 .stats-sensor-block.co-stats:hover { box-shadow: 0 4px 16px rgba(168, 85, 247, 0.15); }
 .stats-sensor-block.aqi-stats:hover { box-shadow: 0 4px 16px rgba(34, 197, 94, 0.15); }
 .stats-sensor-block.smoke-stats:hover { box-shadow: 0 4px 16px rgba(100, 116, 139, 0.15); }
+
+
+/* ========== SESSION STATISTICS TOGGLE BUTTON ========== */
+.stats-toggle-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  margin-top: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.stats-toggle-btn:hover {
+  background: var(--bg2);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 87, 34, 0.15);
+}
+
+.stats-toggle-btn i:first-child {
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.stats-toggle-badge {
+  background: var(--accent);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.stats-toggle-btn .toggle-arrow {
+  margin-left: auto;
+  color: var(--muted);
+  transition: transform 0.3s ease;
+}
+
+.stats-toggle-btn.active .toggle-arrow {
+  transform: rotate(180deg);
+}
+
+.stats-toggle-btn.active {
+  background: rgba(255, 87, 34, 0.1);
+  border-color: var(--accent);
+}
+
+/* Panel slide animation */
+.session-stats-panel {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.session-stats-panel.visible {
+  max-height: 1000px;
+  opacity: 1;
+  margin-top: 16px;
+  padding: 20px;
+}
+
+.session-stats-panel.hidden {
+  display: block !important;
+}
