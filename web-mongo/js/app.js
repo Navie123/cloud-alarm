@@ -1365,6 +1365,41 @@ function updateFullscreenIcon() {
 }
 
 
+// ============ Theme Toggle Functions ============
+let currentTheme = localStorage.getItem('theme') || 'dark';
+
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  setTheme(savedTheme);
+}
+
+function toggleTheme() {
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  setTheme(newTheme);
+  localStorage.setItem('theme', newTheme);
+  showToast(`${newTheme === 'light' ? 'Light' : 'Dark'} theme enabled`);
+}
+
+function setTheme(theme) {
+  currentTheme = theme;
+  const themeIcon = document.getElementById('themeIcon');
+  const themeBtn = document.getElementById('themeToggleBtn');
+  
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    if (themeIcon) themeIcon.className = 'fas fa-sun';
+    if (themeBtn) themeBtn.classList.add('light-mode');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    if (themeIcon) themeIcon.className = 'fas fa-moon';
+    if (themeBtn) themeBtn.classList.remove('light-mode');
+  }
+}
+
+// Initialize theme on page load
+document.addEventListener('DOMContentLoaded', initTheme);
+
+
 // ============ Gas Sensor Functions (CO & AQI) ============
 
 // Update UI with gas sensor data
