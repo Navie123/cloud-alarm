@@ -2633,3 +2633,225 @@ async function loadCalibrationStatus() {
     console.error('Failed to load calibration status:', error);
   }
 }
+
+
+// ============ HISTORICAL STATISTICS ============
+let currentStatsPeriod = 'session';
+
+async function switchStatsPeriod(period) {
+  currentStatsPeriod = period;
+  
+  // Update tab UI
+  document.querySelectorAll('.stats-period-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.period === period);
+  });
+  
+  // Update period info
+  const periodLabel = document.getElementById('periodLabel');
+  const periodRange = document.getElementById('periodRange');
+  const sessionDuration = document.getElementById('sessionDuration');
+  const resetBtn = document.querySelector('.stats-reset-btn');
+  
+  // Show/hide session-specific elements
+  if (sessionDuration) sessionDuration.style.display = period === 'session' ? 'inline' : 'none';
+  if (resetBtn) resetBtn.style.display = period === 'session' ? 'flex' : 'none';
+  
+  if (period === 'session') {
+    if (periodLabel) periodLabel.textContent = 'Current Session';
+    if (periodRange) periodRange.textContent = '';
+    renderSessionStats();
+  } else {
+    // Show loading state
+    showStatsLoading();
+    
+    // Fetch historical data
+    await loadHistoricalStats(period);
+  }
+}
+
+function showStatsLoading() {
+  const periodLabel = document.getElementById('periodLabel');
+  if (periodLabel) periodLabel.textContent = 'Loading...';
+  
+  // Reset all values to loading state
+  ['temp', 'hum', 'gas', 'co', 'aqi', 'smoke'].forEach(prefix => {
+    const minEl = document.getElementById(`${prefix}Min`);
+    const maxEl = document.getElementById(`${prefix}Max`);
+    const avgEl = document.getElementById(`${prefix}Avg`);
+    if (minEl) minEl.textContent = '...';
+    if (maxEl) maxEl.textContent = '...';
+    if (avgEl) avgEl.textContent = '...';
+  });
+}
+
+async function loadHistoricalStats(period) {
+  try {
+    const response = await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/stats/${period}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('householdToken')}`
+      }
+    });
+    
+    if (!response.ok) throw new Error('Failed to load stats');
+    
+    const data = await response.json();
+    renderHistoricalStats(data, period);
+    
+  } catch (error) {
+    console.error('Failed to load historical stats:', error);
+    showStatsError();
+  }
+}
+
+function renderHistoricalStats(data, period) {
+  const periodLabel = document.getElementById('periodLabel');
+  const periodRange = document.getElementById('periodRange');
+  
+  // Update period label
+  const periodLabels = {
+    today: 'Today',
+    week: 'Last 7 Days',
+    month: 'Last 30 Days'
+  };
+  if (periodLabel) periodLabel.textContent = periodLabels[period] || period;
+  
+  // Update date range
+  if (periodRange && data.firstReading && data.lastReading) {
+    const first = new Date(data.firstReading);
+    const last = new Date(data.lastReading);
+    const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    periodRange.textContent = `${first.toLocaleDateString('en-PH', options)} - ${last.toLocaleDateString('en-PH', options)}`;
+  } else if (periodRange) {
+    periodRange.textContent = 'No data';
+  }
+  
+  // Check if we have data
+  if (data.totalReadings === 0) {
+    showStatsNoData();
+    return;
+  }
+  
+  const stats = data.stats;
+  
+  // Temperature
+  updateHistoricalStatDisplay('temp', stats.temperature, 80, 1);
+  
+  // Humidity
+  updateHistoricalStatDisplay('hum', stats.humidity, 100, 1);
+  
+  // Gas
+  updateHistoricalStatDisplay('gas', stats.gas, 100, 1);
+  
+  // CO
+  updateHistoricalStatDisplay('co', stats.co, 500, 0);
+  
+  // AQI
+  updateHistoricalStatDisplay('aqi', stats.aqi, 500, 0);
+  
+  // Smoke (use gas data if smoke not available)
+  updateHistoricalStatDisplay('smoke', stats.gas, 100, 1);
+  
+  // Update footer counts
+  const totalReadingsEl = document.getElementById('totalReadings');
+  const warningCountEl = document.getElementById('statsWarningCount');
+  const dangerCountEl = document.getElementById('statsDangerCount');
+  const warningContainer = document.getElementById('warningCountContainer');
+  const dangerContainer = document.getElementById('dangerCountContainer');
+  
+  if (totalReadingsEl) totalReadingsEl.textContent = data.totalReadings.toLocaleString();
+  
+  if (warningCountEl && warningContainer) {
+    warningCountEl.textContent = data.warningCount || 0;
+    warningContainer.classList.toggle('hidden', !data.warningCount);
+  }
+  
+  if (dangerCountEl && dangerContainer) {
+    dangerCountEl.textContent = data.dangerCount || 0;
+    dangerContainer.classList.toggle('hidden', !data.dangerCount);
+  }
+}
+
+function updateHistoricalStatDisplay(prefix, stats, maxScale, decimals) {
+  if (!stats) return;
+  
+  const minEl = document.getElementById(`${prefix}Min`);
+  const maxEl = document.getElementById(`${prefix}Max`);
+  const avgEl = document.getElementById(`${prefix}Avg`);
+  const barEl = document.getElementById(`${prefix}StatBar`);
+  const minMarker = document.getElementById(`${prefix}MinMarker`);
+  const maxMarker = document.getElementById(`${prefix}MaxMarker`);
+  
+  const hasData = stats.min !== null && stats.max !== null;
+  
+  if (minEl) minEl.textContent = hasData ? stats.min.toFixed(decimals) : '--';
+  if (maxEl) maxEl.textContent = hasData ? stats.max.toFixed(decimals) : '--';
+  if (avgEl) avgEl.textContent = hasData && stats.avg !== null ? stats.avg.toFixed(decimals) : '--';
+  
+  if (hasData) {
+    // Update bar fill (average position)
+    if (barEl && stats.avg !== null) {
+      const avgPercent = Math.min((stats.avg / maxScale) * 100, 100);
+      barEl.style.width = avgPercent + '%';
+    }
+    
+    // Update markers
+    if (minMarker) {
+      const minPercent = Math.min((stats.min / maxScale) * 100, 100);
+      minMarker.style.left = minPercent + '%';
+    }
+    
+    if (maxMarker) {
+      const maxPercent = Math.min((stats.max / maxScale) * 100, 100);
+      maxMarker.style.left = maxPercent + '%';
+    }
+  } else {
+    if (barEl) barEl.style.width = '0%';
+    if (minMarker) minMarker.style.left = '0%';
+    if (maxMarker) maxMarker.style.left = '0%';
+  }
+}
+
+function showStatsNoData() {
+  const periodLabel = document.getElementById('periodLabel');
+  const periodRange = document.getElementById('periodRange');
+  
+  if (periodRange) periodRange.textContent = 'No data available for this period';
+  
+  // Reset all values
+  ['temp', 'hum', 'gas', 'co', 'aqi', 'smoke'].forEach(prefix => {
+    const minEl = document.getElementById(`${prefix}Min`);
+    const maxEl = document.getElementById(`${prefix}Max`);
+    const avgEl = document.getElementById(`${prefix}Avg`);
+    const barEl = document.getElementById(`${prefix}StatBar`);
+    
+    if (minEl) minEl.textContent = '--';
+    if (maxEl) maxEl.textContent = '--';
+    if (avgEl) avgEl.textContent = '--';
+    if (barEl) barEl.style.width = '0%';
+  });
+  
+  const totalReadingsEl = document.getElementById('totalReadings');
+  if (totalReadingsEl) totalReadingsEl.textContent = '0';
+}
+
+function showStatsError() {
+  const periodRange = document.getElementById('periodRange');
+  if (periodRange) periodRange.textContent = 'Failed to load data';
+  showStatsNoData();
+}
+
+// Override the original renderSessionStats to handle period switching
+const originalRenderSessionStats = renderSessionStats;
+renderSessionStats = function() {
+  // Only render session stats if we're on the session tab
+  if (currentStatsPeriod !== 'session') return;
+  
+  // Call original function
+  originalRenderSessionStats();
+  
+  // Hide warning/danger counts for session (we don't track those in session)
+  const warningContainer = document.getElementById('warningCountContainer');
+  const dangerContainer = document.getElementById('dangerCountContainer');
+  if (warningContainer) warningContainer.classList.add('hidden');
+  if (dangerContainer) dangerContainer.classList.add('hidden');
+};

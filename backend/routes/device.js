@@ -615,4 +615,139 @@ router.post('/:deviceId/reset-wifi', verifySession, requireAdmin, async (req, re
   }
 });
 
+// Get historical statistics (today/week/month)
+router.get('/:deviceId/stats/:period', verifySession, async (req, res) => {
+  try {
+    const { deviceId, period } = req.params;
+
+    if (!req.household.devices.find(d => d.deviceId === deviceId)) {
+      return res.status(403).json({ error: 'Device not in household' });
+    }
+
+    // Calculate date range based on period
+    const now = new Date();
+    let startDate;
+    
+    switch (period) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        return res.status(400).json({ error: 'Invalid period. Use: today, week, month' });
+    }
+
+    // Aggregate statistics from GasHistory
+    const stats = await GasHistory.aggregate([
+      {
+        $match: {
+          deviceId: deviceId,
+          timestamp: { $gte: startDate, $lte: now }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          // Temperature stats
+          tempMin: { $min: '$temperature' },
+          tempMax: { $max: '$temperature' },
+          tempAvg: { $avg: '$temperature' },
+          // Humidity stats
+          humMin: { $min: '$humidity' },
+          humMax: { $max: '$humidity' },
+          humAvg: { $avg: '$humidity' },
+          // Gas stats
+          gasMin: { $min: '$gas' },
+          gasMax: { $max: '$gas' },
+          gasAvg: { $avg: '$gas' },
+          // CO stats
+          coMin: { $min: '$coPpm' },
+          coMax: { $max: '$coPpm' },
+          coAvg: { $avg: '$coPpm' },
+          // AQI stats
+          aqiMin: { $min: '$aqi' },
+          aqiMax: { $max: '$aqi' },
+          aqiAvg: { $avg: '$aqi' },
+          // Counts
+          totalReadings: { $sum: 1 },
+          warningCount: {
+            $sum: { $cond: [{ $in: ['$alertLevel', ['warning', 'danger', 'critical', 'fire_risk']] }, 1, 0] }
+          },
+          dangerCount: {
+            $sum: { $cond: [{ $in: ['$alertLevel', ['danger', 'critical', 'fire_risk']] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    // Get first and last reading timestamps
+    const firstReading = await GasHistory.findOne(
+      { deviceId, timestamp: { $gte: startDate } },
+      { timestamp: 1 },
+      { sort: { timestamp: 1 } }
+    );
+    
+    const lastReading = await GasHistory.findOne(
+      { deviceId, timestamp: { $gte: startDate } },
+      { timestamp: 1 },
+      { sort: { timestamp: -1 } }
+    );
+
+    const result = stats[0] || {
+      tempMin: null, tempMax: null, tempAvg: null,
+      humMin: null, humMax: null, humAvg: null,
+      gasMin: null, gasMax: null, gasAvg: null,
+      coMin: null, coMax: null, coAvg: null,
+      aqiMin: null, aqiMax: null, aqiAvg: null,
+      totalReadings: 0, warningCount: 0, dangerCount: 0
+    };
+
+    res.json({
+      period,
+      startDate: startDate.toISOString(),
+      endDate: now.toISOString(),
+      firstReading: firstReading?.timestamp || null,
+      lastReading: lastReading?.timestamp || null,
+      stats: {
+        temperature: {
+          min: result.tempMin,
+          max: result.tempMax,
+          avg: result.tempAvg
+        },
+        humidity: {
+          min: result.humMin,
+          max: result.humMax,
+          avg: result.humAvg
+        },
+        gas: {
+          min: result.gasMin,
+          max: result.gasMax,
+          avg: result.gasAvg
+        },
+        co: {
+          min: result.coMin,
+          max: result.coMax,
+          avg: result.coAvg
+        },
+        aqi: {
+          min: result.aqiMin,
+          max: result.aqiMax,
+          avg: result.aqiAvg
+        }
+      },
+      totalReadings: result.totalReadings,
+      warningCount: result.warningCount,
+      dangerCount: result.dangerCount
+    });
+  } catch (error) {
+    console.error('Stats error:', error);
+    res.status(500).json({ error: 'Failed to get statistics' });
+  }
+});
+
 module.exports = router;

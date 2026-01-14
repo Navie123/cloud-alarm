@@ -431,20 +431,20 @@
           </div>
         </div>
 
-        <!-- Session Statistics Toggle Button -->
+        <!-- Statistics Toggle Button -->
         <button class="stats-toggle-btn" id="statsToggleBtn" onclick="toggleSessionStats()">
           <i class="fas fa-chart-line"></i>
-          <span>Session Statistics</span>
+          <span>Statistics</span>
           <span class="stats-toggle-badge" id="statsReadingsBadge">0</span>
           <i class="fas fa-chevron-down toggle-arrow" id="statsToggleArrow"></i>
         </button>
 
-        <!-- Session Statistics Panel (Hidden by default) -->
+        <!-- Statistics Panel (Hidden by default) -->
         <div class="session-stats-panel hidden" id="sessionStatsPanel">
           <div class="stats-panel-header">
             <div class="stats-panel-title">
               <i class="fas fa-chart-line"></i>
-              <span>Session Statistics</span>
+              <span>Statistics</span>
             </div>
             <div class="stats-panel-actions">
               <span class="stats-session-time" id="sessionDuration">00:00:00</span>
@@ -452,6 +452,28 @@
                 <i class="fas fa-rotate-right"></i>
               </button>
             </div>
+          </div>
+
+          <!-- Period Tabs -->
+          <div class="stats-period-tabs">
+            <button class="stats-period-tab active" data-period="session" onclick="switchStatsPeriod('session')">
+              <i class="fas fa-stopwatch"></i> Session
+            </button>
+            <button class="stats-period-tab" data-period="today" onclick="switchStatsPeriod('today')">
+              <i class="fas fa-calendar-day"></i> Today
+            </button>
+            <button class="stats-period-tab" data-period="week" onclick="switchStatsPeriod('week')">
+              <i class="fas fa-calendar-week"></i> Week
+            </button>
+            <button class="stats-period-tab" data-period="month" onclick="switchStatsPeriod('month')">
+              <i class="fas fa-calendar"></i> Month
+            </button>
+          </div>
+
+          <!-- Period Info Bar -->
+          <div class="stats-period-info" id="statsPeriodInfo">
+            <span class="period-label" id="periodLabel">Current Session</span>
+            <span class="period-range" id="periodRange"></span>
           </div>
           
           <div class="stats-grid-container">
@@ -649,7 +671,18 @@
           </div>
 
           <div class="stats-footer">
-            <span class="stats-readings-count"><i class="fas fa-database"></i> <span id="totalReadings">0</span> readings</span>
+            <div class="stats-footer-item">
+              <i class="fas fa-database"></i>
+              <span><span id="totalReadings">0</span> readings</span>
+            </div>
+            <div class="stats-footer-item warning-count hidden" id="warningCountContainer">
+              <i class="fas fa-exclamation-triangle"></i>
+              <span><span id="statsWarningCount">0</span> warnings</span>
+            </div>
+            <div class="stats-footer-item danger-count hidden" id="dangerCountContainer">
+              <i class="fas fa-skull-crossbones"></i>
+              <span><span id="statsDangerCount">0</span> alerts</span>
+            </div>
           </div>
         </div>
       </div>
