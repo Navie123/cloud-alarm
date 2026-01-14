@@ -339,11 +339,17 @@ router.get('/:deviceId/commands', async (req, res) => {
       // One-time action commands - include then clear
       if (device.commands.silence) response.silence = true;
       if (device.commands.calibrate) response.calibrate = true;
-      if (device.commands.resetWifi) response.resetWifi = true;
+      if (device.commands.resetWifi) {
+        response.resetWifi = true;
+        console.log(`[Commands] Sending resetWifi=true to device ${deviceId}`);
+      }
     }
     
     // Clear only the one-time action commands
     if (device.commands) {
+      if (device.commands.silence || device.commands.calibrate || device.commands.resetWifi) {
+        console.log(`[Commands] Clearing one-time commands for device ${deviceId}`);
+      }
       device.commands.silence = undefined;
       device.commands.calibrate = undefined;
       device.commands.resetWifi = undefined;
@@ -590,13 +596,16 @@ router.post('/:deviceId/co-thresholds', verifySession, requireAdmin, async (req,
 router.post('/:deviceId/reset-wifi', verifySession, requireAdmin, async (req, res) => {
   try {
     const { deviceId } = req.params;
+    console.log(`[WiFi Reset] Request received for device: ${deviceId}`);
 
     if (!req.household.devices.find(d => d.deviceId === deviceId)) {
+      console.log(`[WiFi Reset] Device ${deviceId} not in household`);
       return res.status(403).json({ error: 'Device not in household' });
     }
 
     let device = await Device.findOne({ deviceId });
     if (!device) {
+      console.log(`[WiFi Reset] Device ${deviceId} not found in database`);
       return res.status(404).json({ error: 'Device not found' });
     }
 
@@ -604,6 +613,8 @@ router.post('/:deviceId/reset-wifi', verifySession, requireAdmin, async (req, re
     if (!device.commands) device.commands = {};
     device.commands.resetWifi = true;
     await device.save();
+    
+    console.log(`[WiFi Reset] Command saved for device: ${deviceId}, commands:`, device.commands);
 
     res.json({ 
       success: true, 
