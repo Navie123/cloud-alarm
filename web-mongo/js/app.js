@@ -1646,6 +1646,16 @@ function copyToClipboard(text) {
   });
 }
 
+function toggleWifiTroubleshoot() {
+  const content = document.getElementById('wifiTroubleshootContent');
+  const toggle = document.querySelector('.wifi-troubleshoot-toggle');
+  
+  if (content && toggle) {
+    content.classList.toggle('hidden');
+    toggle.classList.toggle('active');
+  }
+}
+
 // Reset device WiFi (legacy function - now uses wizard)
 async function resetDeviceWifi() {
   openWifiWizard();

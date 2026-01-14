@@ -1085,6 +1085,45 @@
                   </div>
                 </div>
 
+                <!-- Troubleshooting Section -->
+                <div class="wifi-troubleshoot" id="wifiTroubleshoot">
+                  <button class="wifi-troubleshoot-toggle" onclick="toggleWifiTroubleshoot()">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Network not appearing?</span>
+                    <i class="fas fa-chevron-down"></i>
+                  </button>
+                  <div class="wifi-troubleshoot-content hidden" id="wifiTroubleshootContent">
+                    <div class="troubleshoot-item">
+                      <i class="fas fa-clock"></i>
+                      <div>
+                        <strong>Wait 15-30 seconds</strong>
+                        <p>The ESP32 needs time to restart and create the hotspot</p>
+                      </div>
+                    </div>
+                    <div class="troubleshoot-item">
+                      <i class="fas fa-plug"></i>
+                      <div>
+                        <strong>Check device power</strong>
+                        <p>Make sure the ESP32 is powered on (LED should be lit)</p>
+                      </div>
+                    </div>
+                    <div class="troubleshoot-item">
+                      <i class="fas fa-rotate"></i>
+                      <div>
+                        <strong>Manual reset option</strong>
+                        <p>Hold the <strong>BOOT button</strong> on ESP32 while powering on</p>
+                      </div>
+                    </div>
+                    <div class="troubleshoot-item">
+                      <i class="fas fa-wifi"></i>
+                      <div>
+                        <strong>Refresh WiFi list</strong>
+                        <p>Turn your phone's WiFi off and on, or pull down to refresh</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="wifi-wizard-actions">
                   <button class="btn btn-primary btn-full" onclick="goToWifiStep(4)">
                     <i class="fas fa-check"></i> I'm Connected to FireWire-Setup
