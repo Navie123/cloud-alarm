@@ -1631,7 +1631,11 @@ async function startWifiReset() {
     
     if (statusText) statusText.textContent = 'Sending reset command...';
     
-    const response = await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/reset-wifi`, {
+    const deviceId = getDeviceId();
+    console.log('[WiFi Reset] Sending to device:', deviceId);
+    console.log('[WiFi Reset] URL:', `${CONFIG.API_URL}/api/device/${deviceId}/reset-wifi`);
+    
+    const response = await fetch(`${CONFIG.API_URL}/api/device/${deviceId}/reset-wifi`, {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + localStorage.getItem('householdToken'),
@@ -1641,6 +1645,9 @@ async function startWifiReset() {
     
     clearInterval(progressInterval);
     
+    const responseData = await response.json().catch(() => ({}));
+    console.log('[WiFi Reset] Response:', response.status, responseData);
+    
     if (response.ok) {
       if (progressBar) progressBar.style.width = '100%';
       if (statusText) statusText.textContent = 'Command sent successfully!';
@@ -1649,16 +1656,18 @@ async function startWifiReset() {
       goToWifiStep(3);
       showToast('WiFi reset command sent!', 'success');
     } else {
-      throw new Error('Failed to send reset command');
+      console.error('[WiFi Reset] Error:', response.status, responseData);
+      throw new Error(responseData.error || 'Failed to send reset command');
     }
   } catch (error) {
+    console.error('[WiFi Reset] Exception:', error);
     clearInterval(progressInterval);
     if (progressBar) progressBar.style.width = '0%';
-    if (statusText) statusText.textContent = 'Failed to send command';
-    showToast('Error: Could not reset WiFi', 'error');
+    if (statusText) statusText.textContent = 'Failed: ' + error.message;
+    showToast('Error: ' + error.message, 'error');
     
     // Go back to step 1 after delay
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 2000));
     goToWifiStep(1);
   }
 }
