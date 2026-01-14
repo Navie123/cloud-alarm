@@ -146,6 +146,9 @@ app.ws('/ws/:deviceId', async (ws, req) => {
           await AlarmHistory.create({
             deviceId, trigger,
             gas: data.data.gas,
+            smoke: data.data.smoke,
+            coPpm: data.data.coPpm,
+            aqi: data.data.aqi,
             temperature: data.data.temperature,
             humidity: data.data.humidity,
             timestamp: alarmTimestamp

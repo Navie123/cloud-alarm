@@ -2075,8 +2075,8 @@ function updateSessionStats(data) {
   }
   
   // CO (PPM)
-  if (data.coPPM !== undefined && data.coPPM !== null) {
-    const co = parseFloat(data.coPPM);
+  if (data.coPpm !== undefined && data.coPpm !== null) {
+    const co = parseFloat(data.coPpm);
     if (!isNaN(co)) {
       if (sessionStats.co.min === null || co < sessionStats.co.min) sessionStats.co.min = co;
       if (sessionStats.co.max === null || co > sessionStats.co.max) sessionStats.co.max = co;

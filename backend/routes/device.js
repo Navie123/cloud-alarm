@@ -220,6 +220,8 @@ router.post('/:deviceId/data', async (req, res) => {
         deviceId, trigger,
         gas: data.gas, 
         smoke: data.smoke,
+        coPpm: data.coPpm,
+        aqi: data.aqi,
         temperature: data.temperature, 
         humidity: data.humidity,
         timestamp: phTime
