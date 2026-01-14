@@ -62,7 +62,10 @@ const deviceSchema = new mongoose.Schema({
     coCriticalThreshold: { type: Number, default: 400 },
     
     // Calibration command
-    calibrate: { type: Boolean, default: false }
+    calibrate: { type: Boolean, default: false },
+    
+    // WiFi reset command
+    resetWifi: { type: Boolean, default: false }
   },
   pushSubscriptions: [{
     endpoint: String,
