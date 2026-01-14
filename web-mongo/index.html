@@ -765,6 +765,27 @@
           </div>
         </div>
 
+        <!-- Alarm Controls (Admin Only) -->
+        <div class="alarm-controls-card admin-only">
+          <div class="alarm-controls-header">
+            <i class="fas fa-bell"></i>
+            <div>
+              <h3>Alarm Controls</h3>
+              <p>Manage active alarms and siren settings</p>
+            </div>
+          </div>
+          <div class="alarm-controls-buttons">
+            <button class="btn btn-alarm-silence" id="silenceAlarmBtn" onclick="silenceAlarm()">
+              <i class="fas fa-volume-xmark"></i>
+              <span>Silence Alarm</span>
+            </button>
+            <button class="btn btn-alarm-siren" id="sirenToggleBtn" onclick="toggleSiren()">
+              <i class="fas fa-bell" id="sirenIconAlert"></i>
+              <span id="sirenTextAlert">Siren On</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Info Banner -->
         <div class="notif-info-banner">
           <div class="notif-info-item">
@@ -891,13 +912,6 @@
             <button class="btn btn-primary" onclick="saveCOThresholds()"><i class="fas fa-save"></i> Save CO Thresholds</button>
           </div>
           
-          <div class="card">
-            <div class="card-title"><i class="fas fa-bell"></i> Alarm Controls</div>
-            <div class="control-buttons">
-              <button class="btn btn-danger" onclick="silenceAlarm()"><i class="fas fa-volume-xmark"></i> Silence Alarm</button>
-              <button class="btn btn-secondary" onclick="toggleSiren()"><i class="fas fa-bell" id="sirenIcon"></i> <span id="sirenText">Siren On</span></button>
-            </div>
-          </div>
         </div>
         
         <!-- Device Info -->

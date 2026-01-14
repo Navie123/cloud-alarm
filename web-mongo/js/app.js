@@ -846,13 +846,29 @@ function setConnected(connected) {
 }
 
 function updateSirenUI() {
-  elements.sirenIcon.className = sirenEnabled ? 'fas fa-bell' : 'fas fa-bell-slash';
-  elements.sirenText.textContent = sirenEnabled ? 'Siren On' : 'Siren Off';
+  // Update Settings tab button
+  if (elements.sirenIcon) elements.sirenIcon.className = sirenEnabled ? 'fas fa-bell' : 'fas fa-bell-slash';
+  if (elements.sirenText) elements.sirenText.textContent = sirenEnabled ? 'Siren On' : 'Siren Off';
   
+  // Update Sidebar button
   const sideIcon = document.getElementById('sirenIconSide');
   const sideText = document.getElementById('sirenTextSide');
   if (sideIcon) sideIcon.className = sirenEnabled ? 'fas fa-bell' : 'fas fa-bell-slash';
   if (sideText) sideText.textContent = sirenEnabled ? 'Siren On' : 'Siren Off';
+  
+  // Update Alerts tab button
+  const alertIcon = document.getElementById('sirenIconAlert');
+  const alertText = document.getElementById('sirenTextAlert');
+  const sirenToggleBtn = document.getElementById('sirenToggleBtn');
+  
+  if (alertIcon) alertIcon.className = sirenEnabled ? 'fas fa-bell' : 'fas fa-bell-slash';
+  if (alertText) alertText.textContent = sirenEnabled ? 'Siren On' : 'Siren Off';
+  
+  // Update button visual state
+  if (sirenToggleBtn) {
+    sirenToggleBtn.classList.remove('siren-on', 'siren-off');
+    sirenToggleBtn.classList.add(sirenEnabled ? 'siren-on' : 'siren-off');
+  }
   
   if (!sirenEnabled) stopAlarmSound();
 }
@@ -1020,6 +1036,20 @@ async function silenceAlarm() {
     return;
   }
   stopAlarmSound();
+  
+  // Add visual feedback to button
+  const silenceBtn = document.getElementById('silenceAlarmBtn');
+  if (silenceBtn) {
+    silenceBtn.classList.add('silenced');
+    silenceBtn.innerHTML = '<i class="fas fa-check-circle"></i><span>Silenced</span>';
+    
+    // Reset after 3 seconds
+    setTimeout(() => {
+      silenceBtn.classList.remove('silenced');
+      silenceBtn.innerHTML = '<i class="fas fa-volume-xmark"></i><span>Silence Alarm</span>';
+    }, 3000);
+  }
+  
   try {
     await api.silenceAlarm(getDeviceId());
     showToast('Alarm silenced');

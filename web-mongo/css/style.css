@@ -2999,6 +2999,163 @@ body.fullscreen .minimize-btn { display: flex; }
   line-height: 1.4;
 }
 
+/* ========== ALARM CONTROLS CARD (Alerts Tab) ========== */
+.alarm-controls-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  animation: fadeInUp 0.5s ease 0.2s both;
+}
+
+.alarm-controls-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.alarm-controls-header > i {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--danger), #dc2626);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.alarm-controls-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.alarm-controls-header p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 4px 0 0 0;
+}
+
+.alarm-controls-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-alarm-silence {
+  flex: 1;
+  min-width: 140px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, var(--danger), #dc2626);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.btn-alarm-silence:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.btn-alarm-silence:active {
+  transform: translateY(0);
+}
+
+/* Silenced state - visual feedback */
+.btn-alarm-silence.silenced {
+  background: linear-gradient(135deg, var(--success), #16a34a);
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+  animation: silencePulse 0.5s ease;
+}
+
+.btn-alarm-silence.silenced:hover {
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+}
+
+@keyframes silencePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.btn-alarm-siren {
+  flex: 1;
+  min-width: 140px;
+  padding: 14px 20px;
+  background: var(--bg2);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-alarm-siren:hover {
+  background: var(--card);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.btn-alarm-siren:active {
+  transform: translateY(0);
+}
+
+/* Siren enabled state */
+.btn-alarm-siren.siren-on {
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 15px rgba(255, 87, 34, 0.3);
+}
+
+.btn-alarm-siren.siren-on:hover {
+  box-shadow: 0 6px 20px rgba(255, 87, 34, 0.4);
+}
+
+/* Siren disabled state */
+.btn-alarm-siren.siren-off {
+  background: var(--bg2);
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+.btn-alarm-siren.siren-off i {
+  color: var(--muted);
+}
+
+/* Mobile responsive for alarm controls */
+@media (max-width: 480px) {
+  .alarm-controls-buttons {
+    flex-direction: column;
+  }
+  
+  .btn-alarm-silence,
+  .btn-alarm-siren {
+    min-width: 100%;
+  }
+}
+
 /* Mobile responsive for notifications tab */
 @media (max-width: 768px) {
   .notifications-header {
@@ -3753,6 +3910,24 @@ body.fullscreen .minimize-btn { display: flex; }
   .fullscreen-mode .container {
     padding: 10px;
   }
+  
+  /* Fix mobile fullscreen tabs */
+  .fullscreen-mode .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+  
+  .fullscreen-mode .tab {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    min-width: auto;
+  }
+  
+  .fullscreen-mode .header-nav {
+    padding: 8px 12px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -3778,6 +3953,20 @@ body.fullscreen .minimize-btn { display: flex; }
   
   .header-nav {
     padding: 8px 12px;
+  }
+  
+  /* Fix mobile fullscreen tabs - smaller screens */
+  .fullscreen-mode .tabs {
+    gap: 4px;
+  }
+  
+  .fullscreen-mode .tab {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
+  
+  .fullscreen-mode .tab i {
+    font-size: 0.95rem;
   }
 }
 
