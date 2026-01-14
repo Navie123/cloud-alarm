@@ -295,6 +295,11 @@
   border-top: 1px solid #e2e8f0;
 }
 
+[data-theme="light"] .app-footer {
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  border-top: 1px solid #cbd5e1;
+}
+
 [data-theme="light"] .footer-content {
   color: #475569;
 }
@@ -305,11 +310,19 @@
 
 [data-theme="light"] .footer-brand p,
 [data-theme="light"] .footer-tagline {
-  color: #64748b;
+  color: #475569;
+}
+
+[data-theme="light"] .footer-info p {
+  color: #475569;
+}
+
+[data-theme="light"] .footer-info p:first-child {
+  color: #0f172a;
 }
 
 [data-theme="light"] .footer-developer {
-  color: #64748b;
+  color: #475569;
 }
 
 [data-theme="light"] .footer-developer a {
@@ -318,15 +331,37 @@
 
 [data-theme="light"] .footer-tech-badge {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #475569;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+[data-theme="light"] .footer-tech {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
 }
 
 [data-theme="light"] .footer-divider {
-  border-color: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .footer-credits {
+  border-top-color: #cbd5e1;
+}
+
+[data-theme="light"] .footer-credits p {
+  color: #475569;
+}
+
+[data-theme="light"] .footer-credits strong {
+  color: var(--accent);
 }
 
 [data-theme="light"] .footer-copyright {
+  color: #64748b;
+}
+
+[data-theme="light"] .footer-bottom {
   color: #64748b;
 }
 
