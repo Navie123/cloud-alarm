@@ -12,6 +12,7 @@
 #include <Wire.h>
 #include <Preferences.h>
 #include <WiFiManager.h>  // WiFiManager library for captive portal
+#include <LiquidCrystal_I2C.h>  // LCD library
 #include "ClosedCube_HDC1080.h"
 #include "config.h"
 
@@ -24,6 +25,9 @@ WiFiManager wifiManager;
 
 // HDC1080 Temperature/Humidity Sensor
 ClosedCube_HDC1080 hdc1080;
+
+// LCD Display
+LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLS, LCD_ROWS);
 
 // Preferences for storing calibration
 Preferences preferences;
@@ -90,6 +94,13 @@ unsigned long lastCommandCheck = 0;
 bool configPortalActive = false;
 bool wifiResetRequested = false;  // Server can request WiFi reset
 
+// LCD Display Mode (controlled by buttons)
+int displayMode = 0;  // 0=Overview, 1=Temp/Humidity, 2=Gas Sensors, 3=System Info
+unsigned long lastButtonPress = 0;
+const unsigned long DEBOUNCE_DELAY = 200;  // Button debounce
+const unsigned long AUTO_RETURN_DELAY = 10000;  // Return to overview after 10s
+unsigned long lastModeChange = 0;
+
 // Function declarations
 void setupWiFiManager();
 void connectWiFi();
@@ -99,6 +110,7 @@ void sendDataToServer();
 void checkCommands();
 void updateAlarmState();
 void activateBuzzer(bool state);
+void updateLCD();
 String getTimestamp();
 float calculateCOPpm(int rawADC, float ro);
 float calculateAQI(int rawADC, float ro);
@@ -132,6 +144,11 @@ void setup() {
   pinMode(MQ7_PIN, INPUT);
   pinMode(MQ135_PIN, INPUT);
   
+  // Initialize button pins with internal pull-up resistors
+  pinMode(BTN1_PIN, INPUT_PULLUP);
+  pinMode(BTN2_PIN, INPUT_PULLUP);
+  pinMode(BTN3_PIN, INPUT_PULLUP);
+  
   // Keep buzzer off
   digitalWrite(BUZZER_PIN, LOW);
   digitalWrite(LED_PIN, LOW);
@@ -149,6 +166,21 @@ void setup() {
   delay(100);  // Give I2C time to stabilize
   hdc1080.begin(0x40);
   delay(50);
+  
+  // Initialize LCD (20x4)
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("====================");
+  lcd.setCursor(0, 1);
+  lcd.print("   FireWire v1.0    ");
+  lcd.setCursor(0, 2);
+  lcd.print(" Smart Fire Alarm   ");
+  lcd.setCursor(0, 3);
+  lcd.print("    Starting...     ");
+  Serial.println("LCD 20x4 initialized");
+  delay(1500);
   
   // Try to get initial reading
   float testTemp = hdc1080.readTemperature();
@@ -187,6 +219,7 @@ void setup() {
 
 void loop() {
   unsigned long now = millis();
+  static unsigned long lastLCDUpdate = 0;
   
   // Check WiFi connection
   if (WiFi.status() != WL_CONNECTED) {
@@ -194,11 +227,26 @@ void loop() {
     connectWiFi();
   }
   
+  // Check buttons for display mode change
+  checkButtons();
+  
+  // Auto-return to overview after timeout (unless in alarm mode)
+  if (!alarmActive && displayMode != 0 && (now - lastModeChange > AUTO_RETURN_DELAY)) {
+    displayMode = 0;
+    lcd.clear();
+  }
+  
   // Read sensors
   if (now - lastSensorRead >= SENSOR_READ_INTERVAL) {
     readSensors();
     updateAlarmState();
     lastSensorRead = now;
+  }
+  
+  // Update LCD every 500ms
+  if (now - lastLCDUpdate >= 500) {
+    updateLCD();
+    lastLCDUpdate = now;
   }
   
   // Send data to server
@@ -813,4 +861,230 @@ String getTimestamp() {
   char buf[20];
   sprintf(buf, "%02lu:%02lu:%02lu", hrs % 24, mins % 60, secs % 60);
   return String(buf);
+}
+
+// Check button presses for display mode change
+void checkButtons() {
+  unsigned long now = millis();
+  
+  // Debounce check
+  if (now - lastButtonPress < DEBOUNCE_DELAY) return;
+  
+  // Read button states (LOW = pressed because of pull-up)
+  bool btn1 = (digitalRead(BTN1_PIN) == LOW);
+  bool btn2 = (digitalRead(BTN2_PIN) == LOW);
+  bool btn3 = (digitalRead(BTN3_PIN) == LOW);
+  
+  // Button 1 - Temperature/Humidity view
+  if (btn1) {
+    displayMode = 1;
+    lastModeChange = now;
+    lastButtonPress = now;
+    lcd.clear();
+  }
+  // Button 2 - Gas Sensors view
+  else if (btn2) {
+    displayMode = 2;
+    lastModeChange = now;
+    lastButtonPress = now;
+    lcd.clear();
+  }
+  // Button 3 - System Info view
+  else if (btn3) {
+    displayMode = 3;
+    lastModeChange = now;
+    lastButtonPress = now;
+    lcd.clear();
+  }
+}
+
+// Update LCD display with sensor readings (20x4 LCD)
+void updateLCD() {
+  char buf[25];
+  
+  // ALARM MODE - Always show alarm regardless of display mode
+  if (alarmActive) {
+    static bool blink = false;
+    blink = !blink;
+    
+    lcd.setCursor(0, 0);
+    lcd.print(blink ? "*** FIRE ALARM! ***" : "                    ");
+    
+    lcd.setCursor(0, 1);
+    lcd.print(">> EVACUATE NOW! <<");
+    
+    lcd.setCursor(0, 2);
+    snprintf(buf, 21, "Temp: %.1f C", temperature);
+    lcd.print(buf);
+    
+    lcd.setCursor(0, 3);
+    snprintf(buf, 21, "Gas:%.0f%% Smoke:%.0f%%", gasPercent, smokePercent);
+    lcd.print(buf);
+    return;
+  }
+  
+  // Normal display modes
+  switch (displayMode) {
+    case 1:  // Temperature & Humidity (HDC1080)
+      displayTempHumidity();
+      break;
+    case 2:  // Gas Sensors (MQ-2, MQ-7, MQ-135)
+      displayGasSensors();
+      break;
+    case 3:  // System Info
+      displaySystemInfo();
+      break;
+    default:  // Overview (mode 0)
+      displayOverview();
+      break;
+  }
+}
+
+// Display Mode 0: Overview - Quick glance at all sensors
+void displayOverview() {
+  char buf[25];
+  
+  // Row 0: Status bar
+  lcd.setCursor(0, 0);
+  lcd.print("FIREWIRE");
+  lcd.setCursor(14, 0);
+  lcd.print(WiFi.status() == WL_CONNECTED ? "[OK]" : "[--]");
+  
+  // Row 1: Temperature & Humidity
+  lcd.setCursor(0, 1);
+  snprintf(buf, 21, "%.1fC  %.0f%%RH", temperature, humidity);
+  lcd.print(buf);
+  
+  // Row 2: Gas & Smoke
+  lcd.setCursor(0, 2);
+  snprintf(buf, 21, "Gas:%.0f%% Smk:%.0f%%", gasPercent, smokePercent);
+  lcd.print(buf);
+  
+  // Row 3: AQI & Status
+  lcd.setCursor(0, 3);
+  String status = "SAFE";
+  if (gasPercent > gasThreshold - 10 || smokePercent > smokeThreshold - 10) status = "WARN";
+  if (gasPercent > gasThreshold || smokePercent > smokeThreshold) status = "DANGER";
+  snprintf(buf, 21, "AQI:%.0f [%s]", aqi, status.c_str());
+  lcd.print(buf);
+}
+
+// Display Mode 1: Temperature & Humidity Detail
+void displayTempHumidity() {
+  char buf[25];
+  
+  // Row 0: Header
+  lcd.setCursor(0, 0);
+  lcd.print("== CLIMATE DATA ==");
+  
+  // Row 1: Temperature with bar
+  lcd.setCursor(0, 1);
+  snprintf(buf, 21, "Temp: %.1f C", temperature);
+  lcd.print(buf);
+  lcd.setCursor(15, 1);
+  if (temperature < 30) lcd.print(" OK ");
+  else if (temperature < 50) lcd.print("WARM");
+  else lcd.print(" HOT");
+  
+  // Row 2: Humidity with bar
+  lcd.setCursor(0, 2);
+  snprintf(buf, 21, "Hum:  %.1f %%", humidity);
+  lcd.print(buf);
+  lcd.setCursor(15, 2);
+  if (humidity < 30) lcd.print(" DRY");
+  else if (humidity < 60) lcd.print(" OK ");
+  else lcd.print("DAMP");
+  
+  // Row 3: Threshold info
+  lcd.setCursor(0, 3);
+  snprintf(buf, 21, "Alarm at: %d C", tempThreshold);
+  lcd.print(buf);
+}
+
+// Display Mode 2: Gas Sensors Detail
+void displayGasSensors() {
+  char buf[25];
+  static int gasPage = 0;
+  static unsigned long lastPageSwitch = 0;
+  
+  // Auto-switch between pages every 3 seconds
+  if (millis() - lastPageSwitch > 3000) {
+    gasPage = (gasPage + 1) % 2;
+    lastPageSwitch = millis();
+  }
+  
+  if (gasPage == 0) {
+    // Page 1: MQ-7 (CO) and MQ-2 (Smoke)
+    lcd.setCursor(0, 0);
+    lcd.print("== GAS SENSORS 1/2 =");
+    
+    lcd.setCursor(0, 1);
+    snprintf(buf, 21, "CO (MQ7): %.0f%%", gasPercent);
+    lcd.print(buf);
+    lcd.setCursor(16, 1);
+    lcd.print(coStatus == "normal" ? " OK " : coStatus == "warning" ? "WARN" : "!!");
+    
+    lcd.setCursor(0, 2);
+    snprintf(buf, 21, "Smoke(MQ2):%.0f%%", smokePercent);
+    lcd.print(buf);
+    lcd.setCursor(16, 2);
+    lcd.print(smokeStatus == "normal" ? " OK " : smokeStatus == "warning" ? "WARN" : "!!");
+    
+    lcd.setCursor(0, 3);
+    snprintf(buf, 21, "Thr: %d%% / %d%%", gasThreshold, smokeThreshold);
+    lcd.print(buf);
+  } else {
+    // Page 2: MQ-135 (AQI) and CO PPM
+    lcd.setCursor(0, 0);
+    lcd.print("== GAS SENSORS 2/2 =");
+    
+    lcd.setCursor(0, 1);
+    snprintf(buf, 21, "AQI (MQ135): %.0f", aqi);
+    lcd.print(buf);
+    
+    lcd.setCursor(0, 2);
+    snprintf(buf, 21, "Air: %s", 
+      aqiStatus == "good" ? "GOOD" : 
+      aqiStatus == "moderate" ? "MODERATE" : "POOR");
+    lcd.print(buf);
+    
+    lcd.setCursor(0, 3);
+    snprintf(buf, 21, "CO Est: %.0f PPM", coPpm);
+    lcd.print(buf);
+  }
+}
+
+// Display Mode 3: System Information
+void displaySystemInfo() {
+  char buf[25];
+  
+  // Row 0: Header
+  lcd.setCursor(0, 0);
+  lcd.print("== SYSTEM INFO ==");
+  
+  // Row 1: WiFi Status
+  lcd.setCursor(0, 1);
+  if (WiFi.status() == WL_CONNECTED) {
+    snprintf(buf, 21, "WiFi: %s", WiFi.SSID().substring(0, 10).c_str());
+  } else {
+    snprintf(buf, 21, "WiFi: Disconnected");
+  }
+  lcd.print(buf);
+  
+  // Row 2: IP Address
+  lcd.setCursor(0, 2);
+  if (WiFi.status() == WL_CONNECTED) {
+    snprintf(buf, 21, "IP:%s", WiFi.localIP().toString().c_str());
+  } else {
+    lcd.print("IP: ---.---.---.---");
+  }
+  lcd.print(buf);
+  
+  // Row 3: Uptime & Memory
+  lcd.setCursor(0, 3);
+  unsigned long uptime = millis() / 1000;
+  int hrs = uptime / 3600;
+  int mins = (uptime % 3600) / 60;
+  snprintf(buf, 21, "Up:%dh%dm Mem:%dK", hrs, mins, ESP.getFreeHeap() / 1024);
+  lcd.print(buf);
 }

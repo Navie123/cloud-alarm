@@ -430,6 +430,220 @@
             <div class="stat-info"><span class="stat-value" id="lastSeen">--</span><span class="stat-label">Last Update</span></div>
           </div>
         </div>
+
+        <!-- Session Statistics Panel -->
+        <div class="session-stats-panel">
+          <div class="stats-panel-header">
+            <div class="stats-panel-title">
+              <i class="fas fa-chart-line"></i>
+              <span>Session Statistics</span>
+            </div>
+            <div class="stats-panel-actions">
+              <span class="stats-session-time" id="sessionDuration">00:00:00</span>
+              <button class="stats-reset-btn" onclick="resetSessionStats()" title="Reset Statistics">
+                <i class="fas fa-rotate-right"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="stats-grid-container">
+            <!-- Temperature Stats -->
+            <div class="stats-sensor-block temp-stats">
+              <div class="stats-sensor-header">
+                <i class="fas fa-temperature-half"></i>
+                <span>Temperature</span>
+              </div>
+              <div class="stats-values-row">
+                <div class="stats-item">
+                  <span class="stats-label">Min</span>
+                  <span class="stats-value min" id="tempMin">--</span>
+                  <span class="stats-unit">°C</span>
+                </div>
+                <div class="stats-item highlight">
+                  <span class="stats-label">Avg</span>
+                  <span class="stats-value avg" id="tempAvg">--</span>
+                  <span class="stats-unit">°C</span>
+                </div>
+                <div class="stats-item">
+                  <span class="stats-label">Max</span>
+                  <span class="stats-value max" id="tempMax">--</span>
+                  <span class="stats-unit">°C</span>
+                </div>
+              </div>
+              <div class="stats-bar-container">
+                <div class="stats-bar temp-bar">
+                  <div class="stats-bar-fill" id="tempStatBar" style="width: 0%"></div>
+                  <div class="stats-bar-marker min" id="tempMinMarker" style="left: 0%"></div>
+                  <div class="stats-bar-marker max" id="tempMaxMarker" style="left: 0%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Humidity Stats -->
+            <div class="stats-sensor-block humidity-stats">
+              <div class="stats-sensor-header">
+                <i class="fas fa-droplet"></i>
+                <span>Humidity</span>
+              </div>
+              <div class="stats-values-row">
+                <div class="stats-item">
+                  <span class="stats-label">Min</span>
+                  <span class="stats-value min" id="humMin">--</span>
+                  <span class="stats-unit">%</span>
+                </div>
+                <div class="stats-item highlight">
+                  <span class="stats-label">Avg</span>
+                  <span class="stats-value avg" id="humAvg">--</span>
+                  <span class="stats-unit">%</span>
+                </div>
+                <div class="stats-item">
+                  <span class="stats-label">Max</span>
+                  <span class="stats-value max" id="humMax">--</span>
+                  <span class="stats-unit">%</span>
+                </div>
+              </div>
+              <div class="stats-bar-container">
+                <div class="stats-bar humidity-bar">
+                  <div class="stats-bar-fill" id="humStatBar" style="width: 0%"></div>
+                  <div class="stats-bar-marker min" id="humMinMarker" style="left: 0%"></div>
+                  <div class="stats-bar-marker max" id="humMaxMarker" style="left: 0%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gas Stats -->
+            <div class="stats-sensor-block gas-stats">
+              <div class="stats-sensor-header">
+                <i class="fas fa-fire-flame-simple"></i>
+                <span>Gas Level</span>
+              </div>
+              <div class="stats-values-row">
+                <div class="stats-item">
+                  <span class="stats-label">Min</span>
+                  <span class="stats-value min" id="gasMin">--</span>
+                  <span class="stats-unit">%</span>
+                </div>
+                <div class="stats-item highlight">
+                  <span class="stats-label">Avg</span>
+                  <span class="stats-value avg" id="gasAvg">--</span>
+                  <span class="stats-unit">%</span>
+                </div>
+                <div class="stats-item">
+                  <span class="stats-label">Max</span>
+                  <span class="stats-value max" id="gasMax">--</span>
+                  <span class="stats-unit">%</span>
+                </div>
+              </div>
+              <div class="stats-bar-container">
+                <div class="stats-bar gas-bar">
+                  <div class="stats-bar-fill" id="gasStatBar" style="width: 0%"></div>
+                  <div class="stats-bar-marker min" id="gasMinMarker" style="left: 0%"></div>
+                  <div class="stats-bar-marker max" id="gasMaxMarker" style="left: 0%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CO Stats -->
+            <div class="stats-sensor-block co-stats">
+              <div class="stats-sensor-header">
+                <i class="fas fa-skull-crossbones"></i>
+                <span>Carbon Monoxide</span>
+              </div>
+              <div class="stats-values-row">
+                <div class="stats-item">
+                  <span class="stats-label">Min</span>
+                  <span class="stats-value min" id="coMin">--</span>
+                  <span class="stats-unit">PPM</span>
+                </div>
+                <div class="stats-item highlight">
+                  <span class="stats-label">Avg</span>
+                  <span class="stats-value avg" id="coAvg">--</span>
+                  <span class="stats-unit">PPM</span>
+                </div>
+                <div class="stats-item">
+                  <span class="stats-label">Max</span>
+                  <span class="stats-value max" id="coMax">--</span>
+                  <span class="stats-unit">PPM</span>
+                </div>
+              </div>
+              <div class="stats-bar-container">
+                <div class="stats-bar co-bar">
+                  <div class="stats-bar-fill" id="coStatBar" style="width: 0%"></div>
+                  <div class="stats-bar-marker min" id="coMinMarker" style="left: 0%"></div>
+                  <div class="stats-bar-marker max" id="coMaxMarker" style="left: 0%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- AQI Stats -->
+            <div class="stats-sensor-block aqi-stats">
+              <div class="stats-sensor-header">
+                <i class="fas fa-wind"></i>
+                <span>Air Quality</span>
+              </div>
+              <div class="stats-values-row">
+                <div class="stats-item">
+                  <span class="stats-label">Min</span>
+                  <span class="stats-value min" id="aqiMin">--</span>
+                  <span class="stats-unit">AQI</span>
+                </div>
+                <div class="stats-item highlight">
+                  <span class="stats-label">Avg</span>
+                  <span class="stats-value avg" id="aqiAvg">--</span>
+                  <span class="stats-unit">AQI</span>
+                </div>
+                <div class="stats-item">
+                  <span class="stats-label">Max</span>
+                  <span class="stats-value max" id="aqiMax">--</span>
+                  <span class="stats-unit">AQI</span>
+                </div>
+              </div>
+              <div class="stats-bar-container">
+                <div class="stats-bar aqi-bar">
+                  <div class="stats-bar-fill" id="aqiStatBar" style="width: 0%"></div>
+                  <div class="stats-bar-marker min" id="aqiMinMarker" style="left: 0%"></div>
+                  <div class="stats-bar-marker max" id="aqiMaxMarker" style="left: 0%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Smoke Stats -->
+            <div class="stats-sensor-block smoke-stats">
+              <div class="stats-sensor-header">
+                <i class="fas fa-smog"></i>
+                <span>Smoke Level</span>
+              </div>
+              <div class="stats-values-row">
+                <div class="stats-item">
+                  <span class="stats-label">Min</span>
+                  <span class="stats-value min" id="smokeMin">--</span>
+                  <span class="stats-unit">%</span>
+                </div>
+                <div class="stats-item highlight">
+                  <span class="stats-label">Avg</span>
+                  <span class="stats-value avg" id="smokeAvg">--</span>
+                  <span class="stats-unit">%</span>
+                </div>
+                <div class="stats-item">
+                  <span class="stats-label">Max</span>
+                  <span class="stats-value max" id="smokeMax">--</span>
+                  <span class="stats-unit">%</span>
+                </div>
+              </div>
+              <div class="stats-bar-container">
+                <div class="stats-bar smoke-bar">
+                  <div class="stats-bar-fill" id="smokeStatBar" style="width: 0%"></div>
+                  <div class="stats-bar-marker min" id="smokeMinMarker" style="left: 0%"></div>
+                  <div class="stats-bar-marker max" id="smokeMaxMarker" style="left: 0%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-footer">
+            <span class="stats-readings-count"><i class="fas fa-database"></i> <span id="totalReadings">0</span> readings</span>
+          </div>
+        </div>
       </div>
 
       <!-- HISTORY TAB -->
@@ -455,8 +669,10 @@
           <div class="notif-header-icon">
             <i class="fas fa-bell"></i>
           </div>
-          <h2>Alert Notifications</h2>
-          <p>Stay informed when emergencies happen</p>
+          <div class="notif-header-text">
+            <h2>Alert Notifications</h2>
+            <p>Stay informed when emergencies happen</p>
+          </div>
         </div>
 
         <div class="notif-cards-grid">

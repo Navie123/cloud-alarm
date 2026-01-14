@@ -42,6 +42,11 @@
 #define BUZZER_PIN 25        // Buzzer pin
 #define LED_PIN 2            // Built-in LED
 
+// Button Pins (for LCD display toggle)
+#define BTN1_PIN 26          // Button 1 - Temperature/Humidity view
+#define BTN2_PIN 27          // Button 2 - Gas sensors view
+#define BTN3_PIN 13          // Button 3 - System info view (changed from 14)
+
 // Update Intervals (milliseconds)
 #define SENSOR_READ_INTERVAL 200     // Read sensors every 0.2 seconds
 #define DATA_SEND_INTERVAL 500       // Send data every 0.5 seconds
@@ -69,6 +74,11 @@
 
 // Stuck Sensor Detection
 #define STUCK_SENSOR_READINGS 60  // Number of identical readings to trigger warning
+
+// LCD Configuration (20x4 I2C LCD with PCF8574 backpack)
+#define LCD_ADDRESS 0x27          // Common I2C address (try 0x3F if 0x27 doesn't work)
+#define LCD_COLS 20               // 20 columns
+#define LCD_ROWS 4                // 4 rows
 
 #endif
  

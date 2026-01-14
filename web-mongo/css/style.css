@@ -2585,37 +2585,57 @@ body.fullscreen .minimize-btn { display: flex; }
 /* ========== NOTIFICATIONS TAB ========== */
 .notifications-header {
   text-align: center;
-  padding: 20px 16px;
+  padding: 12px 16px;
   background: linear-gradient(135deg, rgba(255, 87, 34, 0.1), rgba(255, 152, 0, 0.05));
-  border-radius: 16px;
-  margin-bottom: 20px;
+  border-radius: 12px;
+  margin-bottom: 16px;
   animation: fadeInUp 0.5s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
 .notif-header-icon {
-  width: 50px;
-  height: 50px;
+  width: 36px;
+  height: 36px;
   background: linear-gradient(135deg, var(--accent), var(--warning));
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 12px;
-  font-size: 20px;
+  font-size: 16px;
   color: white;
-  box-shadow: 0 4px 16px rgba(255, 87, 34, 0.3);
+  box-shadow: 0 3px 12px rgba(255, 87, 34, 0.3);
+  flex-shrink: 0;
 }
 
 .notifications-header h2 {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   color: var(--text);
-  margin: 0 0 4px;
+  margin: 0;
 }
 
 .notifications-header p {
   color: var(--text-muted);
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+}
+
+.notif-header-text {
+  text-align: left;
+}
+
+.notif-header-text h2 {
+  font-size: 1.1rem;
+  color: var(--text);
+  margin: 0;
+}
+
+.notif-header-text p {
+  color: var(--muted);
+  margin: 0;
+  font-size: 0.8rem;
 }
 
 .notif-cards-grid {
@@ -2982,17 +3002,22 @@ body.fullscreen .minimize-btn { display: flex; }
 /* Mobile responsive for notifications tab */
 @media (max-width: 768px) {
   .notifications-header {
-    padding: 16px 12px;
+    padding: 10px 12px;
+    gap: 10px;
   }
   
   .notif-header-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
   }
   
-  .notifications-header h2 {
-    font-size: 1.1rem;
+  .notif-header-text h2 {
+    font-size: 1rem;
+  }
+  
+  .notif-header-text p {
+    font-size: 0.75rem;
   }
   
   .notif-cards-grid {
@@ -6128,3 +6153,287 @@ header {
     justify-content: space-between;
   }
 }
+
+
+/* ========== SESSION STATISTICS PANEL ========== */
+.session-stats-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 20px;
+  animation: fadeInUp 0.5s ease;
+}
+
+.stats-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stats-panel-title i {
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.stats-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stats-session-time {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(255, 87, 34, 0.1);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 87, 34, 0.2);
+}
+
+.stats-reset-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.stats-reset-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+  transform: rotate(180deg);
+}
+
+.stats-grid-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .stats-grid-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .stats-grid-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stats-sensor-block {
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.stats-sensor-block:hover {
+  border-color: rgba(255, 87, 34, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.stats-sensor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats-sensor-header i {
+  font-size: 0.9rem;
+}
+
+/* Sensor-specific header colors */
+.temp-stats .stats-sensor-header i { color: #ef4444; }
+.humidity-stats .stats-sensor-header i { color: #06b6d4; }
+.gas-stats .stats-sensor-header i { color: #f97316; }
+.co-stats .stats-sensor-header i { color: #a855f7; }
+.aqi-stats .stats-sensor-header i { color: #22c55e; }
+.smoke-stats .stats-sensor-header i { color: #64748b; }
+
+.stats-values-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stats-item {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  background: var(--bg);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.stats-item.highlight {
+  background: rgba(255, 87, 34, 0.1);
+  border: 1px solid rgba(255, 87, 34, 0.2);
+}
+
+.stats-label {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stats-value {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  transition: all 0.3s ease;
+}
+
+.stats-value.min { color: #22c55e; }
+.stats-value.max { color: #ef4444; }
+.stats-value.avg { color: var(--accent); }
+
+.stats-unit {
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin-left: 2px;
+}
+
+/* Stats Bar */
+.stats-bar-container {
+  position: relative;
+  padding: 4px 0;
+}
+
+.stats-bar {
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  position: relative;
+  overflow: visible;
+}
+
+.stats-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+/* Sensor-specific bar colors */
+.temp-stats .stats-bar-fill {
+  background: linear-gradient(90deg, #3b82f6, #22c55e, #eab308, #ef4444);
+}
+
+.humidity-stats .stats-bar-fill {
+  background: linear-gradient(90deg, #06b6d4, #0891b2);
+}
+
+.gas-stats .stats-bar-fill {
+  background: linear-gradient(90deg, #22c55e, #eab308, #f97316, #ef4444);
+}
+
+.co-stats .stats-bar-fill {
+  background: linear-gradient(90deg, #22c55e, #a855f7, #ef4444);
+}
+
+.aqi-stats .stats-bar-fill {
+  background: linear-gradient(90deg, #22c55e, #84cc16, #eab308, #ef4444);
+}
+
+.smoke-stats .stats-bar-fill {
+  background: linear-gradient(90deg, #64748b, #475569, #334155);
+}
+
+.stats-bar-marker {
+  position: absolute;
+  top: -3px;
+  width: 4px;
+  height: 12px;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  transition: left 0.5s ease;
+  z-index: 2;
+}
+
+.stats-bar-marker.min {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+
+.stats-bar-marker.max {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+/* Stats Footer */
+.stats-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.stats-readings-count {
+  font-size: 0.8rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stats-readings-count i {
+  color: var(--accent);
+}
+
+/* Animation for value updates */
+@keyframes statPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.stats-value.updated {
+  animation: statPulse 0.3s ease;
+}
+
+/* Glow effect on hover */
+.stats-sensor-block.temp-stats:hover { box-shadow: 0 4px 16px rgba(239, 68, 68, 0.15); }
+.stats-sensor-block.humidity-stats:hover { box-shadow: 0 4px 16px rgba(6, 182, 212, 0.15); }
+.stats-sensor-block.gas-stats:hover { box-shadow: 0 4px 16px rgba(249, 115, 22, 0.15); }
+.stats-sensor-block.co-stats:hover { box-shadow: 0 4px 16px rgba(168, 85, 247, 0.15); }
+.stats-sensor-block.aqi-stats:hover { box-shadow: 0 4px 16px rgba(34, 197, 94, 0.15); }
+.stats-sensor-block.smoke-stats:hover { box-shadow: 0 4px 16px rgba(100, 116, 139, 0.15); }

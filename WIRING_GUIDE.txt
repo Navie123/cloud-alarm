@@ -21,8 +21,11 @@ SENSORS:
   • HDC1080 Temperature & Humidity Sensor (I2C)
 
 OUTPUT DEVICES:
-  • 20x4 LCD Display Module (I2C, address 0x27)
+  • 20x4 LCD Display Module (I2C, address 0x27, 4-pin backpack)
   • Piezoelectric Buzzer (Active, 5V)
+
+INPUT DEVICES:
+  • 3x Momentary Push Buttons (for LCD display toggle)
 
 CALIBRATION CONTROLS:
   • 10K Potentiometers (x3, one per MQ sensor - built into modules)
@@ -53,6 +56,11 @@ I2C BUS (Default Pins):
 DIGITAL OUTPUTS:
   GPIO 25               Buzzer (+)              Red
   GPIO 2                Built-in LED            (onboard)
+
+DIGITAL INPUTS (Buttons):
+  GPIO 26               Button 1 (Climate)      White
+  GPIO 27               Button 2 (Gas)          Gray
+  GPIO 13               Button 3 (System)       Brown
 
 POWER PINS:
   3.3V                  HDC1080 VCC             Red
@@ -120,7 +128,7 @@ POWER PINS:
    Note: Can share I2C bus with LCD display.
 
 ------------------------------------------------------------------------------
-5. 20x4 LCD DISPLAY (I2C Module with PCF8574)
+5. 20x4 LCD DISPLAY (I2C Module with PCF8574 - 4 Pin)
 ------------------------------------------------------------------------------
    LCD Pin       ESP32 Pin       Notes
    -------       ---------       -----
@@ -130,7 +138,11 @@ POWER PINS:
    SCL           GPIO 22         I2C Clock (shared with HDC1080)
 
    I2C Address: 0x27 (common) or 0x3F (check your module)
-   Note: Adjust contrast using the blue potentiometer on the back.
+   Display Size: 20 columns x 4 rows
+   
+   Note: The 4-pin I2C backpack (PCF8574) simplifies wiring.
+         Adjust contrast using the blue potentiometer on the back.
+         If display shows blocks, adjust contrast or check I2C address.
 
 ------------------------------------------------------------------------------
 6. PIEZOELECTRIC BUZZER (Active Type)
@@ -142,6 +154,29 @@ POWER PINS:
 
    Note: Active buzzers produce sound when voltage is applied.
          No PWM frequency control needed.
+
+------------------------------------------------------------------------------
+7. PUSH BUTTONS (Momentary, for LCD Display Toggle)
+------------------------------------------------------------------------------
+   Button        ESP32 Pin       Function
+   ------        ---------       --------
+   Button 1      GPIO 26         Climate View (Temp/Humidity)
+   Button 2      GPIO 27         Gas Sensors View (MQ-2/7/135)
+   Button 3      GPIO 13         System Info View (WiFi/IP/Uptime)
+
+   Wiring (for each button - 2-pin momentary switch):
+   
+     ESP32 GPIO ──────[BTN]────── GND
+     
+   Example:
+     GPIO 26 ────────[BTN1]────── GND  (Climate)
+     GPIO 27 ────────[BTN2]────── GND  (Gas Sensors)
+     GPIO 13 ────────[BTN3]────── GND  (System Info)
+
+   Note: Internal pull-up resistors are enabled in software.
+         No external resistors needed.
+         Press button = connects GPIO to GND = LOW signal detected.
+         Display auto-returns to Overview after 10 seconds.
 
 ================================================================================
                          WIRING DIAGRAM (ASCII)
@@ -156,16 +191,37 @@ POWER PINS:
                          │                     │      ├─ MQ-7 VCC
      HDC1080 SDA ────┬───┤ GPIO 21             │      ├─ MQ-135 VCC
          LCD SDA ────┘   │                     │      ├─ LCD VCC
-                         │                     │      └─ Buzzer (-)
-     HDC1080 SCL ────┬───┤ GPIO 22             │
-         LCD SCL ────┘   │                     │
-                         │                     │
+                         │                     │      ├─ Buzzer (-)
+     HDC1080 SCL ────┬───┤ GPIO 22             │      ├─ BTN1 (other leg)
+         LCD SCL ────┘   │                     │      ├─ BTN2 (other leg)
+                         │                     │      └─ BTN3 (other leg)
        Buzzer (+) ───────┤ GPIO 25             │
+                         │                     │
+    Button 1 (leg) ──────┤ GPIO 26             │
+    Button 2 (leg) ──────┤ GPIO 27             │
+    Button 3 (leg) ──────┤ GPIO 13             │
                          │                     │
                          │        USB          │
                          └─────────┬───────────┘
                                    │
                               5V Power
+
+
+                         BUTTON WIRING DETAIL
+                         ════════════════════
+
+     GPIO 26 ────────┬────[BTN1]────┬──────── GND
+                     │              │
+     GPIO 27 ────────┬────[BTN2]────┬──────── GND
+                     │              │
+     GPIO 13 ────────┬────[BTN3]────┬──────── GND
+
+     Button Functions:
+     • BTN1: Climate Data (Temperature & Humidity from HDC1080)
+     • BTN2: Gas Sensors (MQ-2 Smoke, MQ-7 CO, MQ-135 AQI)
+     • BTN3: System Info (WiFi, IP Address, Uptime, Memory)
+     
+     Display auto-returns to Overview after 10 seconds.
 
 ================================================================================
                          I2C BUS CONFIGURATION

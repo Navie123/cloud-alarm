@@ -586,6 +586,9 @@ function updateUI(data) {
   // Track when we received data
   lastDataReceivedTime = Date.now();
   
+  // Update session statistics
+  updateSessionStats(data);
+  
   // Gas gauge update (MQ-7)
   const gasPercent = Math.min(data.gas || 0, 100);
   const gasVal = document.getElementById('gasVal');
@@ -2019,3 +2022,228 @@ async function changeAccessCode() {
 document.addEventListener('DOMContentLoaded', () => {
   setupMembersTab();
 });
+
+// ============ SESSION STATISTICS ============
+const sessionStats = {
+  startTime: Date.now(),
+  readings: 0,
+  temp: { min: null, max: null, sum: 0, count: 0 },
+  humidity: { min: null, max: null, sum: 0, count: 0 },
+  gas: { min: null, max: null, sum: 0, count: 0 },
+  co: { min: null, max: null, sum: 0, count: 0 },
+  aqi: { min: null, max: null, sum: 0, count: 0 },
+  smoke: { min: null, max: null, sum: 0, count: 0 }
+};
+
+// Update session statistics with new sensor data
+function updateSessionStats(data) {
+  if (!data) return;
+  
+  sessionStats.readings++;
+  
+  // Temperature
+  if (data.temperature !== undefined && data.temperature !== null) {
+    const temp = parseFloat(data.temperature);
+    if (!isNaN(temp)) {
+      if (sessionStats.temp.min === null || temp < sessionStats.temp.min) sessionStats.temp.min = temp;
+      if (sessionStats.temp.max === null || temp > sessionStats.temp.max) sessionStats.temp.max = temp;
+      sessionStats.temp.sum += temp;
+      sessionStats.temp.count++;
+    }
+  }
+  
+  // Humidity
+  if (data.humidity !== undefined && data.humidity !== null) {
+    const hum = parseFloat(data.humidity);
+    if (!isNaN(hum)) {
+      if (sessionStats.humidity.min === null || hum < sessionStats.humidity.min) sessionStats.humidity.min = hum;
+      if (sessionStats.humidity.max === null || hum > sessionStats.humidity.max) sessionStats.humidity.max = hum;
+      sessionStats.humidity.sum += hum;
+      sessionStats.humidity.count++;
+    }
+  }
+  
+  // Gas (MQ-7)
+  if (data.gas !== undefined && data.gas !== null) {
+    const gas = parseFloat(data.gas);
+    if (!isNaN(gas)) {
+      if (sessionStats.gas.min === null || gas < sessionStats.gas.min) sessionStats.gas.min = gas;
+      if (sessionStats.gas.max === null || gas > sessionStats.gas.max) sessionStats.gas.max = gas;
+      sessionStats.gas.sum += gas;
+      sessionStats.gas.count++;
+    }
+  }
+  
+  // CO (PPM)
+  if (data.coPPM !== undefined && data.coPPM !== null) {
+    const co = parseFloat(data.coPPM);
+    if (!isNaN(co)) {
+      if (sessionStats.co.min === null || co < sessionStats.co.min) sessionStats.co.min = co;
+      if (sessionStats.co.max === null || co > sessionStats.co.max) sessionStats.co.max = co;
+      sessionStats.co.sum += co;
+      sessionStats.co.count++;
+    }
+  }
+  
+  // AQI
+  if (data.aqi !== undefined && data.aqi !== null) {
+    const aqi = parseFloat(data.aqi);
+    if (!isNaN(aqi)) {
+      if (sessionStats.aqi.min === null || aqi < sessionStats.aqi.min) sessionStats.aqi.min = aqi;
+      if (sessionStats.aqi.max === null || aqi > sessionStats.aqi.max) sessionStats.aqi.max = aqi;
+      sessionStats.aqi.sum += aqi;
+      sessionStats.aqi.count++;
+    }
+  }
+  
+  // Smoke (MQ-2)
+  if (data.smoke !== undefined && data.smoke !== null) {
+    const smoke = parseFloat(data.smoke);
+    if (!isNaN(smoke)) {
+      if (sessionStats.smoke.min === null || smoke < sessionStats.smoke.min) sessionStats.smoke.min = smoke;
+      if (sessionStats.smoke.max === null || smoke > sessionStats.smoke.max) sessionStats.smoke.max = smoke;
+      sessionStats.smoke.sum += smoke;
+      sessionStats.smoke.count++;
+    }
+  }
+  
+  // Update the UI
+  renderSessionStats();
+}
+
+// Render session statistics to the UI
+function renderSessionStats() {
+  // Temperature
+  updateStatDisplay('temp', sessionStats.temp, 80, 1);
+  
+  // Humidity
+  updateStatDisplay('hum', sessionStats.humidity, 100, 1);
+  
+  // Gas
+  updateStatDisplay('gas', sessionStats.gas, 100, 1);
+  
+  // CO
+  updateStatDisplay('co', sessionStats.co, 500, 0);
+  
+  // AQI
+  updateStatDisplay('aqi', sessionStats.aqi, 500, 0);
+  
+  // Smoke
+  updateStatDisplay('smoke', sessionStats.smoke, 100, 1);
+  
+  // Total readings
+  const totalReadingsEl = document.getElementById('totalReadings');
+  if (totalReadingsEl) totalReadingsEl.textContent = sessionStats.readings;
+}
+
+// Update individual stat display
+function updateStatDisplay(prefix, stats, maxScale, decimals) {
+  const minEl = document.getElementById(`${prefix}Min`);
+  const maxEl = document.getElementById(`${prefix}Max`);
+  const avgEl = document.getElementById(`${prefix}Avg`);
+  const barEl = document.getElementById(`${prefix}StatBar`);
+  const minMarker = document.getElementById(`${prefix}MinMarker`);
+  const maxMarker = document.getElementById(`${prefix}MaxMarker`);
+  
+  if (stats.count > 0) {
+    const avg = stats.sum / stats.count;
+    
+    // Update values with animation
+    if (minEl) {
+      const newVal = stats.min.toFixed(decimals);
+      if (minEl.textContent !== newVal) {
+        minEl.textContent = newVal;
+        minEl.classList.add('updated');
+        setTimeout(() => minEl.classList.remove('updated'), 300);
+      }
+    }
+    
+    if (maxEl) {
+      const newVal = stats.max.toFixed(decimals);
+      if (maxEl.textContent !== newVal) {
+        maxEl.textContent = newVal;
+        maxEl.classList.add('updated');
+        setTimeout(() => maxEl.classList.remove('updated'), 300);
+      }
+    }
+    
+    if (avgEl) {
+      const newVal = avg.toFixed(decimals);
+      if (avgEl.textContent !== newVal) {
+        avgEl.textContent = newVal;
+        avgEl.classList.add('updated');
+        setTimeout(() => avgEl.classList.remove('updated'), 300);
+      }
+    }
+    
+    // Update bar fill (average position)
+    if (barEl) {
+      const avgPercent = Math.min((avg / maxScale) * 100, 100);
+      barEl.style.width = avgPercent + '%';
+    }
+    
+    // Update markers
+    if (minMarker) {
+      const minPercent = Math.min((stats.min / maxScale) * 100, 100);
+      minMarker.style.left = minPercent + '%';
+    }
+    
+    if (maxMarker) {
+      const maxPercent = Math.min((stats.max / maxScale) * 100, 100);
+      maxMarker.style.left = maxPercent + '%';
+    }
+  }
+}
+
+// Reset session statistics
+function resetSessionStats() {
+  sessionStats.startTime = Date.now();
+  sessionStats.readings = 0;
+  sessionStats.temp = { min: null, max: null, sum: 0, count: 0 };
+  sessionStats.humidity = { min: null, max: null, sum: 0, count: 0 };
+  sessionStats.gas = { min: null, max: null, sum: 0, count: 0 };
+  sessionStats.co = { min: null, max: null, sum: 0, count: 0 };
+  sessionStats.aqi = { min: null, max: null, sum: 0, count: 0 };
+  sessionStats.smoke = { min: null, max: null, sum: 0, count: 0 };
+  
+  // Reset UI
+  ['temp', 'hum', 'gas', 'co', 'aqi', 'smoke'].forEach(prefix => {
+    const minEl = document.getElementById(`${prefix}Min`);
+    const maxEl = document.getElementById(`${prefix}Max`);
+    const avgEl = document.getElementById(`${prefix}Avg`);
+    const barEl = document.getElementById(`${prefix}StatBar`);
+    const minMarker = document.getElementById(`${prefix}MinMarker`);
+    const maxMarker = document.getElementById(`${prefix}MaxMarker`);
+    
+    if (minEl) minEl.textContent = '--';
+    if (maxEl) maxEl.textContent = '--';
+    if (avgEl) avgEl.textContent = '--';
+    if (barEl) barEl.style.width = '0%';
+    if (minMarker) minMarker.style.left = '0%';
+    if (maxMarker) maxMarker.style.left = '0%';
+  });
+  
+  const totalReadingsEl = document.getElementById('totalReadings');
+  if (totalReadingsEl) totalReadingsEl.textContent = '0';
+  
+  showToast('Statistics reset', 'success');
+}
+
+// Update session duration timer
+function updateSessionDuration() {
+  const durationEl = document.getElementById('sessionDuration');
+  if (!durationEl) return;
+  
+  const elapsed = Date.now() - sessionStats.startTime;
+  const hours = Math.floor(elapsed / 3600000);
+  const minutes = Math.floor((elapsed % 3600000) / 60000);
+  const seconds = Math.floor((elapsed % 60000) / 1000);
+  
+  durationEl.textContent = 
+    String(hours).padStart(2, '0') + ':' +
+    String(minutes).padStart(2, '0') + ':' +
+    String(seconds).padStart(2, '0');
+}
+
+// Start session duration timer
+setInterval(updateSessionDuration, 1000);
