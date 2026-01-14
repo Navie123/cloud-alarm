@@ -779,8 +779,11 @@ void checkCommands() {
   http.addHeader("X-Device-Secret", DEVICE_SECRET);
   int httpCode = http.GET();
   
+  Serial.printf("[CMD] Checking commands... HTTP %d\n", httpCode);
+  
   if (httpCode == 200) {
     String response = http.getString();
+    Serial.printf("[CMD] Response: %s\n", response.c_str());
     
     StaticJsonDocument<512> doc;
     DeserializationError error = deserializeJson(doc, response);
@@ -836,16 +839,21 @@ void checkCommands() {
       
       // WiFi reset command from dashboard
       if (doc.containsKey("resetWifi") && doc["resetWifi"].as<bool>()) {
-        Serial.println("WiFi reset requested from server");
+        Serial.println("!!! WiFi RESET REQUESTED FROM SERVER !!!");
         wifiResetRequested = true;
       }
+    } else {
+      Serial.printf("[CMD] JSON parse error: %s\n", error.c_str());
     }
+  } else {
+    Serial.printf("[CMD] HTTP error: %d\n", httpCode);
   }
   
   http.end();
   
   // Handle WiFi reset after HTTP connection closed
   if (wifiResetRequested) {
+    Serial.println("!!! EXECUTING WIFI RESET NOW !!!");
     wifiResetRequested = false;
     resetWiFiSettings();
   }
