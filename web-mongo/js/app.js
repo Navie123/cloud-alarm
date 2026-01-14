@@ -737,8 +737,8 @@ function updateUI(data) {
   if (lastUpdateDisplay) lastUpdateDisplay.textContent = data.timestamp || '--';
   
   const freeHeapDisplay = document.getElementById('freeHeapDisplay');
-  if (freeHeapDisplay && data.freeHeap) {
-    freeHeapDisplay.textContent = (data.freeHeap / 1024).toFixed(1) + ' KB';
+  if (freeHeapDisplay && data.heap) {
+    freeHeapDisplay.textContent = (data.heap / 1024).toFixed(1) + ' KB';
   }
   
   const connectionStatusDisplay = document.getElementById('connectionStatusDisplay');
