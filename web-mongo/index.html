@@ -430,12 +430,14 @@
             <div class="stat-info"><span class="stat-value" id="lastSeen">--</span><span class="stat-label">Last Update</span></div>
           </div>
         </div>
+      </div>
 
+      <!-- HISTORY TAB -->
+      <div class="tab-content" id="tab-history">
         <!-- Statistics Toggle Button -->
-        <button class="stats-toggle-btn" id="statsToggleBtn" onclick="toggleSessionStats()">
+        <button class="stats-toggle-btn" id="statsToggleBtn" onclick="toggleStatsPanel()">
           <i class="fas fa-chart-line"></i>
-          <span>Statistics</span>
-          <span class="stats-toggle-badge" id="statsReadingsBadge">0</span>
+          <span>Sensor Statistics</span>
           <i class="fas fa-chevron-down toggle-arrow" id="statsToggleArrow"></i>
         </button>
 
@@ -444,22 +446,13 @@
           <div class="stats-panel-header">
             <div class="stats-panel-title">
               <i class="fas fa-chart-line"></i>
-              <span>Statistics</span>
-            </div>
-            <div class="stats-panel-actions">
-              <span class="stats-session-time" id="sessionDuration">00:00:00</span>
-              <button class="stats-reset-btn" onclick="resetSessionStats()" title="Reset Statistics">
-                <i class="fas fa-rotate-right"></i>
-              </button>
+              <span>Sensor Statistics</span>
             </div>
           </div>
 
           <!-- Period Tabs -->
           <div class="stats-period-tabs">
-            <button class="stats-period-tab active" data-period="session" onclick="switchStatsPeriod('session')">
-              <i class="fas fa-stopwatch"></i> Session
-            </button>
-            <button class="stats-period-tab" data-period="today" onclick="switchStatsPeriod('today')">
+            <button class="stats-period-tab active" data-period="today" onclick="switchStatsPeriod('today')">
               <i class="fas fa-calendar-day"></i> Today
             </button>
             <button class="stats-period-tab" data-period="week" onclick="switchStatsPeriod('week')">
@@ -472,7 +465,7 @@
 
           <!-- Period Info Bar -->
           <div class="stats-period-info" id="statsPeriodInfo">
-            <span class="period-label" id="periodLabel">Current Session</span>
+            <span class="period-label" id="periodLabel">Today</span>
             <span class="period-range" id="periodRange"></span>
           </div>
           
@@ -685,10 +678,7 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- HISTORY TAB -->
-      <div class="tab-content" id="tab-history">
         <div class="card">
           <div class="card-header">
             <div class="card-title"><i class="fas fa-triangle-exclamation"></i> Alarm History (<span id="historyCount">0</span>)</div>
