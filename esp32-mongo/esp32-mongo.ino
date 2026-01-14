@@ -281,6 +281,44 @@ void setupWiFiManager() {
   // Set minimum signal quality for networks to show
   wifiManager.setMinimumSignalQuality(20);
   
+  // Custom dark theme styling for the portal
+  wifiManager.setCustomHeadElement(
+    "<style>"
+    "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');"
+    "*{box-sizing:border-box;margin:0;padding:0}"
+    "body{font-family:'Inter',system-ui,sans-serif;background:linear-gradient(135deg,#0a0a0a 0%,#1a1a1a 100%);color:#f5f5f5;min-height:100vh;padding:20px}"
+    ".wrap{max-width:400px;margin:0 auto}"
+    "h1{font-size:1.5rem;text-align:center;margin-bottom:8px;background:linear-gradient(90deg,#ff5722,#ff8a50);-webkit-background-clip:text;-webkit-text-fill-color:transparent}"
+    "h3{font-size:0.9rem;color:#888;text-align:center;margin-bottom:24px;font-weight:400}"
+    ".msg{background:rgba(255,87,34,0.1);border:1px solid rgba(255,87,34,0.3);border-radius:12px;padding:16px;margin-bottom:20px;text-align:center}"
+    ".msg strong{color:#ff5722}"
+    "button,input[type='button'],input[type='submit']{width:100%;padding:16px;border:none;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;margin-bottom:12px;transition:all 0.3s ease}"
+    "button,.btn{background:linear-gradient(135deg,#ff5722,#ff8a50);color:white;box-shadow:0 4px 15px rgba(255,87,34,0.3)}"
+    "button:hover,.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(255,87,34,0.4)}"
+    "button:active,.btn:active{transform:translateY(0)}"
+    ".q{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all 0.2s}"
+    ".q:hover{border-color:#ff5722;background:#222}"
+    ".q div{display:flex;align-items:center;gap:12px}"
+    ".q i{font-size:1.2rem}"
+    "input[type='text'],input[type='password']{width:100%;padding:16px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;color:#f5f5f5;font-size:1rem;margin-bottom:12px;transition:border-color 0.2s}"
+    "input[type='text']:focus,input[type='password']:focus{outline:none;border-color:#ff5722}"
+    "label{display:block;color:#888;font-size:0.85rem;margin-bottom:6px}"
+    "a{color:#ff5722;text-decoration:none}"
+    "a:hover{text-decoration:underline}"
+    ".footer{text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #2a2a2a;color:#666;font-size:0.8rem}"
+    ".logo{width:80px;height:80px;margin:0 auto 16px;background:linear-gradient(135deg,#ff5722,#ff8a50);border-radius:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(255,87,34,0.3)}"
+    ".logo svg{width:48px;height:48px;fill:white}"
+    "@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}"
+    ".scanning{animation:pulse 1.5s ease-in-out infinite}"
+    "</style>"
+  );
+  
+  // Custom menu with icons
+  wifiManager.setMenu({"wifi", "info", "exit"});
+  
+  // Custom title
+  wifiManager.setTitle("<div class='logo'><svg viewBox='0 0 24 24'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/></svg></div>FireWire Setup");
+  
   // Custom AP name and password
   String apName = String(WIFI_AP_NAME);
   
