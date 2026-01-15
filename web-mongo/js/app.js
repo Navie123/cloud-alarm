@@ -587,58 +587,146 @@ function updateUI(data) {
   // Track when we received data
   lastDataReceivedTime = Date.now();
   
-  // Gas gauge update (MQ-7)
-  const gasPercent = Math.min(data.gas || 0, 100);
-  const gasVal = document.getElementById('gasVal');
-  if (gasVal) gasVal.textContent = gasPercent.toFixed(1);
-  updateGauge('gasGauge', gasPercent, 100);
+  // Determine if device is online first
+  let isDeviceOnline = isConnected;
+  let diffSeconds = Infinity;
   
-  // Smoke gauge update (MQ-2)
-  const smokePercent = Math.min(data.smoke || 0, 100);
-  const smokeVal = document.getElementById('smokeVal');
-  if (smokeVal) smokeVal.textContent = smokePercent.toFixed(1);
-  updateGauge('smokeGauge', smokePercent, 100);
+  // Calculate time since last data for display
+  if (lastDataReceivedTime) {
+    diffSeconds = (Date.now() - lastDataReceivedTime) / 1000;
+    // If we received data recently via WebSocket, device is online
+    if (diffSeconds < 30 && isConnected) {
+      isDeviceOnline = true;
+    }
+  } else if (data.lastSeen) {
+    // Fallback to database lastSeen for initial load
+    const lastSeenTime = new Date(data.lastSeen).getTime();
+    diffSeconds = (Date.now() - lastSeenTime) / 1000;
+    // Only consider online if very recent AND WebSocket is connected
+    if (diffSeconds < 30 && isConnected) {
+      isDeviceOnline = true;
+      lastDataReceivedTime = lastSeenTime;
+    } else {
+      isDeviceOnline = false;
+    }
+  }
   
-  // Smoke status and card styling
+  // If WebSocket is not connected, device is definitely offline
+  if (!isConnected) {
+    isDeviceOnline = false;
+  }
+  
+  // Update last seen display
+  const lastSeen = document.getElementById('lastSeen');
+  if (lastSeen) {
+    if (diffSeconds < 10) {
+      lastSeen.textContent = 'Just now';
+    } else if (diffSeconds < 60) {
+      lastSeen.textContent = Math.floor(diffSeconds) + 's ago';
+    } else if (diffSeconds < 3600) {
+      lastSeen.textContent = Math.floor(diffSeconds / 60) + 'm ago';
+    } else if (diffSeconds < 86400) {
+      lastSeen.textContent = Math.floor(diffSeconds / 3600) + 'h ago';
+    } else {
+      lastSeen.textContent = Math.floor(diffSeconds / 86400) + 'd ago';
+    }
+  }
+  
+  // Update device status displays
+  const deviceStatus = document.getElementById('deviceStatus');
+  const connectionStatus = document.getElementById('connectionStatus');
+  
+  if (deviceStatus) {
+    deviceStatus.textContent = isDeviceOnline ? 'Online' : 'Offline';
+    deviceStatus.classList.toggle('online', isDeviceOnline);
+    deviceStatus.classList.toggle('offline', !isDeviceOnline);
+  }
+  
+  if (connectionStatus) {
+    connectionStatus.textContent = isDeviceOnline ? 'Connected' : 'Disconnected';
+  }
+  
+  // Update sensor values only if device is online, otherwise show "--"
+  if (isDeviceOnline) {
+    // Gas gauge update (MQ-7)
+    const gasPercent = Math.min(data.gas || 0, 100);
+    const gasVal = document.getElementById('gasVal');
+    if (gasVal) gasVal.textContent = gasPercent.toFixed(1);
+    updateGauge('gasGauge', gasPercent, 100);
+    
+    // Smoke gauge update (MQ-2)
+    const smokePercent = Math.min(data.smoke || 0, 100);
+    const smokeVal = document.getElementById('smokeVal');
+    if (smokeVal) smokeVal.textContent = smokePercent.toFixed(1);
+    updateGauge('smokeGauge', smokePercent, 100);
+    
+    // Temperature gauge update
+    const temp = data.temperature || 0;
+    const tempVal = document.getElementById('tempVal');
+    if (tempVal) tempVal.textContent = temp.toFixed(1);
+    updateGauge('tempGauge', temp, 80);
+    
+    // Humidity gauge update
+    const humidity = Math.min(data.humidity || 0, 100);
+    const humVal = document.getElementById('humVal');
+    if (humVal) humVal.textContent = humidity.toFixed(1);
+    updateGauge('humGauge', humidity, 100);
+    
+    // Humidity level text
+    const humLevel = document.getElementById('humLevel');
+    if (humLevel) {
+      if (humidity < 30) humLevel.textContent = 'Low';
+      else if (humidity < 60) humLevel.textContent = 'Normal';
+      else humLevel.textContent = 'High';
+    }
+    
+    // Voltage
+    const voltVal = document.getElementById('voltVal');
+    if (voltVal) voltVal.textContent = (data.voltage || 0).toFixed(2);
+  } else {
+    // Device is offline - show "--" for all sensor values
+    const gasVal = document.getElementById('gasVal');
+    const smokeVal = document.getElementById('smokeVal');
+    const tempVal = document.getElementById('tempVal');
+    const humVal = document.getElementById('humVal');
+    const voltVal = document.getElementById('voltVal');
+    const humLevel = document.getElementById('humLevel');
+    
+    if (gasVal) gasVal.textContent = '--';
+    if (smokeVal) smokeVal.textContent = '--';
+    if (tempVal) tempVal.textContent = '--';
+    if (humVal) humVal.textContent = '--';
+    if (voltVal) voltVal.textContent = '--';
+    if (humLevel) humLevel.textContent = '--';
+    
+    // Reset gauges to 0
+    updateGauge('gasGauge', 0, 100);
+    updateGauge('smokeGauge', 0, 100);
+    updateGauge('tempGauge', 0, 80);
+    updateGauge('humGauge', 0, 100);
+  }
+  
+  // Smoke status and card styling (always update for consistency)
   const smokeStatus = document.getElementById('smokeStatus');
   const smokeCard = document.querySelector('.smoke-card');
   if (smokeStatus) {
-    const status = data.smokeStatus || 'normal';
-    smokeStatus.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-    smokeStatus.className = 'status-value smoke-' + status;
+    if (isDeviceOnline) {
+      const status = data.smokeStatus || 'normal';
+      smokeStatus.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+      smokeStatus.className = 'status-value smoke-' + status;
+    } else {
+      smokeStatus.textContent = '--';
+      smokeStatus.className = 'status-value';
+    }
   }
   if (smokeCard) {
     smokeCard.classList.remove('status-warning', 'status-danger', 'status-critical');
-    if (data.smokeStatus === 'warning') smokeCard.classList.add('status-warning');
-    else if (data.smokeStatus === 'danger') smokeCard.classList.add('status-danger');
-    else if (data.smokeStatus === 'critical') smokeCard.classList.add('status-critical');
+    if (isDeviceOnline && data.smokeStatus === 'warning') smokeCard.classList.add('status-warning');
+    else if (isDeviceOnline && data.smokeStatus === 'danger') smokeCard.classList.add('status-danger');
+    else if (isDeviceOnline && data.smokeStatus === 'critical') smokeCard.classList.add('status-critical');
   }
   
-  // Temperature gauge update
-  const temp = data.temperature || 0;
-  const tempVal = document.getElementById('tempVal');
-  if (tempVal) tempVal.textContent = temp.toFixed(1);
-  updateGauge('tempGauge', temp, 80);
-  
-  // Humidity gauge update
-  const humidity = Math.min(data.humidity || 0, 100);
-  const humVal = document.getElementById('humVal');
-  if (humVal) humVal.textContent = humidity.toFixed(1);
-  updateGauge('humGauge', humidity, 100);
-  
-  // Humidity level text
-  const humLevel = document.getElementById('humLevel');
-  if (humLevel) {
-    if (humidity < 30) humLevel.textContent = 'Low';
-    else if (humidity < 60) humLevel.textContent = 'Normal';
-    else humLevel.textContent = 'High';
-  }
-  
-  // Voltage
-  const voltVal = document.getElementById('voltVal');
-  if (voltVal) voltVal.textContent = (data.voltage || 0).toFixed(2);
-  
-  // Thresholds
+  // Thresholds (always show these as they're settings, not sensor readings)
   const threshVal = document.getElementById('threshVal');
   if (threshVal) threshVal.textContent = data.threshold || '40';
   
@@ -687,67 +775,6 @@ function updateUI(data) {
   
   const lastUpdate = document.getElementById('lastUpdate');
   if (lastUpdate) lastUpdate.textContent = data.timestamp || '--';
-  
-  // Check if device is actually online
-  // Primary: WebSocket connection state (immediate)
-  // Secondary: lastSeen timestamp from database (for initial load)
-  const lastSeen = document.getElementById('lastSeen');
-  const deviceStatus = document.getElementById('deviceStatus');
-  const connectionStatus = document.getElementById('connectionStatus');
-  
-  // Device is online only if WebSocket is connected AND we're receiving data
-  let isDeviceOnline = isConnected;
-  let diffSeconds = Infinity;
-  
-  // Calculate time since last data for display
-  if (lastDataReceivedTime) {
-    diffSeconds = (Date.now() - lastDataReceivedTime) / 1000;
-    // If we received data recently via WebSocket, device is online
-    if (diffSeconds < 30 && isConnected) {
-      isDeviceOnline = true;
-    }
-  } else if (data.lastSeen) {
-    // Fallback to database lastSeen for initial load
-    const lastSeenTime = new Date(data.lastSeen).getTime();
-    diffSeconds = (Date.now() - lastSeenTime) / 1000;
-    // Only consider online if very recent AND WebSocket is connected
-    if (diffSeconds < 30 && isConnected) {
-      isDeviceOnline = true;
-      lastDataReceivedTime = lastSeenTime;
-    } else {
-      isDeviceOnline = false;
-    }
-  }
-  
-  // If WebSocket is not connected, device is definitely offline
-  if (!isConnected) {
-    isDeviceOnline = false;
-  }
-  
-  // Update last seen display
-  if (lastSeen) {
-    if (diffSeconds < 10) {
-      lastSeen.textContent = 'Just now';
-    } else if (diffSeconds < 60) {
-      lastSeen.textContent = Math.floor(diffSeconds) + 's ago';
-    } else if (diffSeconds < 3600) {
-      lastSeen.textContent = Math.floor(diffSeconds / 60) + 'm ago';
-    } else if (diffSeconds < 86400) {
-      lastSeen.textContent = Math.floor(diffSeconds / 3600) + 'h ago';
-    } else {
-      lastSeen.textContent = Math.floor(diffSeconds / 86400) + 'd ago';
-    }
-  }
-  
-  if (deviceStatus) {
-    deviceStatus.textContent = isDeviceOnline ? 'Online' : 'Offline';
-    deviceStatus.classList.toggle('online', isDeviceOnline);
-    deviceStatus.classList.toggle('offline', !isDeviceOnline);
-  }
-  
-  if (connectionStatus) {
-    connectionStatus.textContent = isDeviceOnline ? 'Connected' : 'Disconnected';
-  }
   
   // Update Device tab info (sync with Settings tab)
   const deviceIdDisplay = document.getElementById('deviceIdDisplay');
@@ -1429,6 +1456,20 @@ document.addEventListener('DOMContentLoaded', initTheme);
 
 // Update UI with gas sensor data
 function updateGasSensorUI(data) {
+  // Check if device is online (same logic as main updateUI)
+  let deviceOnline = isConnected;
+  if (lastDataReceivedTime) {
+    const timeDiff = (Date.now() - lastDataReceivedTime) / 1000;
+    deviceOnline = timeDiff < 30 && isConnected;
+  } else if (data.lastSeen) {
+    const lastSeenTime = new Date(data.lastSeen).getTime();
+    const timeDiff = (Date.now() - lastSeenTime) / 1000;
+    deviceOnline = timeDiff < 30 && isConnected;
+  }
+  if (!isConnected) {
+    deviceOnline = false;
+  }
+  
   // CO Sensor
   const coVal = document.getElementById('coVal');
   const coStatus = document.getElementById('coStatus');
@@ -1437,7 +1478,9 @@ function updateGasSensorUI(data) {
   const coHealthIcon = document.getElementById('coHealthIcon');
   
   if (coVal) {
-    if (data.sensorWarmup) {
+    if (!deviceOnline) {
+      coVal.textContent = '--';
+    } else if (data.sensorWarmup) {
       coVal.textContent = '--';
     } else {
       coVal.textContent = (data.coPpm || 0).toFixed(0);
@@ -1445,20 +1488,29 @@ function updateGasSensorUI(data) {
   }
   
   if (coStatus) {
-    const status = data.sensorWarmup ? 'warmup' : (data.coStatus || 'normal');
-    coStatus.textContent = formatStatus(status);
-    coStatus.className = 'status-value co-' + status.replace('_', '-');
+    if (!deviceOnline) {
+      coStatus.textContent = '--';
+      coStatus.className = 'status-value';
+    } else {
+      const status = data.sensorWarmup ? 'warmup' : (data.coStatus || 'normal');
+      coStatus.textContent = formatStatus(status);
+      coStatus.className = 'status-value co-' + status.replace('_', '-');
+    }
   }
   
   // Update CO gauge (max 500 PPM for display)
-  if (coGauge && !data.sensorWarmup) {
-    updateGauge('coGauge', Math.min(data.coPpm || 0, 500), 500);
+  if (coGauge) {
+    if (!deviceOnline) {
+      updateGauge('coGauge', 0, 500);
+    } else if (!data.sensorWarmup) {
+      updateGauge('coGauge', Math.min(data.coPpm || 0, 500), 500);
+    }
   }
   
   // Update CO card status class
   if (coCard) {
     coCard.classList.remove('status-warning', 'status-danger', 'status-critical');
-    if (!data.sensorWarmup && data.coStatus) {
+    if (deviceOnline && !data.sensorWarmup && data.coStatus) {
       if (data.coStatus === 'warning') coCard.classList.add('status-warning');
       else if (data.coStatus === 'danger') coCard.classList.add('status-danger');
       else if (data.coStatus === 'critical') coCard.classList.add('status-critical');
@@ -1473,7 +1525,9 @@ function updateGasSensorUI(data) {
   const aqiHealthIcon = document.getElementById('aqiHealthIcon');
   
   if (aqiVal) {
-    if (data.sensorWarmup) {
+    if (!deviceOnline) {
+      aqiVal.textContent = '--';
+    } else if (data.sensorWarmup) {
       aqiVal.textContent = '--';
     } else {
       aqiVal.textContent = Math.round(data.aqi || 0);
@@ -1481,14 +1535,23 @@ function updateGasSensorUI(data) {
   }
   
   if (aqiStatus) {
-    const status = data.sensorWarmup ? 'warmup' : (data.aqiStatus || 'good');
-    aqiStatus.textContent = formatStatus(status);
-    aqiStatus.className = 'status-value aqi-' + status.replace('_', '-');
+    if (!deviceOnline) {
+      aqiStatus.textContent = '--';
+      aqiStatus.className = 'status-value';
+    } else {
+      const status = data.sensorWarmup ? 'warmup' : (data.aqiStatus || 'good');
+      aqiStatus.textContent = formatStatus(status);
+      aqiStatus.className = 'status-value aqi-' + status.replace('_', '-');
+    }
   }
   
   // Update AQI gauge (max 500)
-  if (aqiGauge && !data.sensorWarmup) {
-    updateGauge('aqiGauge', Math.min(data.aqi || 0, 500), 500);
+  if (aqiGauge) {
+    if (!deviceOnline) {
+      updateGauge('aqiGauge', 0, 500);
+    } else if (!data.sensorWarmup) {
+      updateGauge('aqiGauge', Math.min(data.aqi || 0, 500), 500);
+    }
   }
   
   // Update AQI card status class
