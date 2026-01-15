@@ -21,6 +21,9 @@ let sliderActive = false;
 let tempSliderActive = false;
 let smokeSliderActive = false;
 
+// Track if we've received real-time data from ESP32 (not just database)
+let hasReceivedRealtimeData = false;
+
 // DOM Elements
 const elements = {
   gasBar: document.getElementById('gasBar'),
@@ -269,7 +272,7 @@ function connectWebSocket() {
     try {
       const message = JSON.parse(event.data);
       if (message.type === 'data') {
-        updateUI(message.data);
+        updateUI(message.data, true); // true = real-time update from ESP32
       } else if (message.type === 'thresholds') {
         updateCOThresholds(message.data);
       }
@@ -281,6 +284,7 @@ function connectWebSocket() {
   ws.onclose = () => {
     console.log('WebSocket disconnected');
     setConnected(false);
+    hasReceivedRealtimeData = false; // Reset real-time data flag
     
     if (pingInterval) {
       clearInterval(pingInterval);
@@ -581,34 +585,29 @@ function updateGreeting(hours) {
 }
 
 // Update UI with sensor data
-function updateUI(data) {
+function updateUI(data, isRealtimeUpdate = false) {
   if (!data) return;
   
-  // Track when we received data
-  lastDataReceivedTime = Date.now();
+  // Only track lastDataReceivedTime for real-time WebSocket updates, not database loads
+  if (isRealtimeUpdate) {
+    lastDataReceivedTime = Date.now();
+    hasReceivedRealtimeData = true;
+  }
   
-  // Determine if device is online first
-  let isDeviceOnline = isConnected;
+  // Determine if device is online
+  // Device is ONLY online if:
+  // 1. WebSocket is connected AND
+  // 2. We have received real-time data from ESP32
+  let isDeviceOnline = isConnected && hasReceivedRealtimeData;
   let diffSeconds = Infinity;
   
   // Calculate time since last data for display
-  if (lastDataReceivedTime) {
+  if (lastDataReceivedTime && hasReceivedRealtimeData) {
     diffSeconds = (Date.now() - lastDataReceivedTime) / 1000;
-    // If we received data recently via WebSocket, device is online
-    if (diffSeconds < 30 && isConnected) {
-      isDeviceOnline = true;
-    }
   } else if (data.lastSeen) {
-    // Fallback to database lastSeen for initial load
+    // Use database lastSeen for display only (not for online status)
     const lastSeenTime = new Date(data.lastSeen).getTime();
     diffSeconds = (Date.now() - lastSeenTime) / 1000;
-    // Only consider online if very recent AND WebSocket is connected
-    if (diffSeconds < 30 && isConnected) {
-      isDeviceOnline = true;
-      lastDataReceivedTime = lastSeenTime;
-    } else {
-      isDeviceOnline = false;
-    }
   }
   
   // If WebSocket is not connected, device is definitely offline
@@ -1611,8 +1610,8 @@ function formatStatus(status) {
 
 // Extend the existing updateUI function to include gas sensors
 const originalUpdateUI = updateUI;
-updateUI = function(data) {
-  originalUpdateUI(data);
+updateUI = function(data, isRealtimeUpdate = false) {
+  originalUpdateUI(data, isRealtimeUpdate);
   updateGasSensorUI(data);
   
   // Update alarm state to include CO and fire risk
