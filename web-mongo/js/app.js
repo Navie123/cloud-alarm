@@ -688,35 +688,40 @@ function updateUI(data) {
   const lastUpdate = document.getElementById('lastUpdate');
   if (lastUpdate) lastUpdate.textContent = data.timestamp || '--';
   
-  // Check if device is actually online based on lastSeen
+  // Check if device is actually online
+  // Primary: WebSocket connection state (immediate)
+  // Secondary: lastSeen timestamp from database (for initial load)
   const lastSeen = document.getElementById('lastSeen');
   const deviceStatus = document.getElementById('deviceStatus');
   const connectionStatus = document.getElementById('connectionStatus');
   
-  // Calculate if device is online (data received within last 30 seconds)
-  let isDeviceOnline = false;
+  // Device is online only if WebSocket is connected AND we're receiving data
+  let isDeviceOnline = isConnected;
   let diffSeconds = Infinity;
   
-  // First check lastSeen from database
-  if (data.lastSeen) {
+  // Calculate time since last data for display
+  if (lastDataReceivedTime) {
+    diffSeconds = (Date.now() - lastDataReceivedTime) / 1000;
+    // If we received data recently via WebSocket, device is online
+    if (diffSeconds < 30 && isConnected) {
+      isDeviceOnline = true;
+    }
+  } else if (data.lastSeen) {
+    // Fallback to database lastSeen for initial load
     const lastSeenTime = new Date(data.lastSeen).getTime();
-    const now = Date.now();
-    diffSeconds = (now - lastSeenTime) / 1000;
-    isDeviceOnline = diffSeconds < 30; // Online if data within 30 seconds
-    
-    // Update lastDataReceivedTime for the status checker
-    if (isDeviceOnline) {
+    diffSeconds = (Date.now() - lastSeenTime) / 1000;
+    // Only consider online if very recent AND WebSocket is connected
+    if (diffSeconds < 30 && isConnected) {
+      isDeviceOnline = true;
       lastDataReceivedTime = lastSeenTime;
+    } else {
+      isDeviceOnline = false;
     }
   }
   
-  // If we just received real-time data via WebSocket, device is definitely online
-  if (lastDataReceivedTime) {
-    const realtimeDiff = (Date.now() - lastDataReceivedTime) / 1000;
-    if (realtimeDiff < 30) {
-      isDeviceOnline = true;
-      diffSeconds = realtimeDiff;
-    }
+  // If WebSocket is not connected, device is definitely offline
+  if (!isConnected) {
+    isDeviceOnline = false;
   }
   
   // Update last seen display
