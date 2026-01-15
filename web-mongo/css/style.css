@@ -2451,6 +2451,70 @@ main.container {
   color: var(--danger);
 }
 
+/* Reset Thresholds Card */
+.reset-thresholds-card {
+  border-left: 3px solid var(--warning);
+  background: linear-gradient(135deg, var(--card) 0%, rgba(234, 179, 8, 0.05) 100%);
+}
+
+.reset-thresholds-card .card-title {
+  color: var(--warning);
+}
+
+.reset-thresholds-card .card-title i {
+  color: var(--warning);
+}
+
+.default-values-preview {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 15px 0;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.default-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.default-item i {
+  color: var(--primary);
+  width: 16px;
+}
+
+.default-item strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+[data-theme="light"] .default-values-preview {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .reset-thresholds-card {
+  background: linear-gradient(135deg, #ffffff 0%, rgba(234, 179, 8, 0.08) 100%);
+}
+
+/* Warning Button */
+.btn-warning {
+  background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+  color: #000;
+  border: none;
+  font-weight: 600;
+}
+
+.btn-warning:hover {
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(234, 179, 8, 0.4);
+}
+
 /* Button press animation */
 .btn-pressed {
   transform: scale(0.95) !important;

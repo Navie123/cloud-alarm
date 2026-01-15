@@ -927,6 +927,21 @@
             <button class="btn btn-primary" onclick="saveCOThresholds()"><i class="fas fa-save"></i> Save CO Thresholds</button>
           </div>
           
+          <!-- Reset Thresholds to Default -->
+          <div class="card reset-thresholds-card">
+            <div class="card-title"><i class="fas fa-rotate-left"></i> Reset Thresholds</div>
+            <p class="card-subtitle">Restore all sensor thresholds to factory defaults</p>
+            <div class="default-values-preview">
+              <div class="default-item"><i class="fas fa-fire-flame-simple"></i> Gas: <strong>40%</strong></div>
+              <div class="default-item"><i class="fas fa-smog"></i> Smoke: <strong>40%</strong></div>
+              <div class="default-item"><i class="fas fa-temperature-high"></i> Temp: <strong>60°C</strong></div>
+              <div class="default-item"><i class="fas fa-skull-crossbones"></i> CO: <strong>35/100/400 PPM</strong></div>
+            </div>
+            <button class="btn btn-warning" onclick="resetThresholdsToDefault()">
+              <i class="fas fa-rotate-left"></i> Reset All to Defaults
+            </button>
+          </div>
+          
         </div>
         
         <!-- Device Info -->

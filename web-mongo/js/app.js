@@ -1687,6 +1687,107 @@ async function saveCOThresholds() {
   }
 }
 
+// Reset all thresholds to factory defaults
+async function resetThresholdsToDefault() {
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
+  
+  if (!confirm('Reset all sensor thresholds to factory defaults?\n\n• Gas: 40%\n• Smoke: 40%\n• Temperature: 60°C\n• CO: 35/100/400 PPM')) {
+    return;
+  }
+  
+  // Default values
+  const defaults = {
+    gas: 40,
+    smoke: 40,
+    temp: 60,
+    coWarning: 35,
+    coDanger: 100,
+    coCritical: 400
+  };
+  
+  try {
+    // Update UI immediately
+    const gasSlider = document.getElementById('thresholdSlider');
+    const smokeSlider = document.getElementById('smokeThresholdSlider');
+    const tempSlider = document.getElementById('tempThresholdSlider');
+    const coWarningSlider = document.getElementById('coWarningSlider');
+    const coDangerSlider = document.getElementById('coDangerSlider');
+    const coCriticalSlider = document.getElementById('coCriticalSlider');
+    
+    if (gasSlider) {
+      gasSlider.value = defaults.gas;
+      updateThresholdBadge(gasSlider, document.getElementById('sliderValue'), 'gas');
+    }
+    if (smokeSlider) {
+      smokeSlider.value = defaults.smoke;
+      updateThresholdBadge(smokeSlider, document.getElementById('smokeSliderValue'), 'smoke');
+    }
+    if (tempSlider) {
+      tempSlider.value = defaults.temp;
+      updateThresholdBadge(tempSlider, document.getElementById('tempSliderValue'), 'temp');
+    }
+    if (coWarningSlider) {
+      coWarningSlider.value = defaults.coWarning;
+      updateCOSliderValue('coWarningSlider', 'coWarningVal');
+    }
+    if (coDangerSlider) {
+      coDangerSlider.value = defaults.coDanger;
+      updateCOSliderValue('coDangerSlider', 'coDangerVal');
+    }
+    if (coCriticalSlider) {
+      coCriticalSlider.value = defaults.coCritical;
+      updateCOSliderValue('coCriticalSlider', 'coCriticalVal');
+    }
+    
+    // Save all thresholds to server
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + localStorage.getItem('householdToken'),
+      'X-Admin-PIN': localStorage.getItem('adminPin')
+    };
+    
+    // Save gas threshold
+    await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/threshold`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ threshold: defaults.gas })
+    });
+    
+    // Save smoke threshold
+    await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/smoke-threshold`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ threshold: defaults.smoke })
+    });
+    
+    // Save temp threshold
+    await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/temp-threshold`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ threshold: defaults.temp })
+    });
+    
+    // Save CO thresholds
+    await fetch(`${CONFIG.API_URL}/api/device/${getDeviceId()}/co-thresholds`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ 
+        warning: defaults.coWarning, 
+        danger: defaults.coDanger, 
+        critical: defaults.coCritical 
+      })
+    });
+    
+    showToast('All thresholds reset to defaults', 'success');
+  } catch (error) {
+    console.error('Error resetting thresholds:', error);
+    showToast('Error resetting thresholds', 'error');
+  }
+}
+
 // Calibration
 async function startCalibration() {
   if (!isAdmin()) {
