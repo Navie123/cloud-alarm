@@ -32,8 +32,9 @@ CALIBRATION CONTROLS:
   • Hardware Switches (optional, for manual control)
 
 POWER:
-  • 5V USB Power Supply (2A recommended)
-  • Micro-USB Cable
+  • Dual 18650 Lithium Battery Shield V8 (3V/5V 3A output)
+  • 2x 18650 Lithium-ion Batteries (3.7V, 2500mAh+ recommended)
+  • Micro-USB Cable (for charging and programming)
 
 ================================================================================
                          PIN ASSIGNMENTS
@@ -64,12 +65,17 @@ DIGITAL INPUTS (Buttons):
 
 POWER PINS:
   3.3V                  HDC1080 VCC             Red
-  5V (VIN)              MQ-2 VCC                Red
-  5V (VIN)              MQ-7 VCC                Red
-  5V (VIN)              MQ-135 VCC              Red
-  5V (VIN)              LCD VCC                 Red
-  5V (VIN)              Buzzer VCC              Red
+  5V (from Battery)     MQ-2 VCC                Red
+  5V (from Battery)     MQ-7 VCC                Red
+  5V (from Battery)     MQ-135 VCC              Red
+  5V (from Battery)     LCD VCC                 Red
+  5V (from Battery)     Buzzer VCC              Red
   GND                   All GND connections     Black
+  
+BATTERY SHIELD CONNECTIONS:
+  Battery Shield 5V     ESP32 VIN               Red
+  Battery Shield 3.3V   ESP32 3.3V (optional)  Red
+  Battery Shield GND    ESP32 GND               Black
 
 ================================================================================
                       DETAILED WIRING CONNECTIONS
@@ -156,7 +162,49 @@ POWER PINS:
          No PWM frequency control needed.
 
 ------------------------------------------------------------------------------
-7. PUSH BUTTONS (Momentary, for LCD Display Toggle)
+8. DUAL 18650 BATTERY SHIELD V8 (Power Supply)
+------------------------------------------------------------------------------
+   Shield Pin    ESP32 Pin       Notes
+   ----------    ---------       -----
+   5V OUT        VIN             Main power input to ESP32
+   3.3V OUT      3.3V (optional) Can supplement ESP32's 3.3V regulator
+   GND           GND             Common ground
+   
+   Battery Shield Features:
+   • Input: 2x 18650 batteries (3.7V each, 7.4V total)
+   • Output: 5V/3A and 3.3V/1A regulated
+   • Built-in charging circuit (1A charge rate)
+   • Over-discharge protection (cuts off at ~3.0V per cell)
+   • Over-charge protection (stops at 4.2V per cell)
+   • USB charging port (Micro-USB)
+   • Power indicator LEDs
+   • ON/OFF switch
+   
+   Battery Recommendations:
+   • Use high-quality 18650 cells (Samsung, Panasonic, LG)
+   • Capacity: 2500mAh or higher for longer runtime
+   • Protected cells preferred for additional safety
+   • Match battery capacities (don't mix old/new batteries)
+   
+   Charging:
+   • Connect Micro-USB cable to shield's charging port
+   • Red LED: Charging in progress
+   • Green LED: Charging complete
+   • Charge time: ~4-6 hours for 2500mAh batteries
+   
+   Runtime Estimation:
+   • 2x 2500mAh batteries = 5000mAh total at 3.7V
+   • System draws ~800mA at 5V
+   • Estimated runtime: 4-6 hours continuous operation
+   
+   Safety Notes:
+   • Never short-circuit battery terminals
+   • Remove batteries if not used for extended periods
+   • Don't expose to extreme temperatures
+   • Use proper 18650 batteries (not cheap/fake ones)
+
+------------------------------------------------------------------------------
+9. PUSH BUTTONS (Momentary, for LCD Display Toggle)
 ------------------------------------------------------------------------------
    Button        ESP32 Pin       Function
    ------        ---------       --------
@@ -186,25 +234,39 @@ POWER PINS:
                          ┌─────────────────────┐
                          │                     │
          MQ-7 AO ────────┤ GPIO 34        3V3  ├──────── HDC1080 VCC
-         MQ-2 AO ────────┤ GPIO 33        GND  ├──────┬─ All GND
-        MQ-135 AO ───────┤ GPIO 32        5V   ├──────┼─ MQ-2 VCC
-                         │                     │      ├─ MQ-7 VCC
-     HDC1080 SDA ────┬───┤ GPIO 21             │      ├─ MQ-135 VCC
-         LCD SDA ────┘   │                     │      ├─ LCD VCC
-                         │                     │      ├─ Buzzer (-)
-     HDC1080 SCL ────┬───┤ GPIO 22             │      ├─ BTN1 (other leg)
-         LCD SCL ────┘   │                     │      ├─ BTN2 (other leg)
-                         │                     │      └─ BTN3 (other leg)
+         MQ-2 AO ────────┤ GPIO 33        VIN  ├──────── Battery Shield 5V OUT
+        MQ-135 AO ───────┤ GPIO 32        GND  ├──────┬─ Battery Shield GND
+                         │                     │      └─ All GND
+     HDC1080 SDA ────┬───┤ GPIO 21             │      
+         LCD SDA ────┘   │                     │      
+                         │                     │      
+     HDC1080 SCL ────┬───┤ GPIO 22             │      
+         LCD SCL ────┘   │                     │      
+                         │                     │      
        Buzzer (+) ───────┤ GPIO 25             │
                          │                     │
     Button 1 (leg) ──────┤ GPIO 26             │
     Button 2 (leg) ──────┤ GPIO 27             │
     Button 3 (leg) ──────┤ GPIO 13             │
                          │                     │
-                         │        USB          │
-                         └─────────┬───────────┘
+                         └─────────────────────┘
                                    │
-                              5V Power
+                                   │ VIN (5V)
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │  Dual 18650 Battery Shield  │
+                    │         V8 (3V/5V 3A)       │
+                    ├─────────────────────────────┤
+                    │  5V OUT ──────────────────┬─┼─── MQ-2 VCC
+                    │  3.3V OUT                 ├─┼─── MQ-7 VCC  
+                    │  GND ──────────────────────┼─┼─── MQ-135 VCC
+                    │                           ├─┼─── LCD VCC
+                    │  [BAT1] [BAT2]            ├─┼─── Buzzer VCC
+                    │  18650  18650             └─┼─── Button GNDs
+                    │                             │
+                    │  [USB] [PWR] [LED]          │
+                    │  Charge Switch Status       │
+                    └─────────────────────────────┘
 
 
                          BUTTON WIRING DETAIL
@@ -285,7 +347,7 @@ For ceiling-mounted sensor unit to wall-mounted control panel:
   • Keep analog sensor wires away from power lines to reduce noise
 
 ================================================================================
-                         POWER REQUIREMENTS
+                         POWER REQUIREMENTS & BATTERY LIFE
 ================================================================================
 
 Component               Current Draw (typical)
@@ -296,11 +358,34 @@ MQ-7 Sensor             150 mA (heater)
 MQ-135 Sensor           150 mA (heater)
 HDC1080                 1 mA
 LCD 20x4 (backlight)    20-40 mA
-Buzzer                  30 mA
+Buzzer                  30 mA (when active)
 
-TOTAL (estimated):      600-800 mA
+TOTAL (estimated):      600-800 mA at 5V
 
-Recommended power supply: 5V 2A USB adapter
+BATTERY LIFE CALCULATION:
+Battery Configuration: 2x 18650 (2500mAh each) = 5000mAh at 3.7V
+Total Energy: 5000mAh × 3.7V = 18.5Wh
+System Power: 800mA × 5V = 4W
+Estimated Runtime: 18.5Wh ÷ 4W = 4.6 hours
+
+For longer runtime:
+• Use higher capacity 18650s (3000-3500mAh)
+• Implement sleep modes during inactive periods
+• Reduce LCD backlight brightness
+• Consider adding solar charging panel
+
+CHARGING:
+• Charge current: 1A (built into shield)
+• Charge time: 5-6 hours for 2500mAh batteries
+• Can operate while charging (pass-through charging)
+• USB charging port: Micro-USB (5V input)
+
+BATTERY SAFETY:
+• Use only genuine 18650 lithium-ion batteries
+• Never use damaged or dented batteries
+• Don't mix different battery types or capacities
+• Remove batteries if storing device for >3 months
+• Operating temperature: 0°C to 45°C
 
 ================================================================================
                          TROUBLESHOOTING
@@ -330,6 +415,36 @@ Problem: WiFi disconnects frequently
   → Ensure using 2.4GHz network (ESP32 doesn't support 5GHz)
   → Check signal strength
   → Verify SSID and password in config.h
+
+Problem: Battery shield shuts down immediately when all loads connected
+  → Battery voltage reads full on multimeter but system won't power on
+  → Likely causes:
+     1. UNLABELED BATTERIES: Unknown capacity/condition, high internal resistance
+        - Even if charged, can't supply 800mA current draw
+        - Voltage collapses under load, triggering protection circuit
+        - Solution: Replace with quality 2500mAh+ labeled batteries
+     
+     2. COUNTERFEIT/DEGRADED BATTERIES: Fake or old 18650s
+        - Show 3.7V when idle but fail under load
+        - Internal resistance too high
+        - Solution: Use only genuine batteries (Samsung, Panasonic, LG)
+     
+     3. INSUFFICIENT BATTERY CAPACITY: Using 1200mAh or similar low-capacity cells
+        - Total capacity too low for 800mA system draw
+        - Estimated runtime: only 1.5 hours
+        - Solution: Use 2500mAh+ batteries for 4-6 hour runtime
+  
+  → Diagnostic steps:
+     1. Test with ESP32 only (no sensors) - should stay on
+     2. Add sensors one by one to identify which causes shutdown
+     3. If ESP32 alone works but adding sensors fails = battery capacity issue
+     4. If ESP32 alone fails = battery is defective or counterfeit
+
+Problem: Battery shows full charge but won't power system
+  → Multimeter shows 3.7V but system shuts down under load
+  → This indicates HIGH INTERNAL RESISTANCE (battery is degraded)
+  → Solution: Replace battery immediately - it's unsafe and unreliable
+  → Always use labeled, quality 18650 batteries from reputable sources
 
 ================================================================================
                               END OF GUIDE

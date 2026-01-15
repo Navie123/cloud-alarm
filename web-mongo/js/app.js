@@ -796,12 +796,16 @@ function updateUI(data) {
   // Update WiFi Configuration card info
   const currentWifiName = document.getElementById('currentWifiName');
   if (currentWifiName) {
-    currentWifiName.textContent = data.wifiSSID || '--';
+    currentWifiName.textContent = isDeviceOnline ? (data.wifiSSID || '--') : '--';
   }
   
   const deviceUptime = document.getElementById('deviceUptime');
-  if (deviceUptime && data.uptime !== undefined) {
-    deviceUptime.textContent = formatUptime(data.uptime);
+  if (deviceUptime) {
+    if (isDeviceOnline && data.uptime !== undefined) {
+      deviceUptime.textContent = formatUptime(data.uptime);
+    } else {
+      deviceUptime.textContent = '--';
+    }
   }
   
   updateSidebarInfo(data);
