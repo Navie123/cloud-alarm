@@ -695,28 +695,43 @@ function updateUI(data) {
   
   // Calculate if device is online (data received within last 30 seconds)
   let isDeviceOnline = false;
+  let diffSeconds = Infinity;
+  
+  // First check lastSeen from database
   if (data.lastSeen) {
     const lastSeenTime = new Date(data.lastSeen).getTime();
     const now = Date.now();
-    const diffSeconds = (now - lastSeenTime) / 1000;
+    diffSeconds = (now - lastSeenTime) / 1000;
     isDeviceOnline = diffSeconds < 30; // Online if data within 30 seconds
     
-    if (lastSeen) {
-      if (diffSeconds < 10) {
-        lastSeen.textContent = 'Just now';
-      } else if (diffSeconds < 60) {
-        lastSeen.textContent = Math.floor(diffSeconds) + 's ago';
-      } else if (diffSeconds < 3600) {
-        lastSeen.textContent = Math.floor(diffSeconds / 60) + 'm ago';
-      } else {
-        lastSeen.textContent = Math.floor(diffSeconds / 3600) + 'h ago';
-      }
+    // Update lastDataReceivedTime for the status checker
+    if (isDeviceOnline) {
+      lastDataReceivedTime = lastSeenTime;
     }
-  } else if (data.timestamp) {
-    if (lastSeen) lastSeen.textContent = 'Just now';
-    isDeviceOnline = true; // If we just got data with timestamp, device is online
-  } else {
-    if (lastSeen) lastSeen.textContent = '--';
+  }
+  
+  // If we just received real-time data via WebSocket, device is definitely online
+  if (lastDataReceivedTime) {
+    const realtimeDiff = (Date.now() - lastDataReceivedTime) / 1000;
+    if (realtimeDiff < 30) {
+      isDeviceOnline = true;
+      diffSeconds = realtimeDiff;
+    }
+  }
+  
+  // Update last seen display
+  if (lastSeen) {
+    if (diffSeconds < 10) {
+      lastSeen.textContent = 'Just now';
+    } else if (diffSeconds < 60) {
+      lastSeen.textContent = Math.floor(diffSeconds) + 's ago';
+    } else if (diffSeconds < 3600) {
+      lastSeen.textContent = Math.floor(diffSeconds / 60) + 'm ago';
+    } else if (diffSeconds < 86400) {
+      lastSeen.textContent = Math.floor(diffSeconds / 3600) + 'h ago';
+    } else {
+      lastSeen.textContent = Math.floor(diffSeconds / 86400) + 'd ago';
+    }
   }
   
   if (deviceStatus) {
