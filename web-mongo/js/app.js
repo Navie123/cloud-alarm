@@ -618,7 +618,9 @@ function updateUI(data, isRealtimeUpdate = false) {
   // Update last seen display
   const lastSeen = document.getElementById('lastSeen');
   if (lastSeen) {
-    if (diffSeconds < 10) {
+    if (!isFinite(diffSeconds) || diffSeconds === Infinity) {
+      lastSeen.textContent = '--';
+    } else if (diffSeconds < 10) {
       lastSeen.textContent = 'Just now';
     } else if (diffSeconds < 60) {
       lastSeen.textContent = Math.floor(diffSeconds) + 's ago';
