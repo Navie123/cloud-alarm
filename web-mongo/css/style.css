@@ -7254,7 +7254,7 @@ header {
 }
 
 .session-stats-panel.visible {
-  max-height: 1000px;
+  max-height: 2500px; /* Increased for mobile single-column layout */
   opacity: 1;
   margin-top: 16px;
   padding: 20px;
