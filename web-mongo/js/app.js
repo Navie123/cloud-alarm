@@ -768,7 +768,13 @@ function updateUI(data, isRealtimeUpdate = false) {
   sirenEnabled = data.sirenEnabled !== false;
   updateSirenUI();
   
-  updateAlarmState(data.alarm, data.tempWarning);
+  // Only show alarm if device is online
+  if (isDeviceOnline) {
+    updateAlarmState(data.alarm, data.tempWarning);
+  } else {
+    // Clear alarm state when offline
+    updateAlarmState(false, false);
+  }
   
   // Device info
   const deviceId = document.getElementById('deviceId');
@@ -1616,8 +1622,24 @@ updateUI = function(data, isRealtimeUpdate = false) {
   originalUpdateUI(data, isRealtimeUpdate);
   updateGasSensorUI(data);
   
-  // Update alarm state to include CO and fire risk
-  updateAlarmStateExtended(data);
+  // Only update alarm state if device is online
+  // Device online status is determined in originalUpdateUI
+  const isDeviceOnline = isConnected && hasReceivedRealtimeData;
+  if (isDeviceOnline) {
+    updateAlarmStateExtended(data);
+  } else {
+    // Clear alarm when offline
+    const alarmCard = document.getElementById('alarmCard');
+    const alarmIcon = document.getElementById('alarmIcon');
+    const alarmText = document.getElementById('alarmText');
+    const alarmSubtitle = document.getElementById('alarmSubtitle');
+    
+    if (alarmCard) alarmCard.classList.remove('alarm-active', 'fire-risk');
+    if (alarmIcon) alarmIcon.className = 'fas fa-shield-check';
+    if (alarmText) alarmText.textContent = 'System Offline';
+    if (alarmSubtitle) alarmSubtitle.textContent = 'Device disconnected';
+    stopAlarmSound();
+  }
 };
 
 // Extended alarm state handling
