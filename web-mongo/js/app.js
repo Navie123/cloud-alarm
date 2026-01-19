@@ -595,11 +595,25 @@ function updateUI(data, isRealtimeUpdate = false) {
   }
   
   // Determine if device is online
-  // Device is ONLY online if:
+  // Device is online if:
   // 1. WebSocket is connected AND
-  // 2. We have received real-time data from ESP32
-  let isDeviceOnline = isConnected && hasReceivedRealtimeData;
-  let diffSeconds = Infinity;
+  // 2. Either we have real-time data OR recent database data (within 2 minutes)
+  let isDeviceOnline = false;
+  
+  if (isConnected) {
+    if (hasReceivedRealtimeData) {
+      // We have real-time WebSocket data - definitely online
+      isDeviceOnline = true;
+    } else if (data.lastSeen) {
+      // No real-time data yet, but check if database data is recent
+      const lastSeenTime = new Date(data.lastSeen).getTime();
+      diffSeconds = (Date.now() - lastSeenTime) / 1000;
+      // If database shows recent activity (within 2 minutes) and WebSocket is connected, consider online
+      if (diffSeconds < 120) {
+        isDeviceOnline = true;
+      }
+    }
+  }
   
   // Calculate time since last data for display
   if (lastDataReceivedTime && hasReceivedRealtimeData) {
@@ -1468,7 +1482,18 @@ document.addEventListener('DOMContentLoaded', initTheme);
 // Update UI with gas sensor data
 function updateGasSensorUI(data) {
   // Use the same online detection logic as main updateUI
-  let deviceOnline = isConnected && hasReceivedRealtimeData;
+  let deviceOnline = false;
+  if (isConnected) {
+    if (hasReceivedRealtimeData) {
+      deviceOnline = true;
+    } else if (data.lastSeen) {
+      const lastSeenTime = new Date(data.lastSeen).getTime();
+      const timeDiff = (Date.now() - lastSeenTime) / 1000;
+      if (timeDiff < 120) { // 2 minutes
+        deviceOnline = true;
+      }
+    }
+  }
   
   // CO Sensor
   const coVal = document.getElementById('coVal');
