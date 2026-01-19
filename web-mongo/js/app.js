@@ -1467,19 +1467,8 @@ document.addEventListener('DOMContentLoaded', initTheme);
 
 // Update UI with gas sensor data
 function updateGasSensorUI(data) {
-  // Check if device is online (same logic as main updateUI)
-  let deviceOnline = isConnected;
-  if (lastDataReceivedTime) {
-    const timeDiff = (Date.now() - lastDataReceivedTime) / 1000;
-    deviceOnline = timeDiff < 30 && isConnected;
-  } else if (data.lastSeen) {
-    const lastSeenTime = new Date(data.lastSeen).getTime();
-    const timeDiff = (Date.now() - lastSeenTime) / 1000;
-    deviceOnline = timeDiff < 30 && isConnected;
-  }
-  if (!isConnected) {
-    deviceOnline = false;
-  }
+  // Use the same online detection logic as main updateUI
+  let deviceOnline = isConnected && hasReceivedRealtimeData;
   
   // CO Sensor
   const coVal = document.getElementById('coVal');
@@ -1511,11 +1500,7 @@ function updateGasSensorUI(data) {
   
   // Update CO gauge (max 500 PPM for display)
   if (coGauge) {
-    if (!deviceOnline) {
-      updateGauge('coGauge', 0, 500);
-    } else if (!data.sensorWarmup) {
-      updateGauge('coGauge', Math.min(data.coPpm || 0, 500), 500);
-    }
+    updateGauge('coGauge', deviceOnline && !data.sensorWarmup ? Math.min(data.coPpm || 0, 500) : 0, 500);
   }
   
   // Update CO card status class
@@ -1558,17 +1543,13 @@ function updateGasSensorUI(data) {
   
   // Update AQI gauge (max 500)
   if (aqiGauge) {
-    if (!deviceOnline) {
-      updateGauge('aqiGauge', 0, 500);
-    } else if (!data.sensorWarmup) {
-      updateGauge('aqiGauge', Math.min(data.aqi || 0, 500), 500);
-    }
+    updateGauge('aqiGauge', deviceOnline && !data.sensorWarmup ? Math.min(data.aqi || 0, 500) : 0, 500);
   }
   
   // Update AQI card status class
   if (aqiCard) {
     aqiCard.classList.remove('status-moderate', 'status-unhealthy-sensitive', 'status-unhealthy');
-    if (!data.sensorWarmup && data.aqiStatus) {
+    if (deviceOnline && !data.sensorWarmup && data.aqiStatus) {
       if (data.aqiStatus === 'moderate') aqiCard.classList.add('status-moderate');
       else if (data.aqiStatus === 'unhealthy_sensitive') aqiCard.classList.add('status-unhealthy-sensitive');
       else if (data.aqiStatus === 'unhealthy') aqiCard.classList.add('status-unhealthy');
@@ -1577,24 +1558,24 @@ function updateGasSensorUI(data) {
   
   // Sensor health indicators
   if (coHealthIcon) {
-    coHealthIcon.classList.toggle('hidden', data.sensorHealth !== 'warning');
+    coHealthIcon.classList.toggle('hidden', !deviceOnline || data.sensorHealth !== 'warning');
   }
   if (aqiHealthIcon) {
-    aqiHealthIcon.classList.toggle('hidden', data.sensorHealth !== 'warning');
+    aqiHealthIcon.classList.toggle('hidden', !deviceOnline || data.sensorHealth !== 'warning');
   }
   
   // Warmup banner
   const warmupBanner = document.getElementById('warmupBanner');
   if (warmupBanner) {
-    warmupBanner.classList.toggle('hidden', !data.sensorWarmup);
+    warmupBanner.classList.toggle('hidden', !deviceOnline || !data.sensorWarmup);
   }
   
   // Fire risk banner
   const fireRiskBanner = document.getElementById('fireRiskBanner');
   const fireRiskTriggers = document.getElementById('fireRiskTriggers');
   if (fireRiskBanner) {
-    fireRiskBanner.classList.toggle('hidden', !data.fireRisk);
-    if (data.fireRisk && fireRiskTriggers) {
+    fireRiskBanner.classList.toggle('hidden', !deviceOnline || !data.fireRisk);
+    if (deviceOnline && data.fireRisk && fireRiskTriggers) {
       fireRiskTriggers.textContent = 'CO + Temperature + Gas sensors triggered';
     }
   }
