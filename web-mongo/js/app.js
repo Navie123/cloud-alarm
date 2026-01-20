@@ -788,6 +788,12 @@ function updateUI(data, isRealtimeUpdate = false) {
   // Only show alarm if device is online
   if (isDeviceOnline) {
     updateAlarmState(data.alarm, data.tempWarning);
+    
+    // Handle partial warnings - play alarm sound but don't show full alarm UI
+    if (data.partialWarning && !data.alarm) {
+      console.log('Partial warning detected - playing alarm sound');
+      playAlarmSound();
+    }
   } else {
     // Clear alarm state when offline
     updateAlarmState(false, false);
@@ -1710,6 +1716,13 @@ function updateAlarmStateExtended(data) {
     }
     playAlarmSound();
     return;
+  }
+  
+  // Partial warnings - play sound but don't show full alarm UI
+  if (data.partialWarning && !data.alarm) {
+    console.log('Extended: Partial warning detected - playing alarm sound');
+    playAlarmSound();
+    // Don't return here - let normal processing continue for UI updates
   }
   
   // Remove fire-risk class if not active

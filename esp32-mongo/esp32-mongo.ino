@@ -48,8 +48,12 @@ String tempWarning = "normal";
 // Partial warning system variables
 bool partialWarningActive = false;
 unsigned long lastPartialBeep = 0;
+int partialBeepCount = 0;
 bool partialBeepState = false;
 const unsigned long PARTIAL_BEEP_INTERVAL = 800;  // 800ms interval between beeps
+const unsigned long PARTIAL_BEEP_DURATION = 200;  // 200ms beep duration
+const int PARTIAL_BEEP_SEQUENCE = 3;  // 3 beeps per sequence
+const unsigned long PARTIAL_SEQUENCE_PAUSE = 2000;  // 2 second pause between sequences
 
 // Temperature baseline for smart smoke detection
 float baselineTemp = 25.0;  // Average temperature baseline
@@ -294,20 +298,44 @@ void loop() {
   if (alarmActive && sirenEnabled && !silenceRequested) {
     // Full alarm - continuous buzzer
     activateBuzzer(true);
+    partialBeepCount = 0;  // Reset partial beep counter
   } else if (partialWarningActive && sirenEnabled && !silenceRequested) {
-    // Partial warning - intermittent beeping (800ms interval)
-    if (millis() - lastPartialBeep >= PARTIAL_BEEP_INTERVAL) {
-      partialBeepState = !partialBeepState;
-      activateBuzzer(partialBeepState);
-      lastPartialBeep = millis();
+    // Partial warning - 3 beeps with 800ms intervals, then 2 second pause
+    unsigned long now = millis();
+    
+    if (partialBeepCount < PARTIAL_BEEP_SEQUENCE) {
+      // Currently in beeping sequence
+      if (!partialBeepState && (now - lastPartialBeep >= PARTIAL_BEEP_INTERVAL)) {
+        // Start a beep
+        partialBeepState = true;
+        activateBuzzer(true);
+        lastPartialBeep = now;
+        partialBeepCount++;
+        Serial.printf("[Partial Beep] Beep %d of %d\n", partialBeepCount, PARTIAL_BEEP_SEQUENCE);
+      } else if (partialBeepState && (now - lastPartialBeep >= PARTIAL_BEEP_DURATION)) {
+        // End the beep
+        partialBeepState = false;
+        activateBuzzer(false);
+        lastPartialBeep = now;
+      }
+    } else {
+      // Sequence complete, wait for pause period
+      if (now - lastPartialBeep >= PARTIAL_SEQUENCE_PAUSE) {
+        partialBeepCount = 0;  // Reset for next sequence
+        Serial.println("[Partial Beep] Starting new sequence");
+      } else {
+        activateBuzzer(false);  // Ensure buzzer is off during pause
+      }
     }
   } else if (warningMode && sirenEnabled && !silenceRequested) {
     // Warning mode - continuous buzzer
     activateBuzzer(true);
+    partialBeepCount = 0;  // Reset partial beep counter
   } else {
     // No alarm - buzzer off
     activateBuzzer(false);
     partialBeepState = false;  // Reset beep state
+    partialBeepCount = 0;  // Reset beep counter
   }
   
   delay(100);
@@ -870,12 +898,12 @@ void updateAlarmState() {
     }
   }
   
-  // Temperature warning levels
+  // Temperature warning levels (percentage-based for better scaling)
   if (temperature >= tempThreshold) {
     tempWarning = "critical";
-  } else if (temperature >= tempThreshold - 5) {
+  } else if (temperature >= tempThreshold * 0.9) {  // 90% of threshold
     tempWarning = "high";
-  } else if (temperature >= tempThreshold - 10) {
+  } else if (temperature >= tempThreshold * 0.8) {  // 80% of threshold
     tempWarning = "warning";
   } else {
     tempWarning = "normal";
@@ -1218,7 +1246,7 @@ bool checkWarningState() {
   // Check for critical conditions that should trigger warning screen
   bool gasHigh = gasPercent >= gasThreshold * 0.7;  // 70% of threshold (was 80%)
   bool smokeHigh = smokePercent >= smokeThreshold * 0.7;  // 70% of threshold (was 80%)
-  bool tempHigh = temperature >= tempThreshold - 8;  // 8°C below threshold (was 5°C)
+  bool tempHigh = temperature >= tempThreshold * 0.85;  // 85% of threshold
   bool coHigh = coPpm >= coWarningThreshold * 0.8;  // 80% of CO warning level
   bool aqiPoor = aqi >= 40;  // Moderate or worse AQI (was 50)
   
@@ -1312,14 +1340,14 @@ void displayDefault() {
   lcd.setCursor(6, 0);
   lcd.print("FireWire");
   
-  // Row 1: Temperature and Humidity
+  // Row 1: Temperature and Humidity with better spacing
   lcd.setCursor(0, 1);
-  snprintf(buf, 21, "T:%.1fC  H:%.0f%%", temperature, humidity);
+  snprintf(buf, 21, "Temp:%.1fC Hum:%.0f%%", temperature, humidity);
   lcd.print(buf);
   
-  // Row 2: Gas and Smoke levels
+  // Row 2: Gas and Smoke levels with better formatting
   lcd.setCursor(0, 2);
-  snprintf(buf, 21, "G:%.0f%% S:%.0f%%", gasPercent, smokePercent);
+  snprintf(buf, 21, "Gas:%.0f%% Smoke:%.0f%%", gasPercent, smokePercent);
   lcd.print(buf);
   
   // Row 3: AQI with status
@@ -1354,7 +1382,7 @@ void displayTempHumidity() {
   // Row 3: Status and threshold info
   lcd.setCursor(0, 3);
   String tempStatus = "Normal";
-  if (temperature >= tempThreshold - 5) tempStatus = "High";
+  if (temperature >= tempThreshold * 0.9) tempStatus = "High";
   if (temperature >= tempThreshold) tempStatus = "CRITICAL";
   snprintf(buf, 21, "Status: %s", tempStatus.c_str());
   lcd.print(buf);
@@ -1552,7 +1580,7 @@ void displayWarningScreen() {
     snprintf(buf, 21, "SMOKE HIGH: %.1f%%", smokePercent);
   } else if (gasPercent >= gasThreshold * 0.7) {
     snprintf(buf, 21, "GAS HIGH: %.1f%%", gasPercent);
-  } else if (temperature >= tempThreshold - 8) {
+  } else if (temperature >= tempThreshold * 0.85) {
     snprintf(buf, 21, "TEMP HIGH: %.1fC", temperature);
   } else if (coPpm >= coWarningThreshold * 0.8) {
     snprintf(buf, 21, "CO DETECTED: %.0f PPM", coPpm);
