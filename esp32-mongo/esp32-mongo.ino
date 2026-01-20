@@ -45,6 +45,12 @@ bool sirenEnabled = true;
 bool silenceRequested = false;
 String tempWarning = "normal";
 
+// Partial warning system variables
+bool partialWarningActive = false;
+unsigned long lastPartialBeep = 0;
+bool partialBeepState = false;
+const unsigned long PARTIAL_BEEP_INTERVAL = 800;  // 800ms interval between beeps
+
 // Temperature baseline for smart smoke detection
 float baselineTemp = 25.0;  // Average temperature baseline
 float tempReadings[10];     // Store last 10 temperature readings for baseline
@@ -284,11 +290,24 @@ void loop() {
     lastCommandCheck = now;
   }
   
-  // Handle buzzer - WARNING MODE ALSO TRIGGERS BUZZER
-  if ((alarmActive || warningMode) && sirenEnabled && !silenceRequested) {
+  // Handle buzzer logic
+  if (alarmActive && sirenEnabled && !silenceRequested) {
+    // Full alarm - continuous buzzer
+    activateBuzzer(true);
+  } else if (partialWarningActive && sirenEnabled && !silenceRequested) {
+    // Partial warning - intermittent beeping (800ms interval)
+    if (millis() - lastPartialBeep >= PARTIAL_BEEP_INTERVAL) {
+      partialBeepState = !partialBeepState;
+      activateBuzzer(partialBeepState);
+      lastPartialBeep = millis();
+    }
+  } else if (warningMode && sirenEnabled && !silenceRequested) {
+    // Warning mode - continuous buzzer
     activateBuzzer(true);
   } else {
+    // No alarm - buzzer off
     activateBuzzer(false);
+    partialBeepState = false;  // Reset beep state
   }
   
   delay(100);
@@ -798,40 +817,56 @@ void updateAlarmState() {
   
   // Smart smoke detection logic
   bool smokeDetected = smokePercent >= smokeThreshold;
+  bool gasDetected = gasPercent >= gasThreshold;
   bool tempRiseDetected = tempBaselineReady && (temperature > baselineTemp + 3.0);  // 3°C rise above baseline
   
-  // Full smoke alarm only if smoke AND temperature rise detected
+  // Full alarm conditions (with temperature rise)
   bool smokeAlarm = smokeDetected && tempRiseDetected;
+  bool gasAlarmWithTemp = gasDetected && tempRiseDetected;
   
-  // Smoke warning (no buzzer) if smoke detected but no temperature rise
+  // Partial warning conditions (without temperature rise)
   bool smokeWarningOnly = smokeDetected && !tempRiseDetected;
+  bool gasWarningOnly = gasDetected && !tempRiseDetected;
   
-  // Combined alarm state - gas OR temp OR (smoke + temp rise) triggers full alarm
+  // Combined states
   bool wasAlarm = alarmActive;
-  alarmActive = gasAlarm || tempAlarm || smokeAlarm;
+  bool wasPartialWarning = partialWarningActive;
+  
+  // Full alarm: temp threshold OR (smoke/gas + temperature rise)
+  alarmActive = tempAlarm || smokeAlarm || gasAlarmWithTemp;
+  
+  // Partial warning: smoke or gas detected but no temperature rise
+  partialWarningActive = (smokeWarningOnly || gasWarningOnly) && !alarmActive;
   
   // IMMEDIATE DEBUG OUTPUT FOR ALARM TRIGGERS
   static unsigned long lastAlarmDebug = 0;
-  if (millis() - lastAlarmDebug > 1000 || alarmActive != wasAlarm) {
-    Serial.printf("ALARM CHECK: Gas=%.1f%%(>=%d) Smoke=%.1f%%(>=%d) Temp=%.1f(>=%d) -> ALARM=%s WARNING_MODE=%s\n",
+  if (millis() - lastAlarmDebug > 1000 || alarmActive != wasAlarm || partialWarningActive != wasPartialWarning) {
+    Serial.printf("ALARM CHECK: Gas=%.1f%%(>=%d) Smoke=%.1f%%(>=%d) Temp=%.1f(>=%d) TempRise=%.1f -> FULL_ALARM=%s PARTIAL_WARNING=%s\n",
                   gasPercent, gasThreshold, smokePercent, smokeThreshold, temperature, tempThreshold,
-                  alarmActive ? "YES" : "NO", warningMode ? "YES" : "NO");
+                  tempBaselineReady ? (temperature - baselineTemp) : 0,
+                  alarmActive ? "YES" : "NO", partialWarningActive ? "YES" : "NO");
     lastAlarmDebug = millis();
   }
   
-  // Debug output when alarm state changes
-  if (alarmActive != wasAlarm || smokeWarningOnly) {
-    Serial.printf("ALARM STATE: %s | SMOKE WARNING: %s\n", 
+  // Debug output when states change
+  if (alarmActive != wasAlarm || partialWarningActive != wasPartialWarning) {
+    Serial.printf("STATE CHANGE: FULL_ALARM=%s | PARTIAL_WARNING=%s\n", 
                   alarmActive ? "ACTIVE" : "CLEARED",
-                  smokeWarningOnly ? "YES" : "NO");
-    Serial.printf("  Gas: %.1f%% vs threshold %d%% -> %s\n", gasPercent, gasThreshold, gasAlarm ? "TRIGGERED" : "ok");
-    Serial.printf("  Temp: %.1f°C vs threshold %d°C -> %s\n", temperature, tempThreshold, tempAlarm ? "TRIGGERED" : "ok");
+                  partialWarningActive ? "ACTIVE" : "CLEARED");
+    Serial.printf("  Gas: %.1f%% vs threshold %d%% -> %s\n", gasPercent, gasThreshold, gasDetected ? "DETECTED" : "ok");
     Serial.printf("  Smoke: %.1f%% vs threshold %d%% -> %s\n", smokePercent, smokeThreshold, smokeDetected ? "DETECTED" : "ok");
+    Serial.printf("  Temp: %.1f°C vs threshold %d°C -> %s\n", temperature, tempThreshold, tempAlarm ? "TRIGGERED" : "ok");
     Serial.printf("  Temp Rise: %.1f°C vs baseline %.1f°C (rise: %.1f°C) -> %s\n", 
                   temperature, baselineTemp, temperature - baselineTemp, tempRiseDetected ? "YES" : "NO");
     
-    if (smokeWarningOnly) {
-      Serial.println("  -> SMOKE WARNING: Email will be sent but no buzzer alarm");
+    if (partialWarningActive) {
+      if (smokeWarningOnly && gasWarningOnly) {
+        Serial.println("  -> PARTIAL WARNING: Smoke + Gas detected but no temperature rise");
+      } else if (smokeWarningOnly) {
+        Serial.println("  -> PARTIAL WARNING: Smoke detected but no temperature rise");
+      } else if (gasWarningOnly) {
+        Serial.println("  -> PARTIAL WARNING: Gas detected but no temperature rise");
+      }
     }
   }
   
@@ -846,20 +881,29 @@ void updateAlarmState() {
     tempWarning = "normal";
   }
   
-  // Reset silence when alarm clears
-  if (!alarmActive && !warningMode) {
+  // Reset silence when all alarms clear
+  if (!alarmActive && !partialWarningActive && !warningMode) {
     silenceRequested = false;
   }
   
-  // LED indicator - blink fast for fire risk, solid for other alarms
+  // LED indicator - blink fast for fire risk, solid for alarms, slow blink for partial warnings
   if (fireRisk) {
     static unsigned long lastBlink = 0;
     if (millis() - lastBlink > 100) {
       digitalWrite(LED_PIN, !digitalRead(LED_PIN));
       lastBlink = millis();
     }
+  } else if (alarmActive) {
+    digitalWrite(LED_PIN, HIGH);  // Solid for full alarm
+  } else if (partialWarningActive) {
+    // Slow blink for partial warning
+    static unsigned long lastSlowBlink = 0;
+    if (millis() - lastSlowBlink > 500) {
+      digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+      lastSlowBlink = millis();
+    }
   } else {
-    digitalWrite(LED_PIN, (alarmActive || warningMode) ? HIGH : LOW);
+    digitalWrite(LED_PIN, LOW);
   }
 }
 
@@ -883,10 +927,12 @@ void sendDataToServer() {
   // Build JSON payload with gas sensor data
   StaticJsonDocument<1024> doc;
   
-  // Calculate smoke warning status
+  // Calculate warning status
   bool smokeDetected = smokePercent >= smokeThreshold;
+  bool gasDetected = gasPercent >= gasThreshold;
   bool tempRiseDetected = tempBaselineReady && (temperature > baselineTemp + 3.0);
   bool smokeWarningOnly = smokeDetected && !tempRiseDetected;
+  bool gasWarningOnly = gasDetected && !tempRiseDetected;
   
   // Existing sensor data
   doc["gas"] = gasPercent;
@@ -902,8 +948,10 @@ void sendDataToServer() {
   doc["heap"] = ESP.getFreeHeap();
   doc["timestamp"] = getTimestamp();
   
-  // Smart smoke detection data
+  // Partial warning system data
+  doc["partialWarning"] = partialWarningActive;
   doc["smokeWarningOnly"] = smokeWarningOnly;
+  doc["gasWarningOnly"] = gasWarningOnly;
   doc["baselineTemp"] = baselineTemp;
   doc["tempRise"] = tempBaselineReady ? (temperature - baselineTemp) : 0;
   
@@ -1266,12 +1314,12 @@ void displayDefault() {
   
   // Row 1: Temperature and Humidity
   lcd.setCursor(0, 1);
-  snprintf(buf, 21, "Temp: %.1fC  Hum: %.0f%%", temperature, humidity);
+  snprintf(buf, 21, "T:%.1fC  H:%.0f%%", temperature, humidity);
   lcd.print(buf);
   
   // Row 2: Gas and Smoke levels
   lcd.setCursor(0, 2);
-  snprintf(buf, 21, "Gas: %.0f%%   Smoke: %.0f%%", gasPercent, smokePercent);
+  snprintf(buf, 21, "G:%.0f%% S:%.0f%%", gasPercent, smokePercent);
   lcd.print(buf);
   
   // Row 3: AQI with status
@@ -1300,7 +1348,7 @@ void displayTempHumidity() {
   
   // Row 2: Humidity with large display
   lcd.setCursor(0, 2);
-  snprintf(buf, 21, "Humidity:   %.1f %%", humidity);
+  snprintf(buf, 21, "Humidity: %.1f%%", humidity);
   lcd.print(buf);
   
   // Row 3: Status and threshold info

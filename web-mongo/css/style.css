@@ -2120,8 +2120,31 @@ main.container {
 }
 
 .sidebar-title { font-size: 1rem; color: var(--accent); font-weight: 700; }
-.sidebar-section { margin-bottom: 18px; }
-.sidebar-section-title { color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.sidebar-section { 
+  margin-bottom: 24px; 
+  padding: 16px;
+  background: var(--bg2);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.sidebar-section .btn-full {
+  margin-bottom: 8px;
+}
+
+.sidebar-section .btn-full:last-child {
+  margin-bottom: 0;
+}
+.sidebar-section-title { 
+  color: var(--muted); 
+  font-size: 0.7rem; 
+  text-transform: uppercase; 
+  letter-spacing: 1px; 
+  margin-bottom: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
 
 .sidebar-info { font-size: 0.75rem; color: var(--muted); line-height: 1.8; }
 .sidebar-info i { width: 16px; color: var(--accent); }

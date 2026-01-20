@@ -262,19 +262,33 @@ router.post('/:deviceId/data', async (req, res) => {
       }
     }
 
-    // Handle smoke warning (new feature - smoke detected but no temperature rise)
-    if (data.smokeWarningOnly && !wasAlarm) {
-      console.log('[Smoke Warning] Smoke detected without temperature rise');
+    // Handle partial warnings (smoke or gas detected but no temperature rise)
+    if (data.partialWarning && !wasAlarm) {
+      let warningType = '';
+      let warningMessage = '';
       
-      // Send Email notification for smoke warning
+      if (data.smokeWarningOnly && data.gasWarningOnly) {
+        warningType = 'smoke_gas_warning';
+        warningMessage = `Smoke (${data.smoke?.toFixed(1)}%) and Gas (${data.gas?.toFixed(1)}%) detected but no temperature rise`;
+      } else if (data.smokeWarningOnly) {
+        warningType = 'smoke_warning';
+        warningMessage = `Smoke detected (${data.smoke?.toFixed(1)}%) but no temperature rise`;
+      } else if (data.gasWarningOnly) {
+        warningType = 'gas_warning';
+        warningMessage = `Gas detected (${data.gas?.toFixed(1)}%) but no temperature rise`;
+      }
+      
+      console.log(`[Partial Warning] ${warningMessage}`);
+      
+      // Send Email notification for partial warning
       try {
         const { sendAlarmEmail } = require('../utils/email');
         if (household && household.adminEmailAlerts !== false && household.admin?.email) {
-          console.log('[Smoke Warning] Sending email to:', household.admin.email);
+          console.log('[Partial Warning] Sending email to:', household.admin.email);
           const phTimeEmail = new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
           const emailResult = await sendAlarmEmail(household.admin.email, {
             deviceId,
-            trigger: 'smoke_warning',
+            trigger: warningType,
             gas: data.gas,
             smoke: data.smoke,
             temperature: data.temperature,
@@ -284,17 +298,21 @@ router.post('/:deviceId/data', async (req, res) => {
             timestamp: phTimeEmail,
             isWarningOnly: true
           });
-          console.log(`[Smoke Warning] Email sent successfully to admin: ${household.admin.email}`, emailResult);
+          console.log(`[Partial Warning] Email sent successfully to admin: ${household.admin.email}`, emailResult);
         }
       } catch (emailError) {
-        console.error('[Smoke Warning] Email notification error:', emailError.message);
+        console.error('[Partial Warning] Email notification error:', emailError.message);
       }
 
-      // Send push notification for smoke warning
+      // Send push notification for partial warning
+      const notificationTitle = data.smokeWarningOnly && data.gasWarningOnly ? 
+        '⚠️ SMOKE & GAS WARNING' : 
+        data.smokeWarningOnly ? '⚠️ SMOKE WARNING' : '⚠️ GAS WARNING';
+        
       await sendPushNotification(deviceId, {
-        title: '⚠️ SMOKE WARNING',
-        body: `Smoke detected (${data.smoke?.toFixed(1)}%) but no temperature rise. Temp: ${data.temperature?.toFixed(1)}°C (baseline: ${data.baselineTemp?.toFixed(1)}°C)`,
-        vibrate: [100, 50, 100], tag: 'smoke-warning', requireInteraction: false
+        title: notificationTitle,
+        body: `${warningMessage}. Temp: ${data.temperature?.toFixed(1)}°C (baseline: ${data.baselineTemp?.toFixed(1)}°C)`,
+        vibrate: [100, 50, 100, 50, 100], tag: 'partial-warning', requireInteraction: false
       });
     }
 

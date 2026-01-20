@@ -150,15 +150,17 @@ const sendAlarmEmail = async (email, alarmData) => {
     smoke: '💨 High smoke levels detected!',
     temperature: '🌡️ Dangerous temperature detected!',
     both: '🚨 Gas/Smoke AND high temperature detected!',
-    smoke_warning: '⚠️ Smoke detected without temperature rise'
+    smoke_warning: '⚠️ Smoke detected without temperature rise',
+    gas_warning: '⚠️ Gas detected without temperature rise',
+    smoke_gas_warning: '⚠️ Smoke & Gas detected without temperature rise'
   };
 
   // Different styling for warnings vs alarms
-  const isWarning = isWarningOnly || trigger === 'smoke_warning';
+  const isWarning = isWarningOnly || trigger.includes('_warning');
   const bgColor = isWarning ? '#ff9800' : '#d32f2f';
   const bgGradient = isWarning ? 'linear-gradient(135deg, #ff9800, #ffb74d)' : 'linear-gradient(135deg, #d32f2f, #ff5722)';
-  const subject = isWarning ? '⚠️ SMOKE WARNING - Check Your Home' : '🚨 FIRE ALARM TRIGGERED - Immediate Action Required!';
-  const title = isWarning ? '⚠️ SMOKE WARNING' : '🚨 FIRE ALARM!';
+  const subject = isWarning ? '⚠️ PARTIAL WARNING - Check Your Home' : '🚨 FIRE ALARM TRIGGERED - Immediate Action Required!';
+  const title = isWarning ? '⚠️ PARTIAL WARNING' : '🚨 FIRE ALARM!';
   const actionText = isWarning ? 'Check Your Home' : 'Immediate Action Required';
 
   console.log(`[Email] Sending ${isWarning ? 'SMOKE WARNING' : 'ALARM'} alert to:`, email);
@@ -178,14 +180,14 @@ const sendAlarmEmail = async (email, alarmData) => {
             <h2 style="color: ${bgColor}; margin-top: 0;">${isWarning ? '⚠️' : '⚠️'} ${actionText}</h2>
             <p style="color: #333; font-size: 16px;">
               ${isWarning 
-                ? 'Your FireWire device detected smoke but no temperature rise. This could be steam, cooking smoke, or dust. Please check your home to ensure safety.'
+                ? `Your FireWire device detected ${trigger.includes('smoke_gas') ? 'smoke and gas' : trigger.includes('smoke') ? 'smoke' : 'gas'} but no temperature rise. This could be steam, cooking smoke, dust, or minor gas leak. Please check your home to ensure safety.`
                 : 'Your FireWire device has detected a potential fire hazard. Please check your home immediately!'
               }
             </p>
             ${isWarning ? `
               <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
                 <p style="color: #1976d2; margin: 0; font-size: 14px;">
-                  <strong>Smart Detection:</strong> No buzzer alarm was triggered because temperature remained stable (${temperature?.toFixed(1)}°C vs baseline ${baselineTemp?.toFixed(1)}°C, rise: ${tempRise?.toFixed(1)}°C).
+                  <strong>Smart Detection:</strong> Only intermittent beeping was triggered because temperature remained stable (${temperature?.toFixed(1)}°C vs baseline ${baselineTemp?.toFixed(1)}°C, rise: ${tempRise?.toFixed(1)}°C).
                 </p>
               </div>
             ` : ''}
