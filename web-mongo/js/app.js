@@ -366,7 +366,11 @@ function playAlarmSound() {
     alarmAudio.volume = 1.0;
     alarmAudio.onended = function() {
       isPlaying = false;
-      if (document.body.classList.contains('alarm-mode') && sirenEnabled && audioEnabled) {
+      // Continue playing for both full alarms and partial warnings
+      const shouldContinue = (document.body.classList.contains('alarm-mode') || 
+                             document.body.classList.contains('partial-warning-mode')) && 
+                             sirenEnabled && audioEnabled;
+      if (shouldContinue) {
         setTimeout(() => playAlarmSound(), 500);
       }
     };
@@ -791,8 +795,22 @@ function updateUI(data, isRealtimeUpdate = false) {
     
     // Handle partial warnings - play alarm sound but don't show full alarm UI
     if (data.partialWarning && !data.alarm) {
-      console.log('Partial warning detected - playing alarm sound');
+      console.log('Partial warning detected - playing alarm sound', {
+        partialWarning: data.partialWarning,
+        smokeWarningOnly: data.smokeWarningOnly,
+        gasWarningOnly: data.gasWarningOnly,
+        sirenEnabled: sirenEnabled,
+        audioEnabled: audioEnabled
+      });
+      
+      // Add a temporary class to indicate partial warning mode
+      document.body.classList.add('partial-warning-mode');
       playAlarmSound();
+      
+      // Remove the class after a short delay
+      setTimeout(() => {
+        document.body.classList.remove('partial-warning-mode');
+      }, 5000);
     }
   } else {
     // Clear alarm state when offline

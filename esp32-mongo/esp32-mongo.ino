@@ -299,9 +299,13 @@ void loop() {
     // Full alarm - continuous buzzer
     activateBuzzer(true);
     partialBeepCount = 0;  // Reset partial beep counter
+    Serial.println("[BUZZER] Full alarm - continuous");
   } else if (partialWarningActive && sirenEnabled && !silenceRequested) {
     // Partial warning - 3 beeps with 800ms intervals, then 2 second pause
     unsigned long now = millis();
+    
+    Serial.printf("[BUZZER] Partial warning - beepCount=%d, beepState=%s, timeSinceLastBeep=%lu\n", 
+                  partialBeepCount, partialBeepState ? "ON" : "OFF", now - lastPartialBeep);
     
     if (partialBeepCount < PARTIAL_BEEP_SEQUENCE) {
       // Currently in beeping sequence
@@ -317,6 +321,7 @@ void loop() {
         partialBeepState = false;
         activateBuzzer(false);
         lastPartialBeep = now;
+        Serial.printf("[Partial Beep] End beep %d\n", partialBeepCount);
       }
     } else {
       // Sequence complete, wait for pause period
@@ -331,6 +336,7 @@ void loop() {
     // Warning mode - continuous buzzer
     activateBuzzer(true);
     partialBeepCount = 0;  // Reset partial beep counter
+    Serial.println("[BUZZER] Warning mode - continuous");
   } else {
     // No alarm - buzzer off
     activateBuzzer(false);
@@ -865,6 +871,15 @@ void updateAlarmState() {
   
   // Partial warning: smoke or gas detected but no temperature rise
   partialWarningActive = (smokeWarningOnly || gasWarningOnly) && !alarmActive;
+  
+  // Debug partial warning detection
+  if (partialWarningActive != wasPartialWarning) {
+    Serial.printf("[DEBUG] Partial Warning State Changed: %s\n", partialWarningActive ? "ACTIVE" : "INACTIVE");
+    Serial.printf("[DEBUG] smokeWarningOnly=%s, gasWarningOnly=%s, alarmActive=%s\n", 
+                  smokeWarningOnly ? "true" : "false", 
+                  gasWarningOnly ? "true" : "false", 
+                  alarmActive ? "true" : "false");
+  }
   
   // IMMEDIATE DEBUG OUTPUT FOR ALARM TRIGGERS
   static unsigned long lastAlarmDebug = 0;
