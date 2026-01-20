@@ -1722,7 +1722,7 @@ async function resetThresholdsToDefault() {
     return;
   }
   
-  if (!confirm('Reset all sensor thresholds to factory defaults?\n\n• Gas: 40%\n• Smoke: 40%\n• Temperature: 60°C\n• CO: 35/100/400 PPM')) {
+  if (!confirm('Reset all sensor thresholds to factory defaults?\n\n• Gas: 40%\n• Smoke: 40%\n• Temperature: 35°C (min) - 60°C (default)\n• CO: 35/100/400 PPM')) {
     return;
   }
   

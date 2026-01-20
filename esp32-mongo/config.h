@@ -42,19 +42,21 @@
 #define BUZZER_PIN 25        // Buzzer pin
 #define LED_PIN 2            // Built-in LED
 
-// Button Pins (for LCD display toggle)
-#define BTN1_PIN 26          // Button 1 - Temperature/Humidity view
-#define BTN2_PIN 27          // Button 2 - Gas sensors view
-#define BTN3_PIN 13          // Button 3 - System info view (changed from 14)
+// Button Pins (for LCD display toggle) - Safe pins that don't conflict with sensors
+#define BTN1_PIN 15          // Button 1 - Temperature/Humidity view (safe digital pin)
+#define BTN2_PIN 19          // Button 2 - Gas Level/Air Quality view
+#define BTN3_PIN 13          // Button 3 - Smoke Level view
+#define BTN4_PIN 14          // Button 4 - System/WiFi info view
+#define BTN5_PIN 12          // Button 5 - Buzzer off/silence
 
-// Update Intervals (milliseconds)
-#define SENSOR_READ_INTERVAL 200     // Read sensors every 0.2 seconds
-#define DATA_SEND_INTERVAL 500       // Send data every 0.5 seconds
-#define COMMAND_CHECK_INTERVAL 1000  // Check commands every 1 second
+// Update Intervals (milliseconds) - Optimized for fast response
+#define SENSOR_READ_INTERVAL 100     // Read sensors every 0.1 seconds (was 200ms)
+#define DATA_SEND_INTERVAL 250       // Send data every 0.25 seconds (was 500ms)
+#define COMMAND_CHECK_INTERVAL 500   // Check commands every 0.5 seconds (was 1000ms)
 
 // Default Thresholds
 #define DEFAULT_GAS_THRESHOLD 40
-#define DEFAULT_TEMP_THRESHOLD 60
+#define DEFAULT_TEMP_THRESHOLD 35  // Changed minimum from 60 to 35°C
 
 // CO Thresholds (PPM) - Very high to prevent false alarms during sensor warmup
 #define DEFAULT_CO_WARNING 500
@@ -62,8 +64,8 @@
 #define DEFAULT_CO_CRITICAL 1000
 
 // Sensor Calibration Defaults
-#define DEFAULT_CO_RO 10000.0     // MQ-7 Ro in clean air (ohms)
-#define DEFAULT_AQI_RO 10000.0    // MQ-135 Ro in clean air (ohms)
+#define DEFAULT_CO_RO 200.0       // MQ-7 Ro in clean air (ohms) - adjusted for current ADC readings
+#define DEFAULT_AQI_RO 100.0      // MQ-135 Ro in clean air (ohms) - adjusted for current ADC readings
 #define LOAD_RESISTANCE 10.0      // Load resistor value (kOhms)
 
 // Warmup Configuration

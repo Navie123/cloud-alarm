@@ -216,10 +216,12 @@ BATTERY SHIELD CONNECTIONS:
    
      ESP32 GPIO ──────[BTN]────── GND
      
-   Example:
-     GPIO 26 ────────[BTN1]────── GND  (Climate)
-     GPIO 27 ────────[BTN2]────── GND  (Gas Sensors)
-     GPIO 13 ────────[BTN3]────── GND  (System Info)
+   Example (New 5-Button Layout):
+     GPIO 15 ────────[BTN1]────── GND  (Temperature/Humidity)
+     GPIO 19 ────────[BTN2]────── GND  (Gas Level/Air Quality)
+     GPIO 13 ────────[BTN3]────── GND  (Smoke Level)
+     GPIO 14 ────────[BTN4]────── GND  (System/WiFi Info)
+     GPIO 12 ────────[BTN5]────── GND  (Buzzer Off/Silence)
 
    Note: Internal pull-up resistors are enabled in software.
          No external resistors needed.
@@ -272,18 +274,31 @@ BATTERY SHIELD CONNECTIONS:
                          BUTTON WIRING DETAIL
                          ════════════════════
 
-     GPIO 26 ────────┬────[BTN1]────┬──────── GND
+     GPIO 15 ────────┬────[BTN1]────┬──────── GND
                      │              │
-     GPIO 27 ────────┬────[BTN2]────┬──────── GND
+     GPIO 19 ────────┬────[BTN2]────┬──────── GND
                      │              │
      GPIO 13 ────────┬────[BTN3]────┬──────── GND
+                     │              │
+     GPIO 14 ────────┬────[BTN4]────┬──────── GND
+                     │              │
+     GPIO 12 ────────┬────[BTN5]────┬──────── GND
 
-     Button Functions:
-     • BTN1: Climate Data (Temperature & Humidity from HDC1080)
-     • BTN2: Gas Sensors (MQ-2 Smoke, MQ-7 CO, MQ-135 AQI)
-     • BTN3: System Info (WiFi, IP Address, Uptime, Memory)
+     Button Functions (Left to Right):
+     • BTN1: Temperature & Humidity Detail
+     • BTN2: Gas Level & Air Quality (CO PPM, AQI)
+     • BTN3: Smoke Level Detail with Thresholds
+     • BTN4: System & WiFi Info (Network, Uptime, Memory)
+     • BTN5: Buzzer Off/Silence Alarm (Immediate Action)
      
-     Display auto-returns to Overview after 10 seconds.
+     Smart Display Features:
+     • Default Display: Clean FireWire overview with all readings
+     • Warning Mode: Auto-switches when sensors detect elevated readings
+     • Alarm Mode: Critical alarm screen overrides all displays
+     • Silence Notification: Shows confirmation when BTN5 pressed
+     • Fast Animation: Quick transitions (150ms) between modes
+     • Auto-Return: Returns to default after 20 seconds of inactivity
+     • Button Debug: Serial output shows button press detection
 
 ================================================================================
                          I2C BUS CONFIGURATION

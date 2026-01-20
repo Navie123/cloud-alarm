@@ -142,32 +142,53 @@ const sendOTPEmail = async (email, code, purpose) => {
 
 // Send alarm alert email
 const sendAlarmEmail = async (email, alarmData) => {
-  const { deviceId, trigger, gas, smoke, temperature, humidity, timestamp } = alarmData;
+  const { deviceId, trigger, gas, smoke, temperature, humidity, timestamp, baselineTemp, tempRise, isWarningOnly } = alarmData;
   const dashboardUrl = process.env.FRONTEND_URL || 'https://cloud-alarm.onrender.com';
   
   const triggerMessages = {
     gas: '🔥 High gas levels detected!',
     smoke: '💨 High smoke levels detected!',
     temperature: '🌡️ Dangerous temperature detected!',
-    both: '🚨 Gas/Smoke AND high temperature detected!'
+    both: '🚨 Gas/Smoke AND high temperature detected!',
+    smoke_warning: '⚠️ Smoke detected without temperature rise'
   };
 
-  console.log('[Email] Sending ALARM alert to:', email);
+  // Different styling for warnings vs alarms
+  const isWarning = isWarningOnly || trigger === 'smoke_warning';
+  const bgColor = isWarning ? '#ff9800' : '#d32f2f';
+  const bgGradient = isWarning ? 'linear-gradient(135deg, #ff9800, #ffb74d)' : 'linear-gradient(135deg, #d32f2f, #ff5722)';
+  const subject = isWarning ? '⚠️ SMOKE WARNING - Check Your Home' : '🚨 FIRE ALARM TRIGGERED - Immediate Action Required!';
+  const title = isWarning ? '⚠️ SMOKE WARNING' : '🚨 FIRE ALARM!';
+  const actionText = isWarning ? 'Check Your Home' : 'Immediate Action Required';
+
+  console.log(`[Email] Sending ${isWarning ? 'SMOKE WARNING' : 'ALARM'} alert to:`, email);
 
   try {
     const { data, error } = await resend.emails.send({
       from: 'FireWire Alert <onboarding@resend.dev>',
       to: email,
-      subject: '🚨 FIRE ALARM TRIGGERED - Immediate Action Required!',
+      subject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #d32f2f, #ff5722); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 28px;">🚨 FIRE ALARM!</h1>
-            <p style="color: #ffcdd2; margin: 10px 0 0 0; font-size: 16px;">${triggerMessages[trigger] || 'Alarm triggered!'}</p>
+          <div style="background: ${bgGradient}; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">${title}</h1>
+            <p style="color: ${isWarning ? '#fff3e0' : '#ffcdd2'}; margin: 10px 0 0 0; font-size: 16px;">${triggerMessages[trigger] || 'Alarm triggered!'}</p>
           </div>
-          <div style="padding: 30px; background: #fff3e0; border-left: 4px solid #ff5722;">
-            <h2 style="color: #d32f2f; margin-top: 0;">⚠️ Immediate Action Required</h2>
-            <p style="color: #333; font-size: 16px;">Your FireWire device has detected a potential fire hazard. Please check your home immediately!</p>
+          <div style="padding: 30px; background: ${isWarning ? '#fff8e1' : '#fff3e0'}; border-left: 4px solid ${bgColor};">
+            <h2 style="color: ${bgColor}; margin-top: 0;">${isWarning ? '⚠️' : '⚠️'} ${actionText}</h2>
+            <p style="color: #333; font-size: 16px;">
+              ${isWarning 
+                ? 'Your FireWire device detected smoke but no temperature rise. This could be steam, cooking smoke, or dust. Please check your home to ensure safety.'
+                : 'Your FireWire device has detected a potential fire hazard. Please check your home immediately!'
+              }
+            </p>
+            ${isWarning ? `
+              <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p style="color: #1976d2; margin: 0; font-size: 14px;">
+                  <strong>Smart Detection:</strong> No buzzer alarm was triggered because temperature remained stable (${temperature?.toFixed(1)}°C vs baseline ${baselineTemp?.toFixed(1)}°C, rise: ${tempRise?.toFixed(1)}°C).
+                </p>
+              </div>
+            ` : ''}
           </div>
           <div style="padding: 30px; background: #f5f5f5;">
             <h3 style="color: #333; margin-top: 0;">Sensor Readings:</h3>
@@ -182,12 +203,22 @@ const sendAlarmEmail = async (email, alarmData) => {
               </tr>
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Smoke Level:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${smoke > 40 ? '#d32f2f' : '#333'};">${smoke?.toFixed(1) || 0}% ${smoke > 40 ? '⚠️ HIGH' : ''}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${smoke > 10 ? (isWarning ? '#ff9800' : '#d32f2f') : '#333'};">${smoke?.toFixed(1) || 0}% ${smoke > 10 ? (isWarning ? '⚠️ DETECTED' : '⚠️ HIGH') : ''}</td>
               </tr>
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Temperature:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${temperature > 60 ? '#d32f2f' : '#333'};">${temperature?.toFixed(1) || 0}°C ${temperature > 60 ? '⚠️ HIGH' : ''}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${temperature > 35 ? '#d32f2f' : '#333'};">${temperature?.toFixed(1) || 0}°C ${temperature > 35 ? '⚠️ HIGH' : ''}</td>
               </tr>
+              ${isWarning && baselineTemp ? `
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Baseline Temp:</strong></td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">${baselineTemp?.toFixed(1)}°C</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Temp Rise:</strong></td>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">${tempRise?.toFixed(1)}°C</td>
+              </tr>
+              ` : ''}
               <tr>
                 <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Humidity:</strong></td>
                 <td style="padding: 10px; border-bottom: 1px solid #ddd;">${humidity?.toFixed(1) || 0}%</td>
@@ -199,14 +230,14 @@ const sendAlarmEmail = async (email, alarmData) => {
             </table>
           </div>
           <div style="padding: 30px; background: #f5f5f5; text-align: center;">
-            <a href="${dashboardUrl}" style="background: #d32f2f; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 18px;">
+            <a href="${dashboardUrl}" style="background: ${bgColor}; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 18px;">
               View Dashboard
             </a>
           </div>
           <div style="padding: 20px; background: #333; border-radius: 0 0 10px 10px;">
             <p style="color: #999; font-size: 12px; margin: 0; text-align: center;">
               This is an automated alert from your FireWire Smart Fire Alarm System.<br>
-              If this is a false alarm, you can silence it from the dashboard.
+              ${isWarning ? 'This is a warning notification - no buzzer alarm was triggered.' : 'If this is a false alarm, you can silence it from the dashboard.'}
             </p>
           </div>
         </div>
@@ -218,7 +249,7 @@ const sendAlarmEmail = async (email, alarmData) => {
       throw new Error(error.message);
     }
 
-    console.log('[Email] ALARM alert sent successfully to:', email, 'ID:', data?.id);
+    console.log(`[Email] ${isWarning ? 'SMOKE WARNING' : 'ALARM'} alert sent successfully to:`, email, 'ID:', data?.id);
     return data;
   } catch (error) {
     console.error('[Email] Failed to send alarm alert:', error.message);

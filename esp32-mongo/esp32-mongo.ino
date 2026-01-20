@@ -45,6 +45,12 @@ bool sirenEnabled = true;
 bool silenceRequested = false;
 String tempWarning = "normal";
 
+// Temperature baseline for smart smoke detection
+float baselineTemp = 25.0;  // Average temperature baseline
+float tempReadings[10];     // Store last 10 temperature readings for baseline
+int tempReadingIndex = 0;
+bool tempBaselineReady = false;
+
 // MQ-2 Smoke Sensor variables
 float smokePercent = 0;
 int smokeRaw = 0;
@@ -95,11 +101,18 @@ bool configPortalActive = false;
 bool wifiResetRequested = false;  // Server can request WiFi reset
 
 // LCD Display Mode (controlled by buttons)
-int displayMode = 0;  // 0=Overview, 1=Temp/Humidity, 2=Gas Sensors, 3=System Info
+int displayMode = 0;  // 0=Default, 1=Temp/Humidity, 2=Gas/AQI, 3=Smoke, 4=System/WiFi
 unsigned long lastButtonPress = 0;
-const unsigned long DEBOUNCE_DELAY = 200;  // Button debounce
-const unsigned long AUTO_RETURN_DELAY = 10000;  // Return to overview after 10s
+const unsigned long DEBOUNCE_DELAY = 100;  // Reduced debounce for faster response
+const unsigned long AUTO_RETURN_DELAY = 20000;  // Return to default after 20s
 unsigned long lastModeChange = 0;
+
+// LCD Animation variables
+bool isAnimating = false;
+unsigned long animationStart = 0;
+const unsigned long ANIMATION_DURATION = 150;  // Reduced from 500ms to 150ms
+int animationStep = 0;
+bool warningMode = false;  // True when showing warning screen
 
 // Function declarations
 void setupWiFiManager();
@@ -144,10 +157,20 @@ void setup() {
   pinMode(MQ7_PIN, INPUT);
   pinMode(MQ135_PIN, INPUT);
   
-  // Initialize button pins with internal pull-up resistors
-  pinMode(BTN1_PIN, INPUT_PULLUP);
-  pinMode(BTN2_PIN, INPUT_PULLUP);
-  pinMode(BTN3_PIN, INPUT_PULLUP);
+  // Initialize button pins with internal pull-up resistors and stronger pull-up
+  pinMode(BTN1_PIN, INPUT_PULLUP);  // Temp/Humidity
+  pinMode(BTN2_PIN, INPUT_PULLUP);  // Gas Level/Air Quality
+  pinMode(BTN3_PIN, INPUT_PULLUP);  // Smoke Level
+  pinMode(BTN4_PIN, INPUT_PULLUP);  // System/WiFi
+  pinMode(BTN5_PIN, INPUT_PULLUP);  // Buzzer Off
+  
+  // Test button pins at startup
+  Serial.println("Testing button pins at startup:");
+  Serial.printf("BTN1 (GPIO %d): %d\n", BTN1_PIN, digitalRead(BTN1_PIN));
+  Serial.printf("BTN2 (GPIO %d): %d\n", BTN2_PIN, digitalRead(BTN2_PIN));
+  Serial.printf("BTN3 (GPIO %d): %d\n", BTN3_PIN, digitalRead(BTN3_PIN));
+  Serial.printf("BTN4 (GPIO %d): %d\n", BTN4_PIN, digitalRead(BTN4_PIN));
+  Serial.printf("BTN5 (GPIO %d): %d\n", BTN5_PIN, digitalRead(BTN5_PIN));
   
   // Keep buzzer off
   digitalWrite(BUZZER_PIN, LOW);
@@ -230,10 +253,10 @@ void loop() {
   // Check buttons for display mode change
   checkButtons();
   
-  // Auto-return to overview after timeout (unless in alarm mode)
-  if (!alarmActive && displayMode != 0 && (now - lastModeChange > AUTO_RETURN_DELAY)) {
+  // Auto-return to default display after timeout (unless in alarm/warning mode)
+  if (!alarmActive && !warningMode && displayMode != 0 && (now - lastModeChange > AUTO_RETURN_DELAY)) {
     displayMode = 0;
-    lcd.clear();
+    startSlideAnimation();
   }
   
   // Read sensors
@@ -243,8 +266,8 @@ void loop() {
     lastSensorRead = now;
   }
   
-  // Update LCD every 500ms
-  if (now - lastLCDUpdate >= 500) {
+  // Update LCD every 200ms (was 500ms) for faster response
+  if (now - lastLCDUpdate >= 200) {
     updateLCD();
     lastLCDUpdate = now;
   }
@@ -261,8 +284,8 @@ void loop() {
     lastCommandCheck = now;
   }
   
-  // Handle buzzer
-  if (alarmActive && sirenEnabled && !silenceRequested) {
+  // Handle buzzer - WARNING MODE ALSO TRIGGERS BUZZER
+  if ((alarmActive || warningMode) && sirenEnabled && !silenceRequested) {
     activateBuzzer(true);
   } else {
     activateBuzzer(false);
@@ -417,6 +440,23 @@ void readSensors() {
   if (tempValid) {
     temperature = newTemp;
     tempSensorReady = true;
+    
+    // Update temperature baseline (rolling average of last 10 readings)
+    tempReadings[tempReadingIndex] = temperature;
+    tempReadingIndex = (tempReadingIndex + 1) % 10;
+    
+    // Calculate baseline after we have enough readings
+    if (!tempBaselineReady && tempReadingIndex == 0) {
+      tempBaselineReady = true;
+    }
+    
+    if (tempBaselineReady) {
+      float sum = 0;
+      for (int i = 0; i < 10; i++) {
+        sum += tempReadings[i];
+      }
+      baselineTemp = sum / 10.0;
+    }
   } else {
     Serial.printf("WARNING: Invalid temp reading: %.1f°C (I2C error)\n", newTemp);
   }
@@ -445,9 +485,9 @@ void readSensors() {
   readGasSensors();
   
   // Debug output
-  Serial.printf("CO: %.1f PPM (%s), AQI: %.0f (%s), Temp: %.1f°C, Hum: %.1f%%\n",
+  Serial.printf("CO: %.1f PPM (%s), AQI: %.0f (%s), Temp: %.1f°C (baseline: %.1f°C), Hum: %.1f%%\n",
                 coPpm, coStatus.c_str(), aqi, aqiStatus.c_str(), 
-                temperature, humidity);
+                temperature, baselineTemp, humidity);
 }
 
 void readGasSensors() {
@@ -490,38 +530,66 @@ void readGasSensors() {
   gasPercent = map(coRaw, 0, 4095, 0, 100);
   gasPercent = constrain(gasPercent, 0, 100);
   
-  // AQI from MQ-135 (direct mapping)
-  aqi = map(aqiRaw, 0, 4095, 0, 500);
-  aqi = constrain(aqi, 0, 500);
+  // AQI from MQ-135 (proper calculation using Ro)
+  aqi = calculateAQI(aqiRaw, aqiRo);
   
-  // CO PPM calculation (optional, for display)
-  coPpm = gasPercent * 5; // Rough estimate: 100% = 500 PPM
+  // CO PPM calculation (proper calculation using Ro)
+  coPpm = calculateCOPpm(coRaw, coRo);
   
-  // Debug raw values
+  // Debug raw values with calculation details
   Serial.printf("Raw ADC - MQ2: %d, MQ7: %d, MQ135: %d -> Smoke: %.1f%%, Gas: %.1f%%, AQI: %.0f\n", 
                 smokeRaw, coRaw, aqiRaw, smokePercent, gasPercent, aqi);
   
-  // Smoke status (MQ-2) - use smokeThreshold
-  if (smokePercent >= smokeThreshold + 20) {
+  // Debug CO calculation
+  if (coRaw > 0) {
+    float coVoltage = (coRaw / 4095.0) * 3.3;
+    float coRs = ((3.3 * LOAD_RESISTANCE) / coVoltage) - LOAD_RESISTANCE;
+    float coRatio = coRs / coRo;
+    Serial.printf("CO Debug - Raw: %d, V: %.3f, Rs: %.1f, Ratio: %.3f, PPM: %.1f\n", 
+                  coRaw, coVoltage, coRs, coRatio, coPpm);
+    
+    // Additional debug for very low readings
+    if (coRaw < 50) {
+      Serial.printf("CO: Very low ADC (%d) = clean air, PPM set to 0\n", coRaw);
+    }
+  }
+  
+  // Debug AQI calculation  
+  if (aqiRaw > 0) {
+    float aqiVoltage = (aqiRaw / 4095.0) * 3.3;
+    float aqiRs = ((3.3 * LOAD_RESISTANCE) / aqiVoltage) - LOAD_RESISTANCE;
+    float aqiRatio = aqiRs / aqiRo;
+    Serial.printf("AQI Debug - Raw: %d, V: %.3f, Rs: %.1f, Ratio: %.3f, AQI: %.0f\n", 
+                  aqiRaw, aqiVoltage, aqiRs, aqiRatio, aqi);
+    
+    // Additional debug for AQI calculation method
+    if (aqiRaw < 30) {
+      Serial.printf("AQI: Very low ADC (%d) = excellent air, AQI baseline (5-10)\n", aqiRaw);
+    } else if (aqiRaw < 100) {
+      Serial.printf("AQI: Low ADC (%d) = good air range (10-20)\n", aqiRaw);
+    } else if (aqiRaw < 300) {
+      Serial.printf("AQI: Medium ADC (%d) = moderate air range (20-50)\n", aqiRaw);
+    } else {
+      Serial.printf("AQI: High ADC (%d) = poor air range (50+)\n", aqiRaw);
+    }
+  }
+  
+  // Smoke status (MQ-2) - use smokeThreshold properly
+  if (smokePercent >= smokeThreshold + 10) {
     smokeStatus = "critical";
   } else if (smokePercent >= smokeThreshold) {
     smokeStatus = "danger";
-  } else if (smokePercent >= smokeThreshold - 10) {
+  } else if (smokePercent >= smokeThreshold * 0.7) {  // 70% of threshold = warning
     smokeStatus = "warning";
   } else {
     smokeStatus = "normal";
   }
   
-  // CO status (MQ-7) based on gas percentage
-  if (gasPercent >= gasThreshold + 20) {
-    coStatus = "critical";
-  } else if (gasPercent >= gasThreshold) {
-    coStatus = "danger";
-  } else if (gasPercent >= gasThreshold - 10) {
-    coStatus = "warning";
-  } else {
-    coStatus = "normal";
-  }
+  // CO status (MQ-7) based on PPM thresholds
+  coStatus = getCOStatus(coPpm);
+  
+  // AQI status based on calculated AQI value
+  aqiStatus = getAQIStatus(aqi);
   
   // AQI status (MQ-135)
   if (aqi > 150) {
@@ -539,35 +607,79 @@ void readGasSensors() {
 }
 
 float calculateCOPpm(int rawADC, float ro) {
-  if (rawADC <= 0 || ro <= 0) return 0;
+  if (rawADC <= 0 || ro <= 0) return 1;  // Return 1 instead of 0 for baseline
   
   float voltage = (rawADC / 4095.0) * 3.3;
-  if (voltage <= 0) return 0;
+  if (voltage <= 0.01) return 1;  // Baseline reading
   
   float rs = ((3.3 * LOAD_RESISTANCE) / voltage) - LOAD_RESISTANCE;
-  if (rs <= 0) return 1000;
+  if (rs <= 0) return 1;  // Baseline reading
   
   float ratio = rs / ro;
   
-  // MQ-7 curve: PPM = 10^((log10(ratio) - 0.72) / -0.34 + 2.3)
-  float ppm = pow(10, ((log10(ratio) - 0.72) / -0.34) + 2.3);
-  return constrain(ppm, 0, 1000);
+  // More sensitive CO calculation - always show some reading
+  float ppm;
+  
+  if (rawADC < 20) {
+    // Very low ADC = baseline CO (1-2 PPM)
+    ppm = 1 + (rawADC / 20.0);  // 1-2 PPM range
+  } else if (rawADC < 100) {
+    // Low ADC range = normal indoor CO (2-5 PPM)
+    ppm = 2 + ((rawADC - 20) / 80.0) * 3.0;  // 2-5 PPM range
+  } else if (rawADC < 300) {
+    // Medium ADC range = elevated CO (5-15 PPM)
+    ppm = 5 + ((rawADC - 100) / 200.0) * 10.0;  // 5-15 PPM range
+  } else if (rawADC < 800) {
+    // High ADC range = dangerous CO (15-50 PPM)
+    ppm = 15 + ((rawADC - 300) / 500.0) * 35.0;  // 15-50 PPM range
+  } else {
+    // Very high ADC range = critical CO (50+ PPM)
+    ppm = 50 + ((rawADC - 800) / 1000.0) * 100.0;  // 50+ PPM range
+  }
+  
+  // Ensure minimum reading and cap maximum
+  if (ppm < 1.0) ppm = 1.0;  // Never show 0
+  if (ppm > 200) ppm = 200;  // Cap at dangerous levels
+  
+  return round(ppm * 10) / 10.0;  // Round to 1 decimal place
 }
 
 float calculateAQI(int rawADC, float ro) {
-  if (rawADC <= 0 || ro <= 0) return 0;
+  if (rawADC <= 0 || ro <= 0) return 5;  // Return baseline 5 instead of 0
   
   float voltage = (rawADC / 4095.0) * 3.3;
-  if (voltage <= 0) return 0;
+  if (voltage <= 0.01) return 5;  // Baseline reading for very low voltage
   
   float rs = ((3.3 * LOAD_RESISTANCE) / voltage) - LOAD_RESISTANCE;
-  if (rs <= 0) return 500;
+  if (rs <= 0) return 5;  // Baseline reading for invalid resistance
   
   float ratio = rs / ro;
   
-  // Map ratio to AQI (lower ratio = more pollution)
-  float aqiValue = (1 - min(ratio, 1.0f)) * 625;
-  return constrain(aqiValue, 0, 500);
+  // More sensitive AQI calculation - never return 0, always show baseline
+  float aqiValue;
+  
+  if (rawADC < 30) {
+    // Very low ADC = excellent air (5-10 AQI baseline)
+    aqiValue = 5 + (rawADC / 30.0) * 5.0;  // 5-10 AQI range
+  } else if (rawADC < 100) {
+    // Low ADC range = good air (10-20 AQI)
+    aqiValue = 10 + ((rawADC - 30) / 70.0) * 10.0;
+  } else if (rawADC < 300) {
+    // Medium ADC range = moderate air (20-50 AQI)
+    aqiValue = 20 + ((rawADC - 100) / 200.0) * 30.0;
+  } else if (rawADC < 800) {
+    // High ADC range = unhealthy for sensitive (50-100 AQI)
+    aqiValue = 50 + ((rawADC - 300) / 500.0) * 50.0;
+  } else {
+    // Very high ADC range = unhealthy (100+ AQI)
+    aqiValue = 100 + ((rawADC - 800) / 1000.0) * 100.0;
+  }
+  
+  // Bounds checking - realistic AQI levels, never below 5
+  if (aqiValue < 5) return 5;  // Always show minimum baseline of 5
+  if (aqiValue > 200) return 200;  // Cap at very unhealthy levels
+  
+  return round(aqiValue);  // Round to whole number
 }
 
 String getCOStatus(float ppm) {
@@ -618,6 +730,14 @@ void loadCalibration() {
   aqiRo = preferences.getFloat("aqiRo", DEFAULT_AQI_RO);
   lastCalibration = preferences.getULong("lastCal", 0);
   preferences.end();
+  
+  // Force reset to new defaults if old values are too high
+  if (coRo > 300 || aqiRo > 300) {
+    Serial.println("Old calibration values detected - resetting to new defaults");
+    coRo = DEFAULT_CO_RO;
+    aqiRo = DEFAULT_AQI_RO;
+    saveCalibration();
+  }
   
   Serial.printf("Loaded calibration: CO Ro=%.0f, AQI Ro=%.0f\n", coRo, aqiRo);
 }
@@ -670,25 +790,49 @@ void performCalibration() {
 }
 
 void updateAlarmState() {
-  // Smoke alarm when MQ-2 reading exceeds smoke threshold
-  bool smokeAlarm = smokePercent >= smokeThreshold;
-  
   // Gas alarm when MQ-7 reading exceeds gas threshold
   bool gasAlarm = gasPercent >= gasThreshold;
   
-  // Only trigger temp alarm if sensor is ready AND temp is valid (not I2C error value)
+  // Temperature alarm when temp exceeds threshold
   bool tempAlarm = tempSensorReady && temperature >= tempThreshold && temperature < 100.0;
   
-  // Combined alarm state - smoke OR gas OR temp triggers alarm
+  // Smart smoke detection logic
+  bool smokeDetected = smokePercent >= smokeThreshold;
+  bool tempRiseDetected = tempBaselineReady && (temperature > baselineTemp + 3.0);  // 3°C rise above baseline
+  
+  // Full smoke alarm only if smoke AND temperature rise detected
+  bool smokeAlarm = smokeDetected && tempRiseDetected;
+  
+  // Smoke warning (no buzzer) if smoke detected but no temperature rise
+  bool smokeWarningOnly = smokeDetected && !tempRiseDetected;
+  
+  // Combined alarm state - gas OR temp OR (smoke + temp rise) triggers full alarm
   bool wasAlarm = alarmActive;
-  alarmActive = smokeAlarm || gasAlarm || tempAlarm;
+  alarmActive = gasAlarm || tempAlarm || smokeAlarm;
+  
+  // IMMEDIATE DEBUG OUTPUT FOR ALARM TRIGGERS
+  static unsigned long lastAlarmDebug = 0;
+  if (millis() - lastAlarmDebug > 1000 || alarmActive != wasAlarm) {
+    Serial.printf("ALARM CHECK: Gas=%.1f%%(>=%d) Smoke=%.1f%%(>=%d) Temp=%.1f(>=%d) -> ALARM=%s WARNING_MODE=%s\n",
+                  gasPercent, gasThreshold, smokePercent, smokeThreshold, temperature, tempThreshold,
+                  alarmActive ? "YES" : "NO", warningMode ? "YES" : "NO");
+    lastAlarmDebug = millis();
+  }
   
   // Debug output when alarm state changes
-  if (alarmActive != wasAlarm) {
-    Serial.printf("ALARM STATE CHANGED: %s\n", alarmActive ? "ACTIVE" : "CLEARED");
-    Serial.printf("  Smoke: %.1f%% vs threshold %d%% -> %s\n", smokePercent, smokeThreshold, smokeAlarm ? "TRIGGERED" : "ok");
+  if (alarmActive != wasAlarm || smokeWarningOnly) {
+    Serial.printf("ALARM STATE: %s | SMOKE WARNING: %s\n", 
+                  alarmActive ? "ACTIVE" : "CLEARED",
+                  smokeWarningOnly ? "YES" : "NO");
     Serial.printf("  Gas: %.1f%% vs threshold %d%% -> %s\n", gasPercent, gasThreshold, gasAlarm ? "TRIGGERED" : "ok");
     Serial.printf("  Temp: %.1f°C vs threshold %d°C -> %s\n", temperature, tempThreshold, tempAlarm ? "TRIGGERED" : "ok");
+    Serial.printf("  Smoke: %.1f%% vs threshold %d%% -> %s\n", smokePercent, smokeThreshold, smokeDetected ? "DETECTED" : "ok");
+    Serial.printf("  Temp Rise: %.1f°C vs baseline %.1f°C (rise: %.1f°C) -> %s\n", 
+                  temperature, baselineTemp, temperature - baselineTemp, tempRiseDetected ? "YES" : "NO");
+    
+    if (smokeWarningOnly) {
+      Serial.println("  -> SMOKE WARNING: Email will be sent but no buzzer alarm");
+    }
   }
   
   // Temperature warning levels
@@ -703,7 +847,7 @@ void updateAlarmState() {
   }
   
   // Reset silence when alarm clears
-  if (!alarmActive) {
+  if (!alarmActive && !warningMode) {
     silenceRequested = false;
   }
   
@@ -715,7 +859,7 @@ void updateAlarmState() {
       lastBlink = millis();
     }
   } else {
-    digitalWrite(LED_PIN, alarmActive ? HIGH : LOW);
+    digitalWrite(LED_PIN, (alarmActive || warningMode) ? HIGH : LOW);
   }
 }
 
@@ -739,6 +883,11 @@ void sendDataToServer() {
   // Build JSON payload with gas sensor data
   StaticJsonDocument<1024> doc;
   
+  // Calculate smoke warning status
+  bool smokeDetected = smokePercent >= smokeThreshold;
+  bool tempRiseDetected = tempBaselineReady && (temperature > baselineTemp + 3.0);
+  bool smokeWarningOnly = smokeDetected && !tempRiseDetected;
+  
   // Existing sensor data
   doc["gas"] = gasPercent;
   doc["temperature"] = temperature;
@@ -752,6 +901,11 @@ void sendDataToServer() {
   doc["sirenEnabled"] = sirenEnabled;
   doc["heap"] = ESP.getFreeHeap();
   doc["timestamp"] = getTimestamp();
+  
+  // Smart smoke detection data
+  doc["smokeWarningOnly"] = smokeWarningOnly;
+  doc["baselineTemp"] = baselineTemp;
+  doc["tempRise"] = tempBaselineReady ? (temperature - baselineTemp) : 0;
   
   // MQ-2 Smoke sensor data
   doc["smoke"] = smokePercent;
@@ -915,105 +1069,217 @@ String getTimestamp() {
 void checkButtons() {
   unsigned long now = millis();
   
-  // Debounce check
+  // Reduced debounce check for faster response
   if (now - lastButtonPress < DEBOUNCE_DELAY) return;
   
   // Read button states (LOW = pressed because of pull-up)
-  bool btn1 = (digitalRead(BTN1_PIN) == LOW);
-  bool btn2 = (digitalRead(BTN2_PIN) == LOW);
-  bool btn3 = (digitalRead(BTN3_PIN) == LOW);
+  bool btn1 = (digitalRead(BTN1_PIN) == LOW);  // Temp/Humidity
+  bool btn2 = (digitalRead(BTN2_PIN) == LOW);  // Gas Level/Air Quality
+  bool btn3 = (digitalRead(BTN3_PIN) == LOW);  // Smoke Level
+  bool btn4 = (digitalRead(BTN4_PIN) == LOW);  // System/WiFi
+  bool btn5 = (digitalRead(BTN5_PIN) == LOW);  // Buzzer Off
+  
+  // Debug button states
+  static unsigned long lastDebug = 0;
+  if (now - lastDebug > 1000) {  // Debug every second
+    if (btn1 || btn2 || btn3 || btn4 || btn5) {
+      Serial.printf("Button states: BTN1=%d BTN2=%d BTN3=%d BTN4=%d BTN5=%d\n", 
+                    btn1, btn2, btn3, btn4, btn5);
+    }
+    lastDebug = now;
+  }
+  
+  int newMode = displayMode;
   
   // Button 1 - Temperature/Humidity view
   if (btn1) {
-    displayMode = 1;
-    lastModeChange = now;
-    lastButtonPress = now;
-    lcd.clear();
+    newMode = 1;
+    Serial.println("BTN1 pressed - Temperature/Humidity mode");
   }
-  // Button 2 - Gas Sensors view
+  // Button 2 - Gas Level/Air Quality view
   else if (btn2) {
-    displayMode = 2;
-    lastModeChange = now;
-    lastButtonPress = now;
-    lcd.clear();
+    newMode = 2;
+    Serial.println("BTN2 pressed - Gas/AQI mode");
   }
-  // Button 3 - System Info view
+  // Button 3 - Smoke Level view
   else if (btn3) {
-    displayMode = 3;
+    newMode = 3;
+    Serial.println("BTN3 pressed - Smoke mode");
+  }
+  // Button 4 - System/WiFi view
+  else if (btn4) {
+    newMode = 4;
+    Serial.println("BTN4 pressed - System/WiFi mode");
+  }
+  // Button 5 - Buzzer Off/Silence
+  else if (btn5) {
+    silenceRequested = true;
+    Serial.println("BTN5 pressed - Buzzer silenced");
+    
+    // Show silence notification screen
+    displaySilenceNotification();
+    delay(2000);  // Show for 2 seconds
+    
+    lastButtonPress = now;
+    return;
+  }
+  
+  // If mode changed, start slide animation
+  if (newMode != displayMode && (btn1 || btn2 || btn3 || btn4)) {
+    displayMode = newMode;
     lastModeChange = now;
     lastButtonPress = now;
-    lcd.clear();
+    startSlideAnimation();
+    Serial.printf("Display mode changed to: %d\n", displayMode);
   }
+}
+
+// Start slide animation
+void startSlideAnimation() {
+  isAnimating = true;
+  animationStart = millis();
+  animationStep = 0;
+  lcd.clear();
+}
+
+// Update slide animation
+void updateAnimation() {
+  if (!isAnimating) return;
+  
+  unsigned long elapsed = millis() - animationStart;
+  if (elapsed >= ANIMATION_DURATION) {
+    isAnimating = false;
+    return;
+  }
+  
+  // Faster animation - show loading dots quickly
+  int dots = (elapsed / 30) % 4;  // Changed from 100ms to 30ms
+  lcd.setCursor(8, 1);
+  lcd.print("Loading");
+  lcd.setCursor(8, 2);
+  for (int i = 0; i < dots; i++) {
+    lcd.print(".");
+  }
+  for (int i = dots; i < 3; i++) {
+    lcd.print(" ");
+  }
+}
+
+// Check if any sensor is in warning/danger state
+bool checkWarningState() {
+  // Check for critical conditions that should trigger warning screen
+  bool gasHigh = gasPercent >= gasThreshold * 0.7;  // 70% of threshold (was 80%)
+  bool smokeHigh = smokePercent >= smokeThreshold * 0.7;  // 70% of threshold (was 80%)
+  bool tempHigh = temperature >= tempThreshold - 8;  // 8°C below threshold (was 5°C)
+  bool coHigh = coPpm >= coWarningThreshold * 0.8;  // 80% of CO warning level
+  bool aqiPoor = aqi >= 40;  // Moderate or worse AQI (was 50)
+  
+  return gasHigh || smokeHigh || tempHigh || coHigh || aqiPoor || alarmActive;
 }
 
 // Update LCD display with sensor readings (20x4 LCD)
 void updateLCD() {
   char buf[25];
   
-  // ALARM MODE - Always show alarm regardless of display mode
+  // Check if we should show warning screen
+  bool shouldShowWarning = checkWarningState();
+  
+  // Handle warning mode transitions
+  if (shouldShowWarning && !warningMode) {
+    warningMode = true;
+    lcd.clear();  // Immediate display, no animation for warnings
+  } else if (!shouldShowWarning && warningMode) {
+    warningMode = false;
+    lcd.clear();  // Immediate display
+  }
+  
+  // Show animation if active
+  if (isAnimating) {
+    updateAnimation();
+    return;
+  }
+  
+  // CRITICAL ALARM MODE - Always show alarm regardless of display mode
   if (alarmActive) {
-    static bool blink = false;
-    blink = !blink;
-    
-    lcd.setCursor(0, 0);
-    lcd.print(blink ? "*** FIRE ALARM! ***" : "                    ");
-    
-    lcd.setCursor(0, 1);
-    lcd.print(">> EVACUATE NOW! <<");
-    
-    lcd.setCursor(0, 2);
-    snprintf(buf, 21, "Temp: %.1f C", temperature);
-    lcd.print(buf);
-    
-    lcd.setCursor(0, 3);
-    snprintf(buf, 21, "Gas:%.0f%% Smoke:%.0f%%", gasPercent, smokePercent);
-    lcd.print(buf);
+    displayAlarmScreen();
+    return;
+  }
+  
+  // WARNING MODE - Show warning screen for high readings
+  if (warningMode) {
+    displayWarningScreen();
     return;
   }
   
   // Normal display modes
   switch (displayMode) {
-    case 1:  // Temperature & Humidity (HDC1080)
+    case 1:  // Temperature & Humidity
       displayTempHumidity();
       break;
-    case 2:  // Gas Sensors (MQ-2, MQ-7, MQ-135)
-      displayGasSensors();
+    case 2:  // Gas Level & Air Quality
+      displayGasAQI();
       break;
-    case 3:  // System Info
-      displaySystemInfo();
+    case 3:  // Smoke Level
+      displaySmokeLevel();
       break;
-    default:  // Overview (mode 0)
-      displayOverview();
+    case 4:  // System/WiFi Info
+      displaySystemWiFi();
+      break;
+    default:  // Default clean display (mode 0)
+      displayDefault();
       break;
   }
 }
 
-// Display Mode 0: Overview - Quick glance at all sensors
-void displayOverview() {
+// Display silence notification
+void displaySilenceNotification() {
+  lcd.clear();
+  
+  // Row 0: Header with checkmark
+  lcd.setCursor(0, 0);
+  lcd.print("====================");
+  lcd.setCursor(5, 0);
+  lcd.print("SILENCED");
+  
+  // Row 1: Checkmark and message
+  lcd.setCursor(0, 1);
+  lcd.print("    [OK] BUZZER OFF");
+  
+  // Row 2: Status message
+  lcd.setCursor(0, 2);
+  lcd.print("  Alarm Acknowledged");
+  
+  // Row 3: Instruction
+  lcd.setCursor(0, 3);
+  lcd.print("  Check Environment");
+}
+
+// Display Mode 0: Default Clean Display
+void displayDefault() {
   char buf[25];
   
-  // Row 0: Status bar
+  // Row 0: Clean FireWire header
   lcd.setCursor(0, 0);
-  lcd.print("FIREWIRE");
-  lcd.setCursor(14, 0);
-  lcd.print(WiFi.status() == WL_CONNECTED ? "[OK]" : "[--]");
+  lcd.print("====================");
+  lcd.setCursor(6, 0);
+  lcd.print("FireWire");
   
-  // Row 1: Temperature & Humidity
+  // Row 1: Temperature and Humidity
   lcd.setCursor(0, 1);
-  snprintf(buf, 21, "%.1fC  %.0f%%RH", temperature, humidity);
+  snprintf(buf, 21, "Temp: %.1fC  Hum: %.0f%%", temperature, humidity);
   lcd.print(buf);
   
-  // Row 2: Gas & Smoke
+  // Row 2: Gas and Smoke levels
   lcd.setCursor(0, 2);
-  snprintf(buf, 21, "Gas:%.0f%% Smk:%.0f%%", gasPercent, smokePercent);
+  snprintf(buf, 21, "Gas: %.0f%%   Smoke: %.0f%%", gasPercent, smokePercent);
   lcd.print(buf);
   
-  // Row 3: AQI & Status
+  // Row 3: AQI with status
   lcd.setCursor(0, 3);
-  String status = "SAFE";
-  if (gasPercent > gasThreshold - 10 || smokePercent > smokeThreshold - 10) status = "WARN";
-  if (gasPercent > gasThreshold || smokePercent > smokeThreshold) status = "DANGER";
-  snprintf(buf, 21, "AQI:%.0f [%s]", aqi, status.c_str());
+  String aqiStatusText = "Good";
+  if (aqi > 50) aqiStatusText = "Moderate";
+  if (aqi > 100) aqiStatusText = "Poor";
+  snprintf(buf, 21, "AQI: %.0f (%s)", aqi, aqiStatusText.c_str());
   lcd.print(buf);
 }
 
@@ -1023,116 +1289,238 @@ void displayTempHumidity() {
   
   // Row 0: Header
   lcd.setCursor(0, 0);
-  lcd.print("== CLIMATE DATA ==");
+  lcd.print("====================");
+  lcd.setCursor(4, 0);
+  lcd.print("TEMP & HUMIDITY");
   
-  // Row 1: Temperature with bar
+  // Row 1: Temperature with large display
   lcd.setCursor(0, 1);
-  snprintf(buf, 21, "Temp: %.1f C", temperature);
+  snprintf(buf, 21, "Temperature: %.1f C", temperature);
   lcd.print(buf);
-  lcd.setCursor(15, 1);
-  if (temperature < 30) lcd.print(" OK ");
-  else if (temperature < 50) lcd.print("WARM");
-  else lcd.print(" HOT");
   
-  // Row 2: Humidity with bar
+  // Row 2: Humidity with large display
   lcd.setCursor(0, 2);
-  snprintf(buf, 21, "Hum:  %.1f %%", humidity);
+  snprintf(buf, 21, "Humidity:   %.1f %%", humidity);
   lcd.print(buf);
-  lcd.setCursor(15, 2);
-  if (humidity < 30) lcd.print(" DRY");
-  else if (humidity < 60) lcd.print(" OK ");
-  else lcd.print("DAMP");
   
-  // Row 3: Threshold info
+  // Row 3: Status and threshold info
   lcd.setCursor(0, 3);
-  snprintf(buf, 21, "Alarm at: %d C", tempThreshold);
+  String tempStatus = "Normal";
+  if (temperature >= tempThreshold - 5) tempStatus = "High";
+  if (temperature >= tempThreshold) tempStatus = "CRITICAL";
+  snprintf(buf, 21, "Status: %s", tempStatus.c_str());
   lcd.print(buf);
 }
 
-// Display Mode 2: Gas Sensors Detail
-void displayGasSensors() {
-  char buf[25];
-  static int gasPage = 0;
-  static unsigned long lastPageSwitch = 0;
-  
-  // Auto-switch between pages every 3 seconds
-  if (millis() - lastPageSwitch > 3000) {
-    gasPage = (gasPage + 1) % 2;
-    lastPageSwitch = millis();
-  }
-  
-  if (gasPage == 0) {
-    // Page 1: MQ-7 (CO) and MQ-2 (Smoke)
-    lcd.setCursor(0, 0);
-    lcd.print("== GAS SENSORS 1/2 =");
-    
-    lcd.setCursor(0, 1);
-    snprintf(buf, 21, "CO (MQ7): %.0f%%", gasPercent);
-    lcd.print(buf);
-    lcd.setCursor(16, 1);
-    lcd.print(coStatus == "normal" ? " OK " : coStatus == "warning" ? "WARN" : "!!");
-    
-    lcd.setCursor(0, 2);
-    snprintf(buf, 21, "Smoke(MQ2):%.0f%%", smokePercent);
-    lcd.print(buf);
-    lcd.setCursor(16, 2);
-    lcd.print(smokeStatus == "normal" ? " OK " : smokeStatus == "warning" ? "WARN" : "!!");
-    
-    lcd.setCursor(0, 3);
-    snprintf(buf, 21, "Thr: %d%% / %d%%", gasThreshold, smokeThreshold);
-    lcd.print(buf);
-  } else {
-    // Page 2: MQ-135 (AQI) and CO PPM
-    lcd.setCursor(0, 0);
-    lcd.print("== GAS SENSORS 2/2 =");
-    
-    lcd.setCursor(0, 1);
-    snprintf(buf, 21, "AQI (MQ135): %.0f", aqi);
-    lcd.print(buf);
-    
-    lcd.setCursor(0, 2);
-    snprintf(buf, 21, "Air: %s", 
-      aqiStatus == "good" ? "GOOD" : 
-      aqiStatus == "moderate" ? "MODERATE" : "POOR");
-    lcd.print(buf);
-    
-    lcd.setCursor(0, 3);
-    snprintf(buf, 21, "CO Est: %.0f PPM", coPpm);
-    lcd.print(buf);
-  }
-}
-
-// Display Mode 3: System Information
-void displaySystemInfo() {
+// Display Mode 2: Gas Level & Air Quality
+void displayGasAQI() {
   char buf[25];
   
   // Row 0: Header
   lcd.setCursor(0, 0);
-  lcd.print("== SYSTEM INFO ==");
+  lcd.print("====================");
+  lcd.setCursor(3, 0);
+  lcd.print("GAS & AIR QUALITY");
   
-  // Row 1: WiFi Status
+  // Row 1: Gas level with CO PPM
+  lcd.setCursor(0, 1);
+  snprintf(buf, 21, "Gas: %.1f%% CO:%.0fPPM", gasPercent, coPpm);
+  lcd.print(buf);
+  
+  // Row 2: Air Quality Index
+  lcd.setCursor(0, 2);
+  snprintf(buf, 21, "Air Quality: %.0f AQI", aqi);
+  lcd.print(buf);
+  
+  // Row 3: Status
+  lcd.setCursor(0, 3);
+  String gasStatus = "Normal";
+  if (gasPercent >= gasThreshold * 0.8) gasStatus = "High";
+  if (gasPercent >= gasThreshold) gasStatus = "DANGER";
+  
+  String aqiStatus = "Good";
+  if (aqi > 50) aqiStatus = "Moderate";
+  if (aqi > 100) aqiStatus = "Poor";
+  
+  snprintf(buf, 21, "Gas:%s AQI:%s", gasStatus.c_str(), aqiStatus.c_str());
+  lcd.print(buf);
+}
+
+// Display Mode 3: Smoke Level Detail
+void displaySmokeLevel() {
+  char buf[25];
+  
+  // Row 0: Header
+  lcd.setCursor(0, 0);
+  lcd.print("====================");
+  lcd.setCursor(6, 0);
+  lcd.print("SMOKE LEVEL");
+  
+  // Row 1: Large smoke percentage
+  lcd.setCursor(0, 1);
+  snprintf(buf, 21, "Smoke Level: %.1f %%", smokePercent);
+  lcd.print(buf);
+  
+  // Row 2: Threshold comparison
+  lcd.setCursor(0, 2);
+  snprintf(buf, 21, "Threshold:   %d %%", smokeThreshold);
+  lcd.print(buf);
+  
+  // Row 3: Status and safety margin
+  lcd.setCursor(0, 3);
+  String smokeStatus = "Safe";
+  if (smokePercent >= smokeThreshold * 0.7) smokeStatus = "Warning";
+  if (smokePercent >= smokeThreshold) smokeStatus = "DANGER";
+  
+  float margin = smokeThreshold - smokePercent;
+  if (margin > 0) {
+    snprintf(buf, 21, "%s (%.1f%% margin)", smokeStatus.c_str(), margin);
+  } else {
+    snprintf(buf, 21, "%s (EXCEEDED!)", smokeStatus.c_str());
+  }
+  lcd.print(buf);
+}
+
+// Display Mode 4: System & WiFi Info
+void displaySystemWiFi() {
+  char buf[25];
+  
+  // Clear any potential buffer issues
+  for (int i = 0; i < 25; i++) buf[i] = '\0';
+  
+  // Row 0: Header
+  lcd.setCursor(0, 0);
+  lcd.print("====================");
+  lcd.setCursor(5, 0);
+  lcd.print("SYSTEM INFO");
+  
+  // Row 1: WiFi Status and Signal
   lcd.setCursor(0, 1);
   if (WiFi.status() == WL_CONNECTED) {
-    snprintf(buf, 21, "WiFi: %s", WiFi.SSID().substring(0, 10).c_str());
+    int rssi = WiFi.RSSI();
+    String signal = "Weak";
+    if (rssi > -50) signal = "Excellent";
+    else if (rssi > -60) signal = "Good";
+    else if (rssi > -70) signal = "Fair";
+    
+    // Clear the line first
+    lcd.print("                    ");
+    lcd.setCursor(0, 1);
+    snprintf(buf, 21, "WiFi: %s", signal.c_str());
   } else {
+    lcd.print("                    ");
+    lcd.setCursor(0, 1);
     snprintf(buf, 21, "WiFi: Disconnected");
   }
   lcd.print(buf);
   
-  // Row 2: IP Address
+  // Row 2: Network name (truncated if needed)
+  lcd.setCursor(0, 2);
+  lcd.print("                    ");  // Clear line
   lcd.setCursor(0, 2);
   if (WiFi.status() == WL_CONNECTED) {
-    snprintf(buf, 21, "IP:%s", WiFi.localIP().toString().c_str());
+    String ssid = WiFi.SSID();
+    if (ssid.length() > 17) ssid = ssid.substring(0, 14) + "...";
+    snprintf(buf, 21, "Net: %s", ssid.c_str());
   } else {
-    lcd.print("IP: ---.---.---.---");
+    snprintf(buf, 21, "Net: Not Connected");
   }
   lcd.print(buf);
   
-  // Row 3: Uptime & Memory
+  // Row 3: Uptime and Memory
+  lcd.setCursor(0, 3);
+  lcd.print("                    ");  // Clear line
   lcd.setCursor(0, 3);
   unsigned long uptime = millis() / 1000;
   int hrs = uptime / 3600;
   int mins = (uptime % 3600) / 60;
   snprintf(buf, 21, "Up:%dh%dm Mem:%dK", hrs, mins, ESP.getFreeHeap() / 1024);
   lcd.print(buf);
+}
+
+// Critical Alarm Screen
+void displayAlarmScreen() {
+  char buf[25];
+  static bool blink = false;
+  static unsigned long lastBlink = 0;
+  
+  if (millis() - lastBlink > 500) {
+    blink = !blink;
+    lastBlink = millis();
+  }
+  
+  // Row 0: Blinking alarm header
+  lcd.setCursor(0, 0);
+  if (blink) {
+    lcd.print("*** FIRE ALARM! ***");
+  } else {
+    lcd.print("                    ");
+  }
+  
+  // Row 1: Evacuation message
+  lcd.setCursor(0, 1);
+  lcd.print(">> EVACUATE NOW! <<");
+  
+  // Row 2: Critical readings
+  lcd.setCursor(0, 2);
+  if (smokePercent >= smokeThreshold) {
+    snprintf(buf, 21, "SMOKE: %.1f%% HIGH!", smokePercent);
+  } else if (gasPercent >= gasThreshold) {
+    snprintf(buf, 21, "GAS: %.1f%% HIGH!", gasPercent);
+  } else if (temperature >= tempThreshold) {
+    snprintf(buf, 21, "TEMP: %.1fC HIGH!", temperature);
+  } else {
+    snprintf(buf, 21, "MULTIPLE SENSORS!");
+  }
+  lcd.print(buf);
+  
+  // Row 3: Action instruction
+  lcd.setCursor(0, 3);
+  lcd.print("Press BTN5 to SILENCE");
+}
+
+// Warning Screen for elevated readings
+void displayWarningScreen() {
+  char buf[25];
+  static bool blink = false;
+  static unsigned long lastBlink = 0;
+  
+  if (millis() - lastBlink > 500) {  // Faster blinking (was 1000ms)
+    blink = !blink;
+    lastBlink = millis();
+  }
+  
+  // Row 0: Warning header
+  lcd.setCursor(0, 0);
+  if (blink) {
+    lcd.print("!!! WARNING !!!");
+  } else {
+    lcd.print(">>> DANGER <<<");  // More urgent text
+  }
+  
+  // Row 1: Show which sensor is elevated
+  lcd.setCursor(0, 1);
+  if (smokePercent >= smokeThreshold * 0.7) {
+    snprintf(buf, 21, "SMOKE HIGH: %.1f%%", smokePercent);
+  } else if (gasPercent >= gasThreshold * 0.7) {
+    snprintf(buf, 21, "GAS HIGH: %.1f%%", gasPercent);
+  } else if (temperature >= tempThreshold - 8) {
+    snprintf(buf, 21, "TEMP HIGH: %.1fC", temperature);
+  } else if (coPpm >= coWarningThreshold * 0.8) {
+    snprintf(buf, 21, "CO DETECTED: %.0f PPM", coPpm);
+  } else if (aqi >= 40) {
+    snprintf(buf, 21, "POOR AIR: %.0f AQI", aqi);
+  } else {
+    snprintf(buf, 21, "MULTIPLE SENSORS");
+  }
+  lcd.print(buf);
+  
+  // Row 2: Urgent action message
+  lcd.setCursor(0, 2);
+  snprintf(buf, 21, "EVACUATE AREA NOW!");
+  lcd.print(buf);
+  
+  // Row 3: Instruction
+  lcd.setCursor(0, 3);
+  lcd.print("BTN5 = SILENCE ALARM");
 }

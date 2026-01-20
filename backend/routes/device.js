@@ -262,6 +262,42 @@ router.post('/:deviceId/data', async (req, res) => {
       }
     }
 
+    // Handle smoke warning (new feature - smoke detected but no temperature rise)
+    if (data.smokeWarningOnly && !wasAlarm) {
+      console.log('[Smoke Warning] Smoke detected without temperature rise');
+      
+      // Send Email notification for smoke warning
+      try {
+        const { sendAlarmEmail } = require('../utils/email');
+        if (household && household.adminEmailAlerts !== false && household.admin?.email) {
+          console.log('[Smoke Warning] Sending email to:', household.admin.email);
+          const phTimeEmail = new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
+          const emailResult = await sendAlarmEmail(household.admin.email, {
+            deviceId,
+            trigger: 'smoke_warning',
+            gas: data.gas,
+            smoke: data.smoke,
+            temperature: data.temperature,
+            humidity: data.humidity,
+            baselineTemp: data.baselineTemp,
+            tempRise: data.tempRise,
+            timestamp: phTimeEmail,
+            isWarningOnly: true
+          });
+          console.log(`[Smoke Warning] Email sent successfully to admin: ${household.admin.email}`, emailResult);
+        }
+      } catch (emailError) {
+        console.error('[Smoke Warning] Email notification error:', emailError.message);
+      }
+
+      // Send push notification for smoke warning
+      await sendPushNotification(deviceId, {
+        title: '⚠️ SMOKE WARNING',
+        body: `Smoke detected (${data.smoke?.toFixed(1)}%) but no temperature rise. Temp: ${data.temperature?.toFixed(1)}°C (baseline: ${data.baselineTemp?.toFixed(1)}°C)`,
+        vibrate: [100, 50, 100], tag: 'smoke-warning', requireInteraction: false
+      });
+    }
+
     // Handle fire risk alert (new)
     if (!wasFireRisk && fireRisk) {
       await sendPushNotification(deviceId, {
