@@ -1792,6 +1792,14 @@ main.container {
   color: white;
   box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
 }
+.btn-warning { 
+  background: linear-gradient(135deg, #f59e0b, #d97706); 
+  color: white;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+.btn-warning:hover {
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
 .btn-secondary { 
   background: var(--bg2); 
   color: var(--text); 

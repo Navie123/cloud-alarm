@@ -3,6 +3,7 @@
 const { jsPDF } = window.jspdf;
 
 let sirenEnabled = true;
+let buzzerMuted = false;
 let currentThreshold = 40;
 let currentTempThreshold = 60;
 let isConnected = false;
@@ -780,7 +781,9 @@ function updateUI(data, isRealtimeUpdate = false) {
   }
   
   sirenEnabled = data.sirenEnabled !== false;
+  buzzerMuted = !sirenEnabled; // Sync buzzer mute state with siren state
   updateSirenUI();
+  updateBuzzerMuteUI();
   
   // Only show alarm if device is online
   if (isDeviceOnline) {
@@ -1130,6 +1133,34 @@ async function silenceAlarm() {
   }
 }
 
+async function muteBuzzer() {
+  if (!isAdmin()) {
+    showToast('Admin access required', 'error');
+    return;
+  }
+  
+  buzzerMuted = !buzzerMuted;
+  
+  try {
+    // Send command to ESP32 to disable/enable siren (physical buzzer)
+    await api.sendCommand(getDeviceId(), 'sirenEnabled', !buzzerMuted);
+    
+    // Update UI
+    updateBuzzerMuteUI();
+    
+    showToast(buzzerMuted ? 'Physical buzzer muted' : 'Physical buzzer unmuted');
+  } catch (error) {
+    showToast('Error: ' + error.message, 'error');
+  }
+}
+
+function updateBuzzerMuteUI() {
+  const buzzerMuteText = document.getElementById('buzzerMuteText');
+  if (buzzerMuteText) {
+    buzzerMuteText.textContent = buzzerMuted ? 'Unmute Buzzer' : 'Mute Buzzer';
+  }
+}
+
 async function toggleSiren() {
   if (!isAdmin()) {
     showToast('Admin access required', 'error');
@@ -1139,7 +1170,9 @@ async function toggleSiren() {
   try {
     await api.sendCommand(getDeviceId(), 'sirenEnabled', newState);
     sirenEnabled = newState;
+    buzzerMuted = !newState; // Sync buzzer mute state
     updateSirenUI();
+    updateBuzzerMuteUI();
     showToast('Siren ' + (newState ? 'enabled' : 'disabled'));
   } catch (error) {
     showToast('Error: ' + error.message, 'error');
