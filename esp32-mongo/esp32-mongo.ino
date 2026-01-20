@@ -42,6 +42,7 @@ int gasThreshold = DEFAULT_GAS_THRESHOLD;
 int tempThreshold = DEFAULT_TEMP_THRESHOLD;
 bool alarmActive = false;
 bool sirenEnabled = true;
+bool buzzerMuted = false;  // Physical buzzer mute (independent of sirenEnabled)
 bool silenceRequested = false;
 String tempWarning = "normal";
 
@@ -295,12 +296,12 @@ void loop() {
   }
   
   // Handle buzzer logic
-  if (alarmActive && sirenEnabled && !silenceRequested) {
+  if (alarmActive && sirenEnabled && !buzzerMuted && !silenceRequested) {
     // Full alarm - continuous buzzer
     activateBuzzer(true);
     partialBeepCount = 0;  // Reset partial beep counter
     Serial.println("[BUZZER] Full alarm - continuous");
-  } else if (partialWarningActive && sirenEnabled && !silenceRequested) {
+  } else if (partialWarningActive && sirenEnabled && !buzzerMuted && !silenceRequested) {
     // Partial warning - 3 beeps with 800ms intervals, then 2 second pause
     unsigned long now = millis();
     
@@ -332,7 +333,7 @@ void loop() {
         activateBuzzer(false);  // Ensure buzzer is off during pause
       }
     }
-  } else if (warningMode && sirenEnabled && !silenceRequested) {
+  } else if (warningMode && sirenEnabled && !buzzerMuted && !silenceRequested) {
     // Warning mode - continuous buzzer
     activateBuzzer(true);
     partialBeepCount = 0;  // Reset partial beep counter
@@ -988,6 +989,7 @@ void sendDataToServer() {
   doc["alarm"] = alarmActive;
   doc["tempWarning"] = tempWarning;
   doc["sirenEnabled"] = sirenEnabled;
+  doc["buzzerMuted"] = buzzerMuted;
   doc["heap"] = ESP.getFreeHeap();
   doc["timestamp"] = getTimestamp();
   
@@ -1088,6 +1090,11 @@ void checkCommands() {
       if (doc.containsKey("sirenEnabled")) {
         sirenEnabled = doc["sirenEnabled"].as<bool>();
         Serial.printf("Siren %s\n", sirenEnabled ? "enabled" : "disabled");
+      }
+      
+      if (doc.containsKey("buzzerMuted")) {
+        buzzerMuted = doc["buzzerMuted"].as<bool>();
+        Serial.printf("Physical buzzer %s\n", buzzerMuted ? "muted" : "unmuted");
       }
       
       if (doc.containsKey("silence") && doc["silence"].as<bool>()) {

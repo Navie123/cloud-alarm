@@ -781,7 +781,7 @@ function updateUI(data, isRealtimeUpdate = false) {
   }
   
   sirenEnabled = data.sirenEnabled !== false;
-  buzzerMuted = !sirenEnabled; // Sync buzzer mute state with siren state
+  buzzerMuted = data.buzzerMuted === true;  // Sync buzzer mute state from ESP32
   updateSirenUI();
   updateBuzzerMuteUI();
   
@@ -1155,13 +1155,13 @@ async function muteBuzzer() {
   buzzerMuted = !buzzerMuted;
   
   try {
-    // Send command to ESP32 to disable/enable siren (physical buzzer)
-    await api.sendCommand(getDeviceId(), 'sirenEnabled', !buzzerMuted);
+    // Send command to ESP32 to mute/unmute physical buzzer only (doesn't affect website sounds)
+    await api.sendCommand(getDeviceId(), 'buzzerMuted', buzzerMuted);
     
     // Update UI
     updateBuzzerMuteUI();
     
-    showToast(buzzerMuted ? 'Physical buzzer muted' : 'Physical buzzer unmuted');
+    showToast(buzzerMuted ? 'Physical buzzer muted (website sounds still active)' : 'Physical buzzer unmuted');
   } catch (error) {
     showToast('Error: ' + error.message, 'error');
   }
@@ -1183,9 +1183,7 @@ async function toggleSiren() {
   try {
     await api.sendCommand(getDeviceId(), 'sirenEnabled', newState);
     sirenEnabled = newState;
-    buzzerMuted = !newState; // Sync buzzer mute state
     updateSirenUI();
-    updateBuzzerMuteUI();
     showToast('Siren ' + (newState ? 'enabled' : 'disabled'));
   } catch (error) {
     showToast('Error: ' + error.message, 'error');
