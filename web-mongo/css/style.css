@@ -1800,6 +1800,47 @@ main.container {
 .btn-warning:hover {
   box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
 }
+
+/* Dynamic button states for alarm controls */
+.btn-muted {
+  background: linear-gradient(135deg, #6b7280, #4b5563) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(107, 114, 128, 0.3) !important;
+}
+.btn-muted:hover {
+  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4) !important;
+}
+
+.btn-active {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+}
+.btn-active:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+}
+
+.btn-disabled {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3) !important;
+}
+.btn-disabled:hover {
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Silenced state animation */
+.btn.silenced {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  transform: scale(1.02);
+  animation: silencePulse 0.5s ease-in-out;
+}
+
+@keyframes silencePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1.02); }
+}
 .btn-secondary { 
   background: var(--bg2); 
   color: var(--text); 

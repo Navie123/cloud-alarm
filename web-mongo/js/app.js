@@ -941,8 +941,23 @@ function updateSirenUI() {
   // Update Sidebar button
   const sideIcon = document.getElementById('sirenIconSide');
   const sideText = document.getElementById('sirenTextSide');
+  const sirenSideBtn = document.getElementById('sirenToggleSideBtn');
+  
   if (sideIcon) sideIcon.className = sirenEnabled ? 'fas fa-bell' : 'fas fa-bell-slash';
   if (sideText) sideText.textContent = sirenEnabled ? 'Siren On' : 'Siren Off';
+  
+  if (sirenSideBtn) {
+    // Remove all state classes
+    sirenSideBtn.classList.remove('btn-active', 'btn-disabled', 'btn-secondary');
+    
+    if (sirenEnabled) {
+      // Enabled state - green color
+      sirenSideBtn.classList.add('btn-active');
+    } else {
+      // Disabled state - red color
+      sirenSideBtn.classList.add('btn-disabled');
+    }
+  }
   
   // Update Alerts tab button
   const alertIcon = document.getElementById('sirenIconAlert');
@@ -954,8 +969,9 @@ function updateSirenUI() {
   
   // Update button visual state
   if (sirenToggleBtn) {
-    sirenToggleBtn.classList.remove('siren-on', 'siren-off');
+    sirenToggleBtn.classList.remove('siren-on', 'siren-off', 'btn-active', 'btn-disabled');
     sirenToggleBtn.classList.add(sirenEnabled ? 'siren-on' : 'siren-off');
+    sirenToggleBtn.classList.add(sirenEnabled ? 'btn-active' : 'btn-disabled');
   }
   
   if (!sirenEnabled) stopAlarmSound();
@@ -1125,18 +1141,35 @@ async function silenceAlarm() {
   }
   stopAlarmSound();
   
-  // Add visual feedback to button
+  // Add visual feedback to both silence buttons
   const silenceBtn = document.getElementById('silenceAlarmBtn');
+  const silenceSideBtn = document.getElementById('silenceAlarmSideBtn');
+  
+  // Update main silence button
   if (silenceBtn) {
-    silenceBtn.classList.add('silenced');
+    silenceBtn.classList.add('silenced', 'btn-active');
     silenceBtn.innerHTML = '<i class="fas fa-check-circle"></i><span>Silenced</span>';
-    
-    // Reset after 3 seconds
-    setTimeout(() => {
-      silenceBtn.classList.remove('silenced');
-      silenceBtn.innerHTML = '<i class="fas fa-volume-xmark"></i><span>Silence Alarm</span>';
-    }, 3000);
   }
+  
+  // Update sidebar silence button
+  if (silenceSideBtn) {
+    silenceSideBtn.classList.remove('btn-danger');
+    silenceSideBtn.classList.add('btn-active');
+    silenceSideBtn.innerHTML = '<i class="fas fa-check-circle"></i> Silenced';
+  }
+  
+  // Reset after 3 seconds
+  setTimeout(() => {
+    if (silenceBtn) {
+      silenceBtn.classList.remove('silenced', 'btn-active');
+      silenceBtn.innerHTML = '<i class="fas fa-volume-xmark"></i><span>Silence Alarm</span>';
+    }
+    if (silenceSideBtn) {
+      silenceSideBtn.classList.remove('btn-active');
+      silenceSideBtn.classList.add('btn-danger');
+      silenceSideBtn.innerHTML = '<i class="fas fa-volume-xmark"></i> Silence Alarm';
+    }
+  }, 3000);
   
   try {
     await api.silenceAlarm(getDeviceId());
@@ -1169,8 +1202,28 @@ async function muteBuzzer() {
 
 function updateBuzzerMuteUI() {
   const buzzerMuteText = document.getElementById('buzzerMuteText');
+  const buzzerMuteIcon = document.getElementById('buzzerMuteIcon');
+  const muteBuzzerBtn = document.getElementById('muteBuzzerBtn');
+  
   if (buzzerMuteText) {
     buzzerMuteText.textContent = buzzerMuted ? 'Unmute Buzzer' : 'Mute Buzzer';
+  }
+  
+  if (buzzerMuteIcon) {
+    buzzerMuteIcon.className = buzzerMuted ? 'fas fa-volume-off' : 'fas fa-volume-mute';
+  }
+  
+  if (muteBuzzerBtn) {
+    // Remove all state classes
+    muteBuzzerBtn.classList.remove('btn-muted', 'btn-active', 'btn-warning');
+    
+    if (buzzerMuted) {
+      // Muted state - gray color
+      muteBuzzerBtn.classList.add('btn-muted');
+    } else {
+      // Active state - orange warning color
+      muteBuzzerBtn.classList.add('btn-warning');
+    }
   }
 }
 
