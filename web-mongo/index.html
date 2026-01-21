@@ -190,12 +190,19 @@
   <!-- ========== MAIN APP ========== -->
   <div id="mainApp" class="main-app hidden">
     <div class="siren-overlay" id="sirenOverlay"></div>
-    <div id="audioPrompt" class="audio-prompt">
+    <div id="audioPrompt" class="audio-prompt hidden">
       <div class="audio-prompt-content">
         <i class="fas fa-volume-up"></i>
         <h2>Enable Alarm Sound</h2>
-        <p>Allow audio to hear alarm alerts</p>
-        <button class="btn btn-primary" onclick="enableAudio()"><i class="fas fa-check"></i> Enable Sound</button>
+        <p>Allow audio to hear alarm alerts when emergencies happen</p>
+        <div class="audio-prompt-buttons">
+          <button class="btn btn-primary" onclick="enableAudio()"><i class="fas fa-check"></i> Enable Sound</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('audioPrompt').classList.add('hidden')"><i class="fas fa-times"></i> Skip</button>
+        </div>
+        <small class="audio-prompt-note">
+          <i class="fas fa-info-circle"></i> 
+          Required by browsers for security. You can enable this later in Settings.
+        </small>
       </div>
     </div>
     
@@ -226,7 +233,7 @@
       <div class="sidebar-section admin-only">
         <div class="sidebar-section-title"><i class="fas fa-bell"></i> ALARM CONTROLS</div>
         <button class="btn btn-danger btn-full" id="silenceAlarmSideBtn" onclick="silenceAlarm()"><i class="fas fa-volume-xmark"></i> Silence Alarm</button>
-        <button class="btn btn-warning btn-full" id="muteBuzzerBtn" onclick="muteBuzzer()"><i class="fas fa-volume-mute" id="buzzerMuteIcon"></i> <span id="buzzerMuteText">Mute Buzzer</span></button>
+        <button class="btn btn-warning btn-full admin-only" id="muteBuzzerBtn" onclick="muteBuzzer()"><i class="fas fa-volume-mute" id="buzzerMuteIcon"></i> <span id="buzzerMuteText">Mute Buzzer</span></button>
         <button class="btn btn-secondary btn-full" id="sirenToggleSideBtn" onclick="toggleSiren()"><i class="fas fa-bell" id="sirenIconSide"></i> <span id="sirenTextSide">Siren On</span></button>
       </div>
       
@@ -844,7 +851,12 @@
               <button class="btn-preview" onclick="previewSound('Alarm3.mp3')"><i class="fas fa-play"></i></button>
             </label>
           </div>
-          <button class="btn btn-primary" onclick="saveAlarmSound()"><i class="fas fa-save"></i> Save Sound</button>
+          <div class="sound-actions">
+            <button class="btn btn-primary" onclick="saveAlarmSound()"><i class="fas fa-save"></i> Save Sound</button>
+            <button class="btn btn-secondary" id="testAudioBtn" onclick="testAlarmSound()" disabled>
+              <i class="fas fa-volume-mute"></i> Enable Audio First
+            </button>
+          </div>
         </div>
         
         <!-- Admin-Only Settings -->

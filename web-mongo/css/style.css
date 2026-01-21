@@ -2302,6 +2302,31 @@ main.container {
 .audio-prompt-content h2 { color: var(--text); margin-bottom: 10px; font-size: 1.2rem; }
 .audio-prompt-content p { color: var(--muted); margin-bottom: 18px; font-size: 0.85rem; }
 
+.audio-prompt-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  justify-content: center;
+}
+
+.audio-prompt-buttons .btn {
+  flex: 1;
+  max-width: 140px;
+}
+
+.audio-prompt-note {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.audio-prompt-note i {
+  font-size: 0.75rem;
+  margin-right: 4px;
+  margin-bottom: 0;
+}
+
 /* ========== SIREN & TOAST ========== */
 .siren-overlay {
   position: fixed;
@@ -3002,6 +3027,19 @@ body.fullscreen .minimize-btn { display: flex; }
 .sound-option:has(input:checked) span {
   color: var(--accent);
   font-weight: 600;
+}
+
+/* Sound Actions */
+.sound-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.sound-actions .btn {
+  flex: 1;
+  min-width: 140px;
 }
 
 .btn-preview {

@@ -112,6 +112,24 @@ function initializeApp() {
   startDeviceStatusChecker();
   setupAllThresholdSliders();
   loadCalibrationStatus();
+  
+  // Add click listeners to auto-enable audio on user interaction
+  document.addEventListener('click', autoEnableAudio, { once: true });
+  document.addEventListener('touchstart', autoEnableAudio, { once: true });
+  
+  // Show audio prompt if not enabled
+  setTimeout(() => {
+    if (!audioEnabled) {
+      const audioPrompt = document.getElementById('audioPrompt');
+      if (audioPrompt) {
+        audioPrompt.classList.remove('hidden');
+        console.log('Showing audio prompt - user needs to enable sound');
+      }
+    }
+  }, 2000);
+  
+  // Add test audio button functionality
+  setupTestAudioButton();
 }
 
 // Setup all threshold sliders with dynamic colors
@@ -355,12 +373,77 @@ function enableAudio() {
   };
   
   audioEnabled = true;
-  document.getElementById('audioPrompt').classList.add('hidden');
+  const audioPrompt = document.getElementById('audioPrompt');
+  if (audioPrompt) audioPrompt.classList.add('hidden');
+  
+  // Show confirmation
+  showToast('Alarm sound enabled', 'success');
+  
+  // Update test audio button
+  updateTestAudioButton();
+}
+
+// Auto-enable audio on first user interaction (modern browser requirement)
+function autoEnableAudio() {
+  if (!audioEnabled) {
+    console.log('Auto-enabling audio on user interaction');
+    enableAudio();
+  }
+}
+
+// Setup test audio button functionality
+function setupTestAudioButton() {
+  const testBtn = document.getElementById('testAudioBtn');
+  if (testBtn) {
+    testBtn.addEventListener('click', testAlarmSound);
+    updateTestAudioButton();
+  }
+}
+
+// Update test audio button state
+function updateTestAudioButton() {
+  const testBtn = document.getElementById('testAudioBtn');
+  if (testBtn) {
+    testBtn.disabled = !audioEnabled;
+    testBtn.innerHTML = audioEnabled 
+      ? '<i class="fas fa-play"></i> Test Alarm Sound'
+      : '<i class="fas fa-volume-mute"></i> Enable Audio First';
+  }
+}
+
+// Test alarm sound function
+function testAlarmSound() {
+  if (!audioEnabled) {
+    showToast('Please enable audio first', 'warning');
+    return;
+  }
+  
+  // Play a short test of the alarm sound
+  const testAudio = new Audio(selectedAlarmSound);
+  testAudio.volume = 0.7; // Slightly lower volume for testing
+  testAudio.play().then(() => {
+    showToast('Test sound played successfully', 'success');
+    // Stop after 2 seconds
+    setTimeout(() => {
+      testAudio.pause();
+      testAudio.currentTime = 0;
+    }, 2000);
+  }).catch(e => {
+    console.error('Test audio error:', e);
+    showToast('Audio test failed - check browser permissions', 'error');
+  });
 }
 
 function playAlarmSound() {
-  if (!sirenEnabled || !audioEnabled || isPlaying) return;
+  console.log('playAlarmSound called:', { sirenEnabled, audioEnabled, isPlaying });
+  
+  if (!sirenEnabled || !audioEnabled || isPlaying) {
+    console.log('Audio blocked:', { sirenEnabled, audioEnabled, isPlaying });
+    return;
+  }
+  
   if (!alarmAudio || alarmAudio.src !== location.origin + '/' + selectedAlarmSound) {
+    console.log('Creating new audio object for:', selectedAlarmSound);
     alarmAudio = new Audio(selectedAlarmSound);
     alarmAudio.loop = false;
     alarmAudio.volume = 1.0;
@@ -371,11 +454,25 @@ function playAlarmSound() {
       }
     };
   }
+  
   isPlaying = true;
   alarmAudio.currentTime = 0;
-  alarmAudio.play().catch(e => {
-    console.log('Play error:', e);
+  
+  console.log('Attempting to play alarm sound...');
+  alarmAudio.play().then(() => {
+    console.log('Alarm sound playing successfully');
+  }).catch(e => {
+    console.error('Play error:', e);
     isPlaying = false;
+    
+    // Show user-friendly message with action
+    showToast('Audio blocked by browser - click "Enable Sound" button', 'warning');
+    
+    // Show audio prompt again if hidden
+    const audioPrompt = document.getElementById('audioPrompt');
+    if (audioPrompt && audioPrompt.classList.contains('hidden')) {
+      audioPrompt.classList.remove('hidden');
+    }
   });
 }
 
@@ -1180,8 +1277,10 @@ async function silenceAlarm() {
 }
 
 async function muteBuzzer() {
+  console.log('muteBuzzer called, current state:', buzzerMuted);
+  
   if (!isAdmin()) {
-    showToast('Admin access required', 'error');
+    showToast('Admin access required to control physical buzzer', 'error');
     return;
   }
   
@@ -1194,8 +1293,15 @@ async function muteBuzzer() {
     // Update UI
     updateBuzzerMuteUI();
     
-    showToast(buzzerMuted ? 'Physical buzzer muted (website sounds still active)' : 'Physical buzzer unmuted');
+    const message = buzzerMuted 
+      ? 'Physical buzzer muted (website alarm sounds still work)' 
+      : 'Physical buzzer unmuted';
+    showToast(message, 'success');
   } catch (error) {
+    console.error('Mute buzzer error:', error);
+    // Revert state on error
+    buzzerMuted = !buzzerMuted;
+    updateBuzzerMuteUI();
     showToast('Error: ' + error.message, 'error');
   }
 }
