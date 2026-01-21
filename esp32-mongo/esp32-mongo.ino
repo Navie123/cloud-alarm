@@ -1293,6 +1293,12 @@ void updateAnimation() {
 
 // Check if any sensor is in warning/danger state
 bool checkWarningState() {
+  // Don't show warnings during the first 15 seconds after startup
+  // This allows sensors to stabilize and prevents false warnings
+  if (millis() < 15000) {
+    return false;
+  }
+  
   // Check for critical conditions that should trigger warning screen
   bool gasHigh = gasPercent >= gasThreshold * 0.7;  // 70% of threshold (was 80%)
   bool smokeHigh = smokePercent >= smokeThreshold * 0.7;  // 70% of threshold (was 80%)
@@ -1307,8 +1313,12 @@ bool checkWarningState() {
 void updateLCD() {
   char buf[25];
   
-  // Check if we should show warning screen
-  bool shouldShowWarning = checkWarningState();
+  // Don't show warnings during the first 15 seconds after startup
+  // This allows sensors to stabilize and prevents false warnings
+  bool startupPeriod = millis() < 15000;
+  
+  // Check if we should show warning screen (but not during startup)
+  bool shouldShowWarning = !startupPeriod && checkWarningState();
   
   // Handle warning mode transitions
   if (shouldShowWarning && !warningMode) {
@@ -1331,8 +1341,8 @@ void updateLCD() {
     return;
   }
   
-  // WARNING MODE - Show warning screen for high readings
-  if (warningMode) {
+  // WARNING MODE - Show warning screen for high readings (but not during startup)
+  if (warningMode && !startupPeriod) {
     displayWarningScreen();
     return;
   }

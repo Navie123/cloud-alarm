@@ -55,8 +55,8 @@
 #define COMMAND_CHECK_INTERVAL 500   // Check commands every 0.5 seconds (was 1000ms)
 
 // Default Thresholds - Lowered for better sensitivity
-#define DEFAULT_GAS_THRESHOLD 15    // Lowered from 40 to 15 for better detection
-#define DEFAULT_SMOKE_THRESHOLD 15  // Added separate smoke threshold
+#define DEFAULT_GAS_THRESHOLD 5     // Lowered from 15 to 5 for better detection
+#define DEFAULT_SMOKE_THRESHOLD 5   // Lowered from 15 to 5 for better detection
 #define DEFAULT_TEMP_THRESHOLD 60   // Match backend server default
 
 // CO Thresholds (PPM) - Very high to prevent false alarms during sensor warmup
