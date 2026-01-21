@@ -668,6 +668,8 @@ function updateUI(data, isRealtimeUpdate = false) {
   // 2. Either we have real-time data OR recent database data (within 2 minutes)
   let isDeviceOnline = false;
   
+  let diffSeconds = 0; // Declare the variable
+  
   if (isConnected) {
     if (hasReceivedRealtimeData) {
       // We have real-time WebSocket data - definitely online
