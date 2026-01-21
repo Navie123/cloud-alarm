@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const alarmHistorySchema = new mongoose.Schema({
   deviceId: { type: String, required: true, index: true },
-  trigger: { type: String, enum: ['gas', 'smoke', 'temperature', 'both', 'co', 'unknown'], required: true },
+  trigger: { type: String, enum: ['gas', 'smoke', 'temperature', 'both', 'co', 'unknown', 'smoke_warning', 'gas_warning', 'smoke_gas_warning'], required: true },
   gas: Number,
   smoke: Number,
   coPpm: Number,
