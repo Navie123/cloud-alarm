@@ -847,28 +847,6 @@ function updateUI(data, isRealtimeUpdate = false) {
     }
   }
   
-// Check for recent alarms by fetching history
-async function checkRecentAlarms() {
-  try {
-    const response = await fetch(`${CONFIG.API_BASE_URL}/api/device/${CONFIG.DEVICE_ID}/history`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('sessionToken')}`
-      }
-    });
-    
-    if (response.ok) {
-      const history = await response.json();
-      window.lastHistoryEntries = history.slice(0, 5); // Keep last 5 entries
-      window.lastHistoryCheck = new Date();
-    }
-  } catch (error) {
-    console.log('History check failed:', error);
-  }
-}
-
-// Check for recent alarms every 5 seconds
-setInterval(checkRecentAlarms, 5000);
-
   sirenEnabled = data.sirenEnabled !== false;
   buzzerMuted = data.buzzerMuted === true;  // Sync buzzer mute state from ESP32
   updateSirenUI();
@@ -876,30 +854,22 @@ setInterval(checkRecentAlarms, 5000);
   
   // Only show alarm if device is online
   if (isDeviceOnline) {
-    // Check for recent alarms in history (within last 30 seconds)
-    const now = new Date();
-    const thirtySecondsAgo = new Date(now.getTime() - 30000);
-    
-    // Simple check: if we have recent history entries, treat as active alarm
-    let hasRecentAlarm = false;
-    if (window.lastHistoryCheck && window.lastHistoryEntries) {
-      hasRecentAlarm = window.lastHistoryEntries.some(entry => {
-        const entryTime = new Date(entry.timestamp || entry.createdAt);
-        return entryTime > thirtySecondsAgo;
-      });
-    }
+    // Simple approach: if smoke or gas levels are elevated, trigger alarm
+    const smokeHigh = data.smoke && data.smoke >= 5;  // 5% threshold
+    const gasHigh = data.gas && data.gas >= 5;        // 5% threshold
+    const tempHigh = data.temperature && data.temperature >= 50; // 50°C threshold
     
     // Treat partial warnings as alarms for sound purposes
-    const shouldPlayAlarm = data.alarm || data.partialWarning || hasRecentAlarm;
+    const shouldPlayAlarm = data.alarm || data.partialWarning || smokeHigh || gasHigh || tempHigh;
     
     console.log('Alarm state check:', {
       deviceOnline: isDeviceOnline,
       alarm: data.alarm,
       partialWarning: data.partialWarning,
-      hasRecentAlarm: hasRecentAlarm,
+      smokeHigh: smokeHigh,
+      gasHigh: gasHigh,
+      tempHigh: tempHigh,
       shouldPlayAlarm: shouldPlayAlarm,
-      smokeWarningOnly: data.smokeWarningOnly,
-      gasWarningOnly: data.gasWarningOnly,
       smoke: data.smoke,
       gas: data.gas,
       temperature: data.temperature
@@ -908,14 +878,14 @@ setInterval(checkRecentAlarms, 5000);
     updateAlarmState(shouldPlayAlarm, data.tempWarning);
     
     // Debug logging
-    if (data.partialWarning || hasRecentAlarm) {
-      console.log('Alarm detected - treating as active', {
+    if (shouldPlayAlarm) {
+      console.log('ALARM TRIGGERED - Website should show red screen and play sound', {
         originalAlarm: data.alarm,
         partialWarning: data.partialWarning,
-        hasRecentAlarm: hasRecentAlarm,
-        finalAlarmState: shouldPlayAlarm,
-        smokeWarningOnly: data.smokeWarningOnly,
-        gasWarningOnly: data.gasWarningOnly
+        smokeHigh: smokeHigh,
+        gasHigh: gasHigh,
+        tempHigh: tempHigh,
+        finalAlarmState: shouldPlayAlarm
       });
     }
   } else {
