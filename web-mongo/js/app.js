@@ -129,7 +129,7 @@ function initializeApp() {
   }, 2000);
   
   // Add test audio button functionality
-  setupTestAudioButton();
+  // setupTestAudioButton(); // Removed - no longer needed
 }
 
 // Setup all threshold sliders with dynamic colors
@@ -378,9 +378,6 @@ function enableAudio() {
   
   // Show confirmation
   showToast('Alarm sound enabled', 'success');
-  
-  // Update test audio button
-  updateTestAudioButton();
 }
 
 // Auto-enable audio on first user interaction (modern browser requirement)
@@ -389,49 +386,6 @@ function autoEnableAudio() {
     console.log('Auto-enabling audio on user interaction');
     enableAudio();
   }
-}
-
-// Setup test audio button functionality
-function setupTestAudioButton() {
-  const testBtn = document.getElementById('testAudioBtn');
-  if (testBtn) {
-    testBtn.addEventListener('click', testAlarmSound);
-    updateTestAudioButton();
-  }
-}
-
-// Update test audio button state
-function updateTestAudioButton() {
-  const testBtn = document.getElementById('testAudioBtn');
-  if (testBtn) {
-    testBtn.disabled = !audioEnabled;
-    testBtn.innerHTML = audioEnabled 
-      ? '<i class="fas fa-play"></i> Test Alarm Sound'
-      : '<i class="fas fa-volume-mute"></i> Enable Audio First';
-  }
-}
-
-// Test alarm sound function
-function testAlarmSound() {
-  if (!audioEnabled) {
-    showToast('Please enable audio first', 'warning');
-    return;
-  }
-  
-  // Play a short test of the alarm sound
-  const testAudio = new Audio(selectedAlarmSound);
-  testAudio.volume = 0.7; // Slightly lower volume for testing
-  testAudio.play().then(() => {
-    showToast('Test sound played successfully', 'success');
-    // Stop after 2 seconds
-    setTimeout(() => {
-      testAudio.pause();
-      testAudio.currentTime = 0;
-    }, 2000);
-  }).catch(e => {
-    console.error('Test audio error:', e);
-    showToast('Audio test failed - check browser permissions', 'error');
-  });
 }
 
 function playAlarmSound() {

@@ -56,6 +56,12 @@ const unsigned long PARTIAL_BEEP_DURATION = 200;  // 200ms beep duration
 const int PARTIAL_BEEP_SEQUENCE = 3;  // 3 beeps per sequence
 const unsigned long PARTIAL_SEQUENCE_PAUSE = 2000;  // 2 second pause between sequences
 
+// Warning mode beep variables (1-second intervals)
+unsigned long lastWarningBeep = 0;
+bool warningBeepState = false;
+const unsigned long WARNING_BEEP_INTERVAL = 1000;  // 1 second interval
+const unsigned long WARNING_BEEP_DURATION = 300;   // 300ms beep duration
+
 // Temperature baseline for smart smoke detection
 float baselineTemp = 25.0;  // Average temperature baseline
 float tempReadings[10];     // Store last 10 temperature readings for baseline
@@ -340,15 +346,30 @@ void loop() {
       }
     }
   } else if (warningMode && sirenEnabled && !buzzerMuted && !silenceRequested) {
-    // Warning mode - continuous buzzer
-    activateBuzzer(true);
+    // Warning mode - 1 second interval beeps (beep for 300ms, pause for 700ms)
+    unsigned long now = millis();
+    
+    if (!warningBeepState && (now - lastWarningBeep >= WARNING_BEEP_INTERVAL)) {
+      // Start a beep
+      warningBeepState = true;
+      activateBuzzer(true);
+      lastWarningBeep = now;
+      Serial.println("[BUZZER] Warning mode - beep start");
+    } else if (warningBeepState && (now - lastWarningBeep >= WARNING_BEEP_DURATION)) {
+      // End the beep
+      warningBeepState = false;
+      activateBuzzer(false);
+      lastWarningBeep = now;
+      Serial.println("[BUZZER] Warning mode - beep end");
+    }
+    
     partialBeepCount = 0;  // Reset partial beep counter
-    Serial.println("[BUZZER] Warning mode - continuous");
   } else {
     // No alarm - buzzer off
     activateBuzzer(false);
     partialBeepState = false;  // Reset beep state
     partialBeepCount = 0;  // Reset beep counter
+    warningBeepState = false;  // Reset warning beep state
   }
   
   delay(100);

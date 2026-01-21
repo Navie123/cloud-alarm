@@ -1,6 +1,6 @@
 # Cloud Fire Alarm - MongoDB Backend
 
-Backend API for the Cloud Fire Alarm system using MongoDB Atlas.
+Backend API using MongoDB Atlas.
 
 ## Features
 - Email/Password authentication with email verification
