@@ -847,6 +847,28 @@ function updateUI(data, isRealtimeUpdate = false) {
     }
   }
   
+// Check for recent alarms by fetching history
+async function checkRecentAlarms() {
+  try {
+    const response = await fetch(`${CONFIG.API_BASE_URL}/api/device/${CONFIG.DEVICE_ID}/history`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('sessionToken')}`
+      }
+    });
+    
+    if (response.ok) {
+      const history = await response.json();
+      window.lastHistoryEntries = history.slice(0, 5); // Keep last 5 entries
+      window.lastHistoryCheck = new Date();
+    }
+  } catch (error) {
+    console.log('History check failed:', error);
+  }
+}
+
+// Check for recent alarms every 5 seconds
+setInterval(checkRecentAlarms, 5000);
+
   sirenEnabled = data.sirenEnabled !== false;
   buzzerMuted = data.buzzerMuted === true;  // Sync buzzer mute state from ESP32
   updateSirenUI();
@@ -854,13 +876,27 @@ function updateUI(data, isRealtimeUpdate = false) {
   
   // Only show alarm if device is online
   if (isDeviceOnline) {
+    // Check for recent alarms in history (within last 30 seconds)
+    const now = new Date();
+    const thirtySecondsAgo = new Date(now.getTime() - 30000);
+    
+    // Simple check: if we have recent history entries, treat as active alarm
+    let hasRecentAlarm = false;
+    if (window.lastHistoryCheck && window.lastHistoryEntries) {
+      hasRecentAlarm = window.lastHistoryEntries.some(entry => {
+        const entryTime = new Date(entry.timestamp || entry.createdAt);
+        return entryTime > thirtySecondsAgo;
+      });
+    }
+    
     // Treat partial warnings as alarms for sound purposes
-    const shouldPlayAlarm = data.alarm || data.partialWarning;
+    const shouldPlayAlarm = data.alarm || data.partialWarning || hasRecentAlarm;
     
     console.log('Alarm state check:', {
       deviceOnline: isDeviceOnline,
       alarm: data.alarm,
       partialWarning: data.partialWarning,
+      hasRecentAlarm: hasRecentAlarm,
       shouldPlayAlarm: shouldPlayAlarm,
       smokeWarningOnly: data.smokeWarningOnly,
       gasWarningOnly: data.gasWarningOnly,
@@ -872,10 +908,11 @@ function updateUI(data, isRealtimeUpdate = false) {
     updateAlarmState(shouldPlayAlarm, data.tempWarning);
     
     // Debug logging
-    if (data.partialWarning) {
-      console.log('Partial warning detected - treating as alarm for sound', {
+    if (data.partialWarning || hasRecentAlarm) {
+      console.log('Alarm detected - treating as active', {
         originalAlarm: data.alarm,
         partialWarning: data.partialWarning,
+        hasRecentAlarm: hasRecentAlarm,
         finalAlarmState: shouldPlayAlarm,
         smokeWarningOnly: data.smokeWarningOnly,
         gasWarningOnly: data.gasWarningOnly
