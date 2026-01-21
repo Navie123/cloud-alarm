@@ -161,14 +161,22 @@ function getAQIStatus(aqi) {
  */
 function detectFireRisk(coPpm, temperature, gasPercent, thresholds = {}) {
   const coThreshold = thresholds.coWarning || CO_THRESHOLDS.WARNING;
-  const tempThreshold = thresholds.tempWarning || 50; // 10 degrees below typical alarm
-  const gasThreshold = thresholds.gasWarning || 30; // Below typical alarm threshold
+  const tempThreshold = thresholds.tempWarning || 60; // Use actual temp threshold, not 50
+  const gasThreshold = thresholds.gasWarning || 40; // Use actual gas threshold, not 30
 
-  return (
-    coPpm >= coThreshold &&
-    temperature >= tempThreshold &&
-    gasPercent >= gasThreshold
-  );
+  const coExceeded = coPpm >= coThreshold;
+  const tempExceeded = temperature >= tempThreshold;
+  const gasExceeded = gasPercent >= gasThreshold;
+
+  // Debug logging to see why fire risk is triggering
+  console.log('[Fire Risk Debug]', {
+    coPpm, coThreshold, coExceeded,
+    temperature, tempThreshold, tempExceeded,
+    gasPercent, gasThreshold, gasExceeded,
+    fireRisk: coExceeded && tempExceeded && gasExceeded
+  });
+
+  return coExceeded && tempExceeded && gasExceeded;
 }
 
 /**
