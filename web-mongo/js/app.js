@@ -968,13 +968,20 @@ function updateAlarmState(isAlarm, tempWarning) {
   const sirenOverlay = document.getElementById('sirenOverlay');
   
   if (isAlarm) {
+    // Always show visual alarm regardless of siren setting
     if (alarmCard) alarmCard.classList.add('alarm-active');
     if (alarmIcon) alarmIcon.className = 'fas fa-triangle-exclamation';
     if (alarmText) alarmText.textContent = 'ALARM ACTIVE!';
     if (alarmSubtitle) alarmSubtitle.textContent = 'Danger detected - take action now!';
     if (sirenOverlay) sirenOverlay.classList.add('active');
     document.body.classList.add('alarm-mode');
-    playAlarmSound();
+    
+    // Only play sound if siren is enabled
+    if (sirenEnabled) {
+      playAlarmSound();
+    } else {
+      console.log('Visual alarm active but audio muted (siren off)');
+    }
   } else {
     if (alarmCard) alarmCard.classList.remove('alarm-active');
     if (alarmIcon) alarmIcon.className = 'fas fa-shield-check';
@@ -1055,7 +1062,11 @@ function updateSirenUI() {
     sirenToggleBtn.classList.add(sirenEnabled ? 'btn-active' : 'btn-disabled');
   }
   
-  if (!sirenEnabled) stopAlarmSound();
+  // Only stop alarm sound if siren is disabled, but keep visual alarm
+  if (!sirenEnabled && isPlaying) {
+    stopAlarmSound();
+    console.log('Siren disabled - muting audio but keeping visual alarm');
+  }
 }
 
 let historyRefreshInterval = null;

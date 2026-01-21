@@ -54,9 +54,10 @@
 #define DATA_SEND_INTERVAL 250       // Send data every 0.25 seconds (was 500ms)
 #define COMMAND_CHECK_INTERVAL 500   // Check commands every 0.5 seconds (was 1000ms)
 
-// Default Thresholds
-#define DEFAULT_GAS_THRESHOLD 40
-#define DEFAULT_TEMP_THRESHOLD 60  // Match backend server default
+// Default Thresholds - Lowered for better sensitivity
+#define DEFAULT_GAS_THRESHOLD 15    // Lowered from 40 to 15 for better detection
+#define DEFAULT_SMOKE_THRESHOLD 15  // Added separate smoke threshold
+#define DEFAULT_TEMP_THRESHOLD 60   // Match backend server default
 
 // CO Thresholds (PPM) - Very high to prevent false alarms during sensor warmup
 #define DEFAULT_CO_WARNING 500

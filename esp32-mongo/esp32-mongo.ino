@@ -72,7 +72,7 @@ bool tempBaselineReady = false;
 float smokePercent = 0;
 int smokeRaw = 0;
 String smokeStatus = "normal";
-int smokeThreshold = DEFAULT_GAS_THRESHOLD;  // Separate threshold for smoke
+int smokeThreshold = DEFAULT_SMOKE_THRESHOLD;  // Separate threshold for smoke
 
 // MQ-7 CO Sensor variables
 float coPpm = 0;
