@@ -391,8 +391,24 @@ function autoEnableAudio() {
 function playAlarmSound() {
   console.log('playAlarmSound called:', { sirenEnabled, audioEnabled, isPlaying });
   
-  if (!sirenEnabled || !audioEnabled || isPlaying) {
-    console.log('Audio blocked:', { sirenEnabled, audioEnabled, isPlaying });
+  if (!sirenEnabled) {
+    console.log('Audio blocked: Siren disabled');
+    return;
+  }
+  
+  if (!audioEnabled) {
+    console.log('Audio blocked: Audio not enabled - showing prompt');
+    // Show audio prompt again if hidden
+    const audioPrompt = document.getElementById('audioPrompt');
+    if (audioPrompt && audioPrompt.classList.contains('hidden')) {
+      audioPrompt.classList.remove('hidden');
+    }
+    showToast('Click "Enable Sound" to hear alarm audio', 'warning');
+    return;
+  }
+  
+  if (isPlaying) {
+    console.log('Audio blocked: Already playing');
     return;
   }
   
@@ -840,6 +856,19 @@ function updateUI(data, isRealtimeUpdate = false) {
   if (isDeviceOnline) {
     // Treat partial warnings as alarms for sound purposes
     const shouldPlayAlarm = data.alarm || data.partialWarning;
+    
+    console.log('Alarm state check:', {
+      deviceOnline: isDeviceOnline,
+      alarm: data.alarm,
+      partialWarning: data.partialWarning,
+      shouldPlayAlarm: shouldPlayAlarm,
+      smokeWarningOnly: data.smokeWarningOnly,
+      gasWarningOnly: data.gasWarningOnly,
+      smoke: data.smoke,
+      gas: data.gas,
+      temperature: data.temperature
+    });
+    
     updateAlarmState(shouldPlayAlarm, data.tempWarning);
     
     // Debug logging
@@ -854,6 +883,7 @@ function updateUI(data, isRealtimeUpdate = false) {
     }
   } else {
     // Clear alarm state when offline
+    console.log('Device offline - clearing alarm state');
     updateAlarmState(false, false);
   }
   

@@ -280,6 +280,29 @@ router.post('/:deviceId/data', async (req, res) => {
       
       console.log(`[Partial Warning] ${warningMessage}`);
       
+      // Create history record for partial warning
+      try {
+        const phTime = new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
+        await AlarmHistory.create({
+          deviceId, 
+          trigger: warningType,
+          gas: data.gas,
+          smoke: data.smoke,
+          temperature: data.temperature,
+          humidity: data.humidity,
+          voltage: data.voltage,
+          coPpm: data.coPpm,
+          aqi: data.aqi,
+          baselineTemp: data.baselineTemp,
+          tempRise: data.tempRise,
+          timestamp: phTime,
+          createdAt: new Date()
+        });
+        console.log(`[Partial Warning] History record created: ${warningType}`);
+      } catch (historyError) {
+        console.error('[Partial Warning] Failed to create history record:', historyError.message);
+      }
+      
       // Send Email notification for partial warning
       try {
         const { sendAlarmEmail } = require('../utils/email');
