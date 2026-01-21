@@ -56,7 +56,7 @@
 
 // Default Thresholds
 #define DEFAULT_GAS_THRESHOLD 40
-#define DEFAULT_TEMP_THRESHOLD 35  // Changed minimum from 60 to 35°C
+#define DEFAULT_TEMP_THRESHOLD 60  // Match backend server default
 
 // CO Thresholds (PPM) - Very high to prevent false alarms during sensor warmup
 #define DEFAULT_CO_WARNING 500

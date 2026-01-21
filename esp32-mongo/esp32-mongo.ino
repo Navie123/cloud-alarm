@@ -243,7 +243,13 @@ void setup() {
   // Fetch thresholds from server on startup
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("Fetching thresholds from server...");
+    delay(1000);  // Give server time to be ready
     checkCommands();  // This will get any pending threshold commands
+    delay(500);   // Allow time for processing
+    Serial.printf("After server sync - Gas: %d%%, Smoke: %d%%, Temp: %d°C\n", 
+                  gasThreshold, smokeThreshold, tempThreshold);
+  } else {
+    Serial.println("WiFi not connected - using default thresholds");
   }
   
   Serial.println("Sensors ready - showing real-time readings");
@@ -885,7 +891,7 @@ void updateAlarmState() {
   // IMMEDIATE DEBUG OUTPUT FOR ALARM TRIGGERS
   static unsigned long lastAlarmDebug = 0;
   if (millis() - lastAlarmDebug > 1000 || alarmActive != wasAlarm || partialWarningActive != wasPartialWarning) {
-    Serial.printf("ALARM CHECK: Gas=%.1f%%(>=%d) Smoke=%.1f%%(>=%d) Temp=%.1f(>=%d) TempRise=%.1f -> FULL_ALARM=%s PARTIAL_WARNING=%s\n",
+    Serial.printf("ALARM CHECK: Gas=%.1f%%(>=%d) Smoke=%.1f%%(>=%d) Temp=%.1f°C(>=%d°C) TempRise=%.1f°C -> FULL_ALARM=%s PARTIAL_WARNING=%s\n",
                   gasPercent, gasThreshold, smokePercent, smokeThreshold, temperature, tempThreshold,
                   tempBaselineReady ? (temperature - baselineTemp) : 0,
                   alarmActive ? "YES" : "NO", partialWarningActive ? "YES" : "NO");
@@ -899,7 +905,8 @@ void updateAlarmState() {
                   partialWarningActive ? "ACTIVE" : "CLEARED");
     Serial.printf("  Gas: %.1f%% vs threshold %d%% -> %s\n", gasPercent, gasThreshold, gasDetected ? "DETECTED" : "ok");
     Serial.printf("  Smoke: %.1f%% vs threshold %d%% -> %s\n", smokePercent, smokeThreshold, smokeDetected ? "DETECTED" : "ok");
-    Serial.printf("  Temp: %.1f°C vs threshold %d°C -> %s\n", temperature, tempThreshold, tempAlarm ? "TRIGGERED" : "ok");
+    Serial.printf("  Temp: %.1f°C vs threshold %d°C -> %s (sensor ready: %s)\n", 
+                  temperature, tempThreshold, tempAlarm ? "TRIGGERED" : "ok", tempSensorReady ? "YES" : "NO");
     Serial.printf("  Temp Rise: %.1f°C vs baseline %.1f°C (rise: %.1f°C) -> %s\n", 
                   temperature, baselineTemp, temperature - baselineTemp, tempRiseDetected ? "YES" : "NO");
     
