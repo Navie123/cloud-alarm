@@ -54,9 +54,9 @@
 #define DATA_SEND_INTERVAL 250       // Send data every 0.25 seconds (was 500ms)
 #define COMMAND_CHECK_INTERVAL 500   // Check commands every 0.5 seconds (was 1000ms)
 
-// Default Thresholds - Lowered for better sensitivity
-#define DEFAULT_GAS_THRESHOLD 5     // Lowered from 15 to 5 for better detection
-#define DEFAULT_SMOKE_THRESHOLD 5   // Lowered from 15 to 5 for better detection
+// Default Thresholds - Sensitive for testing
+#define DEFAULT_GAS_THRESHOLD 5     // Sensitive threshold for testing
+#define DEFAULT_SMOKE_THRESHOLD 5   // Sensitive threshold for testing  
 #define DEFAULT_TEMP_THRESHOLD 60   // Match backend server default
 
 // CO Thresholds (PPM) - Very high to prevent false alarms during sensor warmup

@@ -880,24 +880,24 @@ void updateAlarmState() {
   // Smart smoke detection logic
   bool smokeDetected = smokePercent >= smokeThreshold;
   bool gasDetected = gasPercent >= gasThreshold;
-  bool tempRiseDetected = tempBaselineReady && (temperature > baselineTemp + 3.0);  // 3°C rise above baseline
+  bool tempRiseDetected = tempBaselineReady && (temperature > baselineTemp + 5.0);  // Increased from 3°C to 5°C to be less sensitive
   
-  // Full alarm conditions (with temperature rise)
+  // Full alarm conditions (with significant temperature rise)
   bool smokeAlarm = smokeDetected && tempRiseDetected;
   bool gasAlarmWithTemp = gasDetected && tempRiseDetected;
   
-  // Partial warning conditions (without temperature rise)
-  bool smokeWarningOnly = smokeDetected && !tempRiseDetected;
-  bool gasWarningOnly = gasDetected && !tempRiseDetected;
+  // Partial warning conditions (smoke/gas detected regardless of small temp changes)
+  bool smokeWarningOnly = smokeDetected && !tempAlarm;  // Changed: ignore small temp rise, only check temp threshold
+  bool gasWarningOnly = gasDetected && !tempAlarm;      // Changed: ignore small temp rise, only check temp threshold
   
   // Combined states
   bool wasAlarm = alarmActive;
   bool wasPartialWarning = partialWarningActive;
   
-  // Full alarm: temp threshold OR (smoke/gas + temperature rise)
+  // Full alarm: temp threshold OR (smoke/gas + significant temperature rise)
   alarmActive = tempAlarm || smokeAlarm || gasAlarmWithTemp;
   
-  // Partial warning: smoke or gas detected but no temperature rise
+  // Partial warning: smoke or gas detected but no full alarm
   partialWarningActive = (smokeWarningOnly || gasWarningOnly) && !alarmActive;
   
   // Debug partial warning detection
@@ -933,11 +933,11 @@ void updateAlarmState() {
     
     if (partialWarningActive) {
       if (smokeWarningOnly && gasWarningOnly) {
-        Serial.println("  -> PARTIAL WARNING: Smoke + Gas detected but no temperature rise");
+        Serial.println("  -> PARTIAL WARNING: Smoke + Gas detected but no full alarm");
       } else if (smokeWarningOnly) {
-        Serial.println("  -> PARTIAL WARNING: Smoke detected but no temperature rise");
+        Serial.println("  -> PARTIAL WARNING: Smoke detected but no full alarm");
       } else if (gasWarningOnly) {
-        Serial.println("  -> PARTIAL WARNING: Gas detected but no temperature rise");
+        Serial.println("  -> PARTIAL WARNING: Gas detected but no full alarm");
       }
     }
   }
