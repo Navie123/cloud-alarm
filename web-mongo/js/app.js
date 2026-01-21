@@ -1806,13 +1806,37 @@ function updateGasSensorUI(data) {
     warmupBanner.classList.toggle('hidden', !deviceOnline || !data.sensorWarmup);
   }
   
-  // Fire risk banner
+  // Fire risk banner - use our own calculation instead of ESP32's fireRisk
   const fireRiskBanner = document.getElementById('fireRiskBanner');
   const fireRiskTriggers = document.getElementById('fireRiskTriggers');
   if (fireRiskBanner) {
-    fireRiskBanner.classList.toggle('hidden', !deviceOnline || !data.fireRisk);
-    if (deviceOnline && data.fireRisk && fireRiskTriggers) {
-      fireRiskTriggers.textContent = 'CO + Temperature + Gas sensors triggered';
+    // Calculate fire risk based on actual thresholds (same logic as backend)
+    const gasThreshold = data.threshold || 18;
+    const smokeThreshold = data.smokeThreshold || 9;
+    const tempThreshold = data.tempThreshold || 39;
+    
+    const gasHigh = data.gas && data.gas >= gasThreshold;
+    const smokeHigh = data.smoke && data.smoke >= smokeThreshold;
+    const tempHigh = data.temperature && data.temperature >= tempThreshold;
+    const coHigh = data.coPpm && data.coPpm >= 35; // CO warning threshold
+    
+    // Fire risk only when ALL conditions are met (same as backend logic)
+    const actualFireRisk = coHigh && tempHigh && (gasHigh || smokeHigh);
+    
+    console.log('Fire risk check:', {
+      coHigh, tempHigh, gasHigh, smokeHigh, actualFireRisk,
+      'ESP32 fireRisk': data.fireRisk,
+      'Using actualFireRisk': actualFireRisk
+    });
+    
+    fireRiskBanner.classList.toggle('hidden', !deviceOnline || !actualFireRisk);
+    if (deviceOnline && actualFireRisk && fireRiskTriggers) {
+      let triggers = [];
+      if (coHigh) triggers.push('CO');
+      if (tempHigh) triggers.push('Temperature');
+      if (gasHigh) triggers.push('Gas');
+      if (smokeHigh) triggers.push('Smoke');
+      fireRiskTriggers.textContent = triggers.join(' + ') + ' sensors triggered';
     }
   }
 }
