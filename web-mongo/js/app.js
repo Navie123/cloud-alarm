@@ -854,10 +854,15 @@ function updateUI(data, isRealtimeUpdate = false) {
   
   // Only show alarm if device is online
   if (isDeviceOnline) {
-    // Simple approach: if smoke or gas levels are elevated, trigger alarm
-    const smokeHigh = data.smoke && data.smoke >= 10;  // Raised from 5% to 10%
-    const gasHigh = data.gas && data.gas >= 10;        // Raised from 5% to 10%
-    const tempHigh = data.temperature && data.temperature >= 50; // 50°C threshold
+    // Use the actual threshold settings from the device, not hardcoded values
+    const gasThreshold = data.threshold || 18;  // Use device threshold or fallback to 18%
+    const smokeThreshold = data.smokeThreshold || 9;  // Use device threshold or fallback to 9%
+    const tempThreshold = data.tempThreshold || 39;  // Use device threshold or fallback to 39°C
+    
+    // Check if readings exceed the actual configured thresholds
+    const smokeHigh = data.smoke && data.smoke >= smokeThreshold;
+    const gasHigh = data.gas && data.gas >= gasThreshold;
+    const tempHigh = data.temperature && data.temperature >= tempThreshold;
     
     // Treat partial warnings as alarms for sound purposes
     const shouldPlayAlarm = data.alarm || data.partialWarning || smokeHigh || gasHigh || tempHigh;
@@ -872,7 +877,8 @@ function updateUI(data, isRealtimeUpdate = false) {
       shouldPlayAlarm: shouldPlayAlarm,
       smoke: data.smoke,
       gas: data.gas,
-      temperature: data.temperature
+      temperature: data.temperature,
+      thresholds: { gas: gasThreshold, smoke: smokeThreshold, temp: tempThreshold }
     });
     
     updateAlarmState(shouldPlayAlarm, data.tempWarning);
