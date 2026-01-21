@@ -1275,7 +1275,7 @@ bool checkWarningState() {
   // Check for critical conditions that should trigger warning screen
   bool gasHigh = gasPercent >= gasThreshold * 0.7;  // 70% of threshold (was 80%)
   bool smokeHigh = smokePercent >= smokeThreshold * 0.7;  // 70% of threshold (was 80%)
-  bool tempHigh = temperature >= tempThreshold * 0.85;  // 85% of threshold
+  bool tempHigh = temperature >= tempThreshold * 0.95;  // 95% of threshold (was 85% - too sensitive)
   bool coHigh = coPpm >= coWarningThreshold * 0.8;  // 80% of CO warning level
   bool aqiPoor = aqi >= 40;  // Moderate or worse AQI (was 50)
   
@@ -1609,7 +1609,7 @@ void displayWarningScreen() {
     snprintf(buf, 21, "SMOKE HIGH: %.1f%%", smokePercent);
   } else if (gasPercent >= gasThreshold * 0.7) {
     snprintf(buf, 21, "GAS HIGH: %.1f%%", gasPercent);
-  } else if (temperature >= tempThreshold * 0.85) {
+  } else if (temperature >= tempThreshold * 0.95) {  // 95% of threshold (was 85% - too sensitive)
     snprintf(buf, 21, "TEMP HIGH: %.1fC", temperature);
   } else if (coPpm >= coWarningThreshold * 0.8) {
     snprintf(buf, 21, "CO DETECTED: %.0f PPM", coPpm);
