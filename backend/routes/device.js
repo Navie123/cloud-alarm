@@ -205,12 +205,24 @@ router.post('/:deviceId/data', async (req, res) => {
         trigger = 'temperature';
       }
       
-      // Log for debugging
-      console.log('[Alarm] Trigger detection:', {
-        gas: data.gas, gasThreshold, gasTriggered,
-        smoke: data.smoke, smokeThreshold: smokeThresholdVal, smokeTriggered,
-        temp: data.temperature, tempThreshold: tempThresholdVal, tempTriggered,
-        trigger
+      // Enhanced debugging
+      console.log('[Alarm] DETAILED Trigger detection:', {
+        'data.gas': data.gas, 
+        'gasThreshold': gasThreshold, 
+        'gasTriggered': gasTriggered,
+        'data.smoke': data.smoke, 
+        'smokeThreshold': smokeThresholdVal, 
+        'smokeTriggered': smokeTriggered,
+        'data.temperature': data.temperature, 
+        'tempThreshold': tempThresholdVal, 
+        'tempTriggered': tempTriggered,
+        'FINAL_TRIGGER': trigger,
+        'Logic Check': {
+          'bothCondition': (gasTriggered || smokeTriggered) && tempTriggered,
+          'smokeOnly': smokeTriggered && !tempTriggered,
+          'gasOnly': gasTriggered && !tempTriggered,
+          'tempOnly': tempTriggered && !gasTriggered && !smokeTriggered
+        }
       });
       
       // Format timestamp in Philippines timezone
