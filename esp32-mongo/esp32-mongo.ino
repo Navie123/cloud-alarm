@@ -1503,7 +1503,7 @@ bool checkWarningState() {
   // Check for critical conditions that should trigger warning screen
   bool gasHigh = gasPercent >= gasThreshold * 0.7;  // 70% of threshold (was 80%)
   bool smokeHigh = smokePercent >= smokeThreshold * 0.7;  // 70% of threshold (was 80%)
-  bool tempHigh = temperature >= tempThreshold * 0.95;  // 95% of threshold (was 85% - too sensitive)
+  bool tempHigh = temperature >= tempThreshold;  // Use actual threshold, not 95%
   bool coHigh = coPpm >= coWarningThreshold * 0.8;  // 80% of CO warning level
   bool aqiPoor = aqi >= 40;  // Moderate or worse AQI (was 50)
   
@@ -1643,7 +1643,7 @@ void displayTempHumidity() {
   // Row 3: Status and threshold info
   lcd.setCursor(0, 3);
   String tempStatus = "Normal";
-  if (temperature >= tempThreshold * 0.9) tempStatus = "High";
+  if (temperature >= tempThreshold) tempStatus = "High";
   if (temperature >= tempThreshold) tempStatus = "CRITICAL";
   snprintf(buf, 21, "Status: %s", tempStatus.c_str());
   lcd.print(buf);
@@ -1841,7 +1841,7 @@ void displayWarningScreen() {
     snprintf(buf, 21, "SMOKE HIGH: %.1f%%", smokePercent);
   } else if (gasPercent >= gasThreshold * 0.7) {
     snprintf(buf, 21, "GAS HIGH: %.1f%%", gasPercent);
-  } else if (temperature >= tempThreshold * 0.95) {  // 95% of threshold (was 85% - too sensitive)
+  } else if (temperature >= tempThreshold) {  // Use actual threshold, not 95%
     snprintf(buf, 21, "TEMP HIGH: %.1fC", temperature);
   } else if (coPpm >= coWarningThreshold * 0.8) {
     snprintf(buf, 21, "CO DETECTED: %.0f PPM", coPpm);
