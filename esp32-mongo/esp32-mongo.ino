@@ -42,7 +42,6 @@ int gasThreshold = DEFAULT_GAS_THRESHOLD;
 int tempThreshold = DEFAULT_TEMP_THRESHOLD;
 bool alarmActive = false;
 bool sirenEnabled = true;
-bool buzzerMuted = false;  // Physical buzzer mute (independent of sirenEnabled)
 bool silenceRequested = false;
 String tempWarning = "normal";
 
@@ -132,7 +131,8 @@ int animationStep = 0;
 bool warningMode = false;  // True when showing warning screen
 
 // Function declarations
-void setupWiFiManager();
+void connectWiFiManager();
+void connectWiFiDirect();
 void connectWiFi();
 void readSensors();
 void readGasSensors();
@@ -243,8 +243,8 @@ void setup() {
     aqiReadings[i] = 0;
   }
   
-  // Setup WiFiManager (captive portal)
-  setupWiFiManager();
+  // Setup WiFiManager Connection (Auto-connect mode)
+  connectWiFiManager();
   
   // Fetch thresholds from server on startup
   if (WiFi.status() == WL_CONNECTED) {
@@ -308,12 +308,12 @@ void loop() {
   }
   
   // Handle buzzer logic
-  if (alarmActive && sirenEnabled && !buzzerMuted && !silenceRequested) {
+  if (alarmActive && sirenEnabled && !silenceRequested) {
     // Full alarm - continuous buzzer
     activateBuzzer(true);
     partialBeepCount = 0;  // Reset partial beep counter
     Serial.println("[BUZZER] Full alarm - continuous");
-  } else if (partialWarningActive && sirenEnabled && !buzzerMuted && !silenceRequested) {
+  } else if (partialWarningActive && sirenEnabled && !silenceRequested) {
     // Partial warning - 3 beeps with 800ms intervals, then 2 second pause
     unsigned long now = millis();
     
@@ -345,7 +345,7 @@ void loop() {
         activateBuzzer(false);  // Ensure buzzer is off during pause
       }
     }
-  } else if (warningMode && sirenEnabled && !buzzerMuted && !silenceRequested) {
+  } else if (warningMode && sirenEnabled && !silenceRequested) {
     // Warning mode - 1 second interval beeps (beep for 300ms, pause for 700ms)
     unsigned long now = millis();
     
@@ -375,93 +375,288 @@ void loop() {
   delay(100);
 }
 
-void setupWiFiManager() {
-  // Set WiFiManager debug output
-  wifiManager.setDebugOutput(true);
+void connectWiFiManager() {
+  Serial.println("Starting WiFiManager auto-connect...");
   
-  // Set timeout for config portal (3 minutes)
+  // Clean, readable CSS with high contrast
+  const char* customCSS = "<style>"
+    "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');"
+    
+    "* { margin: 0; padding: 0; box-sizing: border-box; }"
+    
+    "body { "
+      "background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); "
+      "color: #212529; "
+      "font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; "
+      "min-height: 100vh; "
+      "line-height: 1.5; "
+    "}"
+    
+    ".wrap { "
+      "max-width: 400px; "
+      "margin: 0 auto; "
+      "padding: 40px 20px; "
+      "min-height: 100vh; "
+      "display: flex; "
+      "flex-direction: column; "
+      "justify-content: center; "
+    "}"
+    
+    "h1 { "
+      "font-size: 2.5em; "
+      "font-weight: 600; "
+      "text-align: center; "
+      "margin-bottom: 8px; "
+      "background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%); "
+      "-webkit-background-clip: text; "
+      "-webkit-text-fill-color: transparent; "
+      "background-clip: text; "
+    "}"
+    
+    "h2, h3 { "
+      "color: #495057; "
+      "text-align: center; "
+      "font-weight: 500; "
+      "margin-bottom: 30px; "
+    "}"
+    
+    ".c { "
+      "text-align: center; "
+      "margin-bottom: 20px; "
+    "}"
+    
+    "/* Clean Card Design */"
+    ".card, form { "
+      "background: white; "
+      "border-radius: 16px; "
+      "padding: 30px; "
+      "margin: 20px 0; "
+      "box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); "
+      "border: 1px solid rgba(0, 0, 0, 0.05); "
+    "}"
+    
+    "/* Buttons */"
+    "input[type='submit'], button, .btn { "
+      "background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%); "
+      "border: none; "
+      "color: white; "
+      "padding: 14px 24px; "
+      "border-radius: 10px; "
+      "cursor: pointer; "
+      "font-weight: 500; "
+      "font-size: 1em; "
+      "width: 100%; "
+      "margin: 10px 0; "
+      "transition: all 0.2s ease; "
+      "box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3); "
+    "}"
+    
+    "input[type='submit']:hover, button:hover, .btn:hover { "
+      "transform: translateY(-2px); "
+      "box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4); "
+    "}"
+    
+    "/* Secondary Buttons */"
+    ".btn-secondary { "
+      "background: #6c757d !important; "
+      "box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3) !important; "
+    "}"
+    
+    "/* Input Fields */"
+    "input[type='text'], input[type='password'], select { "
+      "width: 100%; "
+      "background: #f8f9fa; "
+      "border: 2px solid #e9ecef; "
+      "color: #212529; "
+      "border-radius: 8px; "
+      "padding: 12px 16px; "
+      "font-size: 1em; "
+      "margin: 8px 0; "
+      "transition: border-color 0.2s ease; "
+    "}"
+    
+    "input[type='text']:focus, input[type='password']:focus, select:focus { "
+      "outline: none; "
+      "border-color: #ff6b35; "
+      "background: white; "
+    "}"
+    
+    "input::placeholder { "
+      "color: #6c757d; "
+    "}"
+    
+    "/* Labels */"
+    "label { "
+      "display: block; "
+      "color: #495057; "
+      "font-weight: 500; "
+      "margin-bottom: 5px; "
+      "font-size: 0.95em; "
+    "}"
+    
+    "/* WiFi Network List */"
+    ".q { "
+      "background: white; "
+      "border: 2px solid #e9ecef; "
+      "border-radius: 12px; "
+      "margin: 10px 0; "
+      "padding: 16px; "
+      "cursor: pointer; "
+      "transition: all 0.2s ease; "
+    "}"
+    
+    ".q:hover { "
+      "border-color: #ff6b35; "
+      "background: #fff8f5; "
+      "transform: translateY(-1px); "
+    "}"
+    
+    ".l { "
+      "color: #212529; "
+      "font-weight: 600; "
+      "font-size: 1.1em; "
+      "display: block; "
+      "margin-bottom: 4px; "
+    "}"
+    
+    ".s { "
+      "color: #ff6b35; "
+      "font-weight: 500; "
+      "font-size: 0.9em; "
+      "float: right; "
+      "background: #fff8f5; "
+      "padding: 4px 10px; "
+      "border-radius: 15px; "
+      "border: 1px solid #ffe5d9; "
+    "}"
+    
+    "/* Status Messages */"
+    ".msg { "
+      "background: #ff6b35; "
+      "color: white; "
+      "padding: 12px 16px; "
+      "border-radius: 8px; "
+      "margin: 15px 0; "
+      "font-weight: 500; "
+      "text-align: center; "
+    "}"
+    
+    ".error { "
+      "background: #dc3545 !important; "
+    "}"
+    
+    ".success { "
+      "background: #28a745 !important; "
+    "}"
+    
+    "/* Info Text */"
+    ".info { "
+      "color: #6c757d; "
+      "font-size: 0.9em; "
+      "text-align: center; "
+      "margin: 10px 0; "
+    "}"
+    
+    "/* Checkbox */"
+    "input[type='checkbox'] { "
+      "margin-right: 8px; "
+      "transform: scale(1.2); "
+    "}"
+    
+    "/* Responsive */"
+    "@media (max-width: 480px) { "
+      ".wrap { padding: 20px 15px; } "
+      ".card, form { padding: 20px; } "
+      "h1 { font-size: 2em; } "
+    "}"
+    
+    "/* Clean Dividers */"
+    "hr { "
+      "border: none; "
+      "height: 1px; "
+      "background: #e9ecef; "
+      "margin: 25px 0; "
+    "}"
+    
+    "</style>";
+  
+  // Set custom head element with clean, readable styling
+  wifiManager.setCustomHeadElement(customCSS);
+  
+  // Set custom AP name and password for setup mode
+  wifiManager.setAPStaticIPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1), IPAddress(255,255,255,0));
+  
+  // Set timeout for config portal
   wifiManager.setConfigPortalTimeout(WIFI_PORTAL_TIMEOUT);
   
-  // Set minimum signal quality for networks to show
-  wifiManager.setMinimumSignalQuality(20);
-  
-  // Custom dark theme styling for the portal
-  wifiManager.setCustomHeadElement(
-    "<style>"
-    "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');"
-    "*{box-sizing:border-box;margin:0;padding:0}"
-    "body{font-family:'Inter',system-ui,sans-serif;background:linear-gradient(135deg,#0a0a0a 0%,#1a1a1a 100%);color:#f5f5f5;min-height:100vh;padding:20px}"
-    ".wrap{max-width:400px;margin:0 auto}"
-    "h1{font-size:1.5rem;text-align:center;margin-bottom:8px;background:linear-gradient(90deg,#ff5722,#ff8a50);-webkit-background-clip:text;-webkit-text-fill-color:transparent}"
-    "h3{font-size:0.9rem;color:#888;text-align:center;margin-bottom:24px;font-weight:400}"
-    ".msg{background:rgba(255,87,34,0.1);border:1px solid rgba(255,87,34,0.3);border-radius:12px;padding:16px;margin-bottom:20px;text-align:center}"
-    ".msg strong{color:#ff5722}"
-    "button,input[type='button'],input[type='submit']{width:100%;padding:16px;border:none;border-radius:12px;font-size:1rem;font-weight:600;cursor:pointer;margin-bottom:12px;transition:all 0.3s ease}"
-    "button,.btn{background:linear-gradient(135deg,#ff5722,#ff8a50);color:white;box-shadow:0 4px 15px rgba(255,87,34,0.3)}"
-    "button:hover,.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(255,87,34,0.4)}"
-    "button:active,.btn:active{transform:translateY(0)}"
-    ".q{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all 0.2s}"
-    ".q:hover{border-color:#ff5722;background:#222}"
-    ".q div{display:flex;align-items:center;gap:12px}"
-    ".q i{font-size:1.2rem}"
-    "input[type='text'],input[type='password']{width:100%;padding:16px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;color:#f5f5f5;font-size:1rem;margin-bottom:12px;transition:border-color 0.2s}"
-    "input[type='text']:focus,input[type='password']:focus{outline:none;border-color:#ff5722}"
-    "label{display:block;color:#888;font-size:0.85rem;margin-bottom:6px}"
-    "a{color:#ff5722;text-decoration:none}"
-    "a:hover{text-decoration:underline}"
-    ".footer{text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #2a2a2a;color:#666;font-size:0.8rem}"
-    ".logo{width:80px;height:80px;margin:0 auto 16px;background:linear-gradient(135deg,#ff5722,#ff8a50);border-radius:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(255,87,34,0.3)}"
-    ".logo svg{width:48px;height:48px;fill:white}"
-    "@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}"
-    ".scanning{animation:pulse 1.5s ease-in-out infinite}"
-    "</style>"
-  );
-  
-  // Custom title
-  wifiManager.setTitle("<div class='logo'><svg viewBox='0 0 24 24'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/></svg></div>FireWire Setup");
-  
-  // Custom AP name and password
-  String apName = String(WIFI_AP_NAME);
-  
-  Serial.println("Starting WiFiManager...");
-  Serial.printf("If no saved WiFi, connect to: %s\n", apName.c_str());
-  Serial.printf("Password: %s\n", WIFI_AP_PASSWORD);
-  Serial.println("Then open 192.168.4.1 in browser");
-  
-  // Blink LED to indicate setup mode
-  for (int i = 0; i < 5; i++) {
-    digitalWrite(LED_PIN, HIGH);
-    delay(100);
-    digitalWrite(LED_PIN, LOW);
-    delay(100);
+  // Try to connect to saved WiFi or start config portal
+  if (!wifiManager.autoConnect(WIFI_AP_NAME, WIFI_AP_PASSWORD)) {
+    Serial.println("Failed to connect to WiFi and config portal timeout reached");
+    Serial.println("Restarting ESP32...");
+    delay(3000);
+    ESP.restart();
   }
   
-  // Try to connect with saved credentials, or start config portal
-  bool connected = wifiManager.autoConnect(apName.c_str(), WIFI_AP_PASSWORD);
+  // If we reach here, WiFi is connected
+  Serial.println("\nWiFi connected via WiFiManager!");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
+  Serial.print("Signal: ");
+  Serial.print(WiFi.RSSI());
+  Serial.println(" dBm");
   
-  if (connected) {
+  // Success indication - solid LED for 2 seconds then off
+  digitalWrite(LED_PIN, HIGH);
+  delay(2000);
+  digitalWrite(LED_PIN, LOW);
+}
+
+void connectWiFiDirect() {
+  Serial.println("Connecting directly to WiFi...");
+  Serial.printf("SSID: %s\n", WIFI_SSID);
+  
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  
+  // Blink LED while connecting
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 60) { // 30 seconds timeout
+    digitalWrite(LED_PIN, HIGH);
+    delay(250);
+    digitalWrite(LED_PIN, LOW);
+    delay(250);
+    Serial.print(".");
+    attempts++;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\nWiFi connected!");
     Serial.print("IP: ");
     Serial.println(WiFi.localIP());
     Serial.print("SSID: ");
     Serial.println(WiFi.SSID());
+    Serial.print("Signal: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
     
-    // Success indication - solid LED then off
+    // Success indication - solid LED for 2 seconds then off
     digitalWrite(LED_PIN, HIGH);
-    delay(1000);
+    delay(2000);
     digitalWrite(LED_PIN, LOW);
   } else {
-    Serial.println("\nFailed to connect to WiFi");
-    Serial.println("Device will continue in offline mode");
-    Serial.println("Sensors will still work locally");
+    Serial.println("\nWiFi connection failed!");
+    Serial.println("Restarting ESP32...");
+    delay(3000);
+    ESP.restart();
   }
 }
 
 void connectWiFi() {
-  // Simple reconnection - no auto portal restart
+  // WiFiManager reconnection - try saved credentials first
   if (WiFi.status() == WL_CONNECTED) return;
   
-  Serial.print("Reconnecting to WiFi");
+  Serial.print("Reconnecting to saved WiFi");
   WiFi.reconnect();
   
   int attempts = 0;
@@ -476,8 +671,9 @@ void connectWiFi() {
     Serial.print("IP: ");
     Serial.println(WiFi.localIP());
   } else {
-    Serial.println("\nWiFi reconnection failed - will retry next loop");
-    // Don't auto-restart portal - wait for manual reset or server command
+    Serial.println("\nWiFi reconnection failed");
+    Serial.println("Note: Hold BOOT button during restart to reset WiFi settings");
+    // Don't auto-restart portal - user can manually reset if needed
   }
 }
 
@@ -1017,7 +1213,6 @@ void sendDataToServer() {
   doc["alarm"] = alarmActive;
   doc["tempWarning"] = tempWarning;
   doc["sirenEnabled"] = sirenEnabled;
-  doc["buzzerMuted"] = buzzerMuted;
   doc["heap"] = ESP.getFreeHeap();
   doc["timestamp"] = getTimestamp();
   
@@ -1118,11 +1313,6 @@ void checkCommands() {
       if (doc.containsKey("sirenEnabled")) {
         sirenEnabled = doc["sirenEnabled"].as<bool>();
         Serial.printf("Siren %s\n", sirenEnabled ? "enabled" : "disabled");
-      }
-      
-      if (doc.containsKey("buzzerMuted")) {
-        buzzerMuted = doc["buzzerMuted"].as<bool>();
-        Serial.printf("Physical buzzer %s\n", buzzerMuted ? "muted" : "unmuted");
       }
       
       if (doc.containsKey("silence") && doc["silence"].as<bool>()) {
@@ -1255,8 +1445,12 @@ void checkButtons() {
     displayMode = newMode;
     lastModeChange = now;
     lastButtonPress = now;
+    
+    // Debug output
+    Serial.printf("Display mode changed to: %d, starting animation\n", displayMode);
+    Serial.printf("Animation start time: %lu\n", millis());
+    
     startSlideAnimation();
-    Serial.printf("Display mode changed to: %d\n", displayMode);
   }
 }
 
@@ -1266,6 +1460,9 @@ void startSlideAnimation() {
   animationStart = millis();
   animationStep = 0;
   lcd.clear();
+  
+  // Debug output
+  Serial.printf("Starting animation at time: %lu\n", millis());
 }
 
 // Update slide animation
@@ -1273,8 +1470,12 @@ void updateAnimation() {
   if (!isAnimating) return;
   
   unsigned long elapsed = millis() - animationStart;
-  if (elapsed >= ANIMATION_DURATION) {
+  
+  // Force animation to complete if it takes too long (safety timeout)
+  if (elapsed >= ANIMATION_DURATION || elapsed >= 1000) {  // Added 1 second safety timeout
     isAnimating = false;
+    lcd.clear();  // Clear the loading screen
+    Serial.println("Animation completed (or timed out)");
     return;
   }
   

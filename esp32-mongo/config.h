@@ -13,8 +13,8 @@
 #define WIFI_FAIL_RESTART_PORTAL 5         // Restart portal after X failed reconnects
 
 // Legacy WiFi credentials (optional fallback, WiFiManager handles this now)
-// #define WIFI_SSID "Boarding House"
-// #define WIFI_PASSWORD "Welcome2025"
+#define WIFI_SSID "ha"
+#define WIFI_PASSWORD "yumikawaii369"
 
 // Backend Server Configuration
 // For local development (comment out for production):

@@ -3,7 +3,6 @@
 const { jsPDF } = window.jspdf;
 
 let sirenEnabled = true;
-let buzzerMuted = false;
 let currentThreshold = 40;
 let currentTempThreshold = 60;
 let isConnected = false;
@@ -850,9 +849,7 @@ function updateUI(data, isRealtimeUpdate = false) {
   }
   
   sirenEnabled = data.sirenEnabled !== false;
-  buzzerMuted = data.buzzerMuted === true;  // Sync buzzer mute state from ESP32
   updateSirenUI();
-  updateBuzzerMuteUI();
   
   // Only show alarm if device is online
   if (isDeviceOnline) {
@@ -1283,63 +1280,6 @@ async function silenceAlarm() {
     showToast('Alarm silenced');
   } catch (error) {
     showToast('Error: ' + error.message, 'error');
-  }
-}
-
-async function muteBuzzer() {
-  console.log('muteBuzzer called, current state:', buzzerMuted);
-  
-  if (!isAdmin()) {
-    showToast('Admin access required to control physical buzzer', 'error');
-    return;
-  }
-  
-  buzzerMuted = !buzzerMuted;
-  
-  try {
-    // Send command to ESP32 to mute/unmute physical buzzer only (doesn't affect website sounds)
-    await api.sendCommand(getDeviceId(), 'buzzerMuted', buzzerMuted);
-    
-    // Update UI
-    updateBuzzerMuteUI();
-    
-    const message = buzzerMuted 
-      ? 'Physical buzzer muted (website alarm sounds still work)' 
-      : 'Physical buzzer unmuted';
-    showToast(message, 'success');
-  } catch (error) {
-    console.error('Mute buzzer error:', error);
-    // Revert state on error
-    buzzerMuted = !buzzerMuted;
-    updateBuzzerMuteUI();
-    showToast('Error: ' + error.message, 'error');
-  }
-}
-
-function updateBuzzerMuteUI() {
-  const buzzerMuteText = document.getElementById('buzzerMuteText');
-  const buzzerMuteIcon = document.getElementById('buzzerMuteIcon');
-  const muteBuzzerBtn = document.getElementById('muteBuzzerBtn');
-  
-  if (buzzerMuteText) {
-    buzzerMuteText.textContent = buzzerMuted ? 'Unmute Buzzer' : 'Mute Buzzer';
-  }
-  
-  if (buzzerMuteIcon) {
-    buzzerMuteIcon.className = buzzerMuted ? 'fas fa-volume-off' : 'fas fa-volume-mute';
-  }
-  
-  if (muteBuzzerBtn) {
-    // Remove all state classes
-    muteBuzzerBtn.classList.remove('btn-muted', 'btn-active', 'btn-warning');
-    
-    if (buzzerMuted) {
-      // Muted state - gray color
-      muteBuzzerBtn.classList.add('btn-muted');
-    } else {
-      // Active state - orange warning color
-      muteBuzzerBtn.classList.add('btn-warning');
-    }
   }
 }
 
