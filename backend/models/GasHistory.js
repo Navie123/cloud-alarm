@@ -21,6 +21,11 @@ const gasHistorySchema = new mongoose.Schema({
   aqiRaw: { type: Number, default: 0 },
   aqiStatus: { type: String, default: 'good' },
   
+  // MQ-2 Smoke readings
+  smoke: { type: Number, default: 0 },
+  smokeRaw: { type: Number, default: 0 },
+  smokeStatus: { type: String, default: 'normal' },
+  
   // Environmental context
   temperature: { type: Number },
   humidity: { type: Number },

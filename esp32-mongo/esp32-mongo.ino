@@ -803,6 +803,10 @@ void readGasSensors() {
   smokePercent = map(smokeRaw, 0, 4095, 0, 100);
   smokePercent = constrain(smokePercent, 0, 100);
   
+  // Display normalization: Show 0% if below 4% baseline for better UX
+  // (Real value still used for thresholds and data storage)
+  float smokePercentDisplay = (smokePercent < 4.0) ? 0.0 : smokePercent;
+  
   // MQ-7 Gas percentage (for backward compatibility with gasPercent)
   gasPercent = map(coRaw, 0, 4095, 0, 100);
   gasPercent = constrain(gasPercent, 0, 100);
@@ -884,25 +888,25 @@ void readGasSensors() {
 }
 
 float calculateCOPpm(int rawADC, float ro) {
-  if (rawADC <= 0 || ro <= 0) return 1;  // Return 1 instead of 0 for baseline
+  if (rawADC <= 0 || ro <= 0) return 0;  // Return actual 0 for no reading
   
   float voltage = (rawADC / 4095.0) * 3.3;
-  if (voltage <= 0.01) return 1;  // Baseline reading
+  if (voltage <= 0.01) return 0;  // Return 0 for very low voltage
   
   float rs = ((3.3 * LOAD_RESISTANCE) / voltage) - LOAD_RESISTANCE;
-  if (rs <= 0) return 1;  // Baseline reading
+  if (rs <= 0) return 0;  // Return 0 for invalid resistance
   
   float ratio = rs / ro;
   
-  // More sensitive CO calculation - always show some reading
+  // More sensitive CO calculation - allow true zero readings
   float ppm;
   
   if (rawADC < 20) {
-    // Very low ADC = baseline CO (1-2 PPM)
-    ppm = 1 + (rawADC / 20.0);  // 1-2 PPM range
+    // Very low ADC = clean air (0-1 PPM)
+    ppm = (rawADC / 20.0);  // 0-1 PPM range
   } else if (rawADC < 100) {
-    // Low ADC range = normal indoor CO (2-5 PPM)
-    ppm = 2 + ((rawADC - 20) / 80.0) * 3.0;  // 2-5 PPM range
+    // Low ADC range = normal indoor CO (1-5 PPM)
+    ppm = 1 + ((rawADC - 20) / 80.0) * 4.0;  // 1-5 PPM range
   } else if (rawADC < 300) {
     // Medium ADC range = elevated CO (5-15 PPM)
     ppm = 5 + ((rawADC - 100) / 200.0) * 10.0;  // 5-15 PPM range
@@ -914,33 +918,33 @@ float calculateCOPpm(int rawADC, float ro) {
     ppm = 50 + ((rawADC - 800) / 1000.0) * 100.0;  // 50+ PPM range
   }
   
-  // Ensure minimum reading and cap maximum
-  if (ppm < 1.0) ppm = 1.0;  // Never show 0
+  // Allow true zero readings, cap maximum only
+  if (ppm < 0) ppm = 0;  // Don't allow negative
   if (ppm > 200) ppm = 200;  // Cap at dangerous levels
   
   return round(ppm * 10) / 10.0;  // Round to 1 decimal place
 }
 
 float calculateAQI(int rawADC, float ro) {
-  if (rawADC <= 0 || ro <= 0) return 5;  // Return baseline 5 instead of 0
+  if (rawADC <= 0 || ro <= 0) return 0;  // Return actual 0 for no reading
   
   float voltage = (rawADC / 4095.0) * 3.3;
-  if (voltage <= 0.01) return 5;  // Baseline reading for very low voltage
+  if (voltage <= 0.01) return 0;  // Return 0 for very low voltage
   
   float rs = ((3.3 * LOAD_RESISTANCE) / voltage) - LOAD_RESISTANCE;
-  if (rs <= 0) return 5;  // Baseline reading for invalid resistance
+  if (rs <= 0) return 0;  // Return 0 for invalid resistance
   
   float ratio = rs / ro;
   
-  // More sensitive AQI calculation - never return 0, always show baseline
+  // More sensitive AQI calculation - allow true zero readings
   float aqiValue;
   
   if (rawADC < 30) {
-    // Very low ADC = excellent air (5-10 AQI baseline)
-    aqiValue = 5 + (rawADC / 30.0) * 5.0;  // 5-10 AQI range
+    // Very low ADC = excellent air (0-5 AQI)
+    aqiValue = (rawADC / 30.0) * 5.0;  // 0-5 AQI range
   } else if (rawADC < 100) {
-    // Low ADC range = good air (10-20 AQI)
-    aqiValue = 10 + ((rawADC - 30) / 70.0) * 10.0;
+    // Low ADC range = good air (5-20 AQI)
+    aqiValue = 5 + ((rawADC - 30) / 70.0) * 15.0;
   } else if (rawADC < 300) {
     // Medium ADC range = moderate air (20-50 AQI)
     aqiValue = 20 + ((rawADC - 100) / 200.0) * 30.0;
@@ -952,8 +956,8 @@ float calculateAQI(int rawADC, float ro) {
     aqiValue = 100 + ((rawADC - 800) / 1000.0) * 100.0;
   }
   
-  // Bounds checking - realistic AQI levels, never below 5
-  if (aqiValue < 5) return 5;  // Always show minimum baseline of 5
+  // Allow true zero readings, cap maximum only
+  if (aqiValue < 0) return 0;  // Don't allow negative
   if (aqiValue > 200) return 200;  // Cap at very unhealthy levels
   
   return round(aqiValue);  // Round to whole number
@@ -1224,7 +1228,8 @@ void sendDataToServer() {
   doc["tempRise"] = tempBaselineReady ? (temperature - baselineTemp) : 0;
   
   // MQ-2 Smoke sensor data
-  doc["smoke"] = smokePercent;
+  doc["smoke"] = smokePercent;  // Real value for thresholds/storage
+  doc["smokeDisplay"] = (smokePercent < 4.0) ? 0.0 : smokePercent;  // Display value for UI
   doc["smokeRaw"] = smokeRaw;
   doc["smokeStatus"] = smokeStatus;
   
@@ -1591,6 +1596,11 @@ void displaySilenceNotification() {
   lcd.print("  Check Environment");
 }
 
+// Helper function to get display-normalized smoke percentage
+float getSmokePercentDisplay() {
+  return (smokePercent < 4.0) ? 0.0 : smokePercent;
+}
+
 // Display Mode 0: Default Clean Display
 void displayDefault() {
   char buf[25];
@@ -1606,9 +1616,9 @@ void displayDefault() {
   snprintf(buf, 21, "Temp:%.1fC Hum:%.0f%%", temperature, humidity);
   lcd.print(buf);
   
-  // Row 2: Gas and Smoke levels with better formatting
+  // Row 2: Gas and Smoke levels with better formatting (using display value for smoke)
   lcd.setCursor(0, 2);
-  snprintf(buf, 21, "Gas:%.0f%% Smoke:%.0f%%", gasPercent, smokePercent);
+  snprintf(buf, 21, "Gas:%.0f%% Smoke:%.0f%%", gasPercent, getSmokePercentDisplay());
   lcd.print(buf);
   
   // Row 3: AQI with status
@@ -1693,9 +1703,9 @@ void displaySmokeLevel() {
   lcd.setCursor(6, 0);
   lcd.print("SMOKE LEVEL");
   
-  // Row 1: Large smoke percentage
+  // Row 1: Large smoke percentage (using display value)
   lcd.setCursor(0, 1);
-  snprintf(buf, 21, "Smoke Level: %.1f %%", smokePercent);
+  snprintf(buf, 21, "Smoke Level: %.1f %%", getSmokePercentDisplay());
   lcd.print(buf);
   
   // Row 2: Threshold comparison
@@ -1703,7 +1713,7 @@ void displaySmokeLevel() {
   snprintf(buf, 21, "Threshold:   %d %%", smokeThreshold);
   lcd.print(buf);
   
-  // Row 3: Status and safety margin
+  // Row 3: Status and safety margin (using real value for calculations)
   lcd.setCursor(0, 3);
   String smokeStatus = "Safe";
   if (smokePercent >= smokeThreshold * 0.7) smokeStatus = "Warning";
@@ -1798,10 +1808,10 @@ void displayAlarmScreen() {
   lcd.setCursor(0, 1);
   lcd.print(">> EVACUATE NOW! <<");
   
-  // Row 2: Critical readings
+  // Row 2: Critical readings (using display values for user-facing messages)
   lcd.setCursor(0, 2);
   if (smokePercent >= smokeThreshold) {
-    snprintf(buf, 21, "SMOKE: %.1f%% HIGH!", smokePercent);
+    snprintf(buf, 21, "SMOKE: %.1f%% HIGH!", getSmokePercentDisplay());
   } else if (gasPercent >= gasThreshold) {
     snprintf(buf, 21, "GAS: %.1f%% HIGH!", gasPercent);
   } else if (temperature >= tempThreshold) {
@@ -1835,10 +1845,10 @@ void displayWarningScreen() {
     lcd.print(">>> DANGER <<<");  // More urgent text
   }
   
-  // Row 1: Show which sensor is elevated
+  // Row 1: Show which sensor is elevated (using display values for user messages)
   lcd.setCursor(0, 1);
   if (smokePercent >= smokeThreshold * 0.7) {
-    snprintf(buf, 21, "SMOKE HIGH: %.1f%%", smokePercent);
+    snprintf(buf, 21, "SMOKE HIGH: %.1f%%", getSmokePercentDisplay());
   } else if (gasPercent >= gasThreshold * 0.7) {
     snprintf(buf, 21, "GAS HIGH: %.1f%%", gasPercent);
   } else if (temperature >= tempThreshold) {  // Use actual threshold, not 95%

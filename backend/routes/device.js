@@ -175,6 +175,9 @@ router.post('/:deviceId/data', async (req, res) => {
         aqi: data.aqi || 0,
         aqiRaw: data.aqiRaw || 0,
         aqiStatus,
+        smoke: data.smoke || 0,
+        smokeRaw: data.smokeRaw || 0,
+        smokeStatus: data.smokeStatus || 'normal',
         temperature: data.temperature,
         humidity: data.humidity,
         gas: data.gas,
@@ -765,6 +768,10 @@ router.get('/:deviceId/stats/:period', verifySession, async (req, res) => {
           gasMin: { $min: '$gas' },
           gasMax: { $max: '$gas' },
           gasAvg: { $avg: '$gas' },
+          // Smoke stats
+          smokeMin: { $min: '$smoke' },
+          smokeMax: { $max: '$smoke' },
+          smokeAvg: { $avg: '$smoke' },
           // CO stats
           coMin: { $min: '$coPpm' },
           coMax: { $max: '$coPpm' },
@@ -802,6 +809,7 @@ router.get('/:deviceId/stats/:period', verifySession, async (req, res) => {
       tempMin: null, tempMax: null, tempAvg: null,
       humMin: null, humMax: null, humAvg: null,
       gasMin: null, gasMax: null, gasAvg: null,
+      smokeMin: null, smokeMax: null, smokeAvg: null,
       coMin: null, coMax: null, coAvg: null,
       aqiMin: null, aqiMax: null, aqiAvg: null,
       totalReadings: 0, warningCount: 0, dangerCount: 0
@@ -828,6 +836,11 @@ router.get('/:deviceId/stats/:period', verifySession, async (req, res) => {
           min: result.gasMin,
           max: result.gasMax,
           avg: result.gasAvg
+        },
+        smoke: {
+          min: result.smokeMin,
+          max: result.smokeMax,
+          avg: result.smokeAvg
         },
         co: {
           min: result.coMin,

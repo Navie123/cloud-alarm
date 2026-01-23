@@ -738,8 +738,8 @@ function updateUI(data, isRealtimeUpdate = false) {
     if (gasVal) gasVal.textContent = gasPercent.toFixed(1);
     updateGauge('gasGauge', gasPercent, 100);
     
-    // Smoke gauge update (MQ-2)
-    const smokePercent = Math.min(data.smoke || 0, 100);
+    // Smoke gauge update (MQ-2) - Use display value for UI
+    const smokePercent = Math.min(data.smokeDisplay !== undefined ? data.smokeDisplay : (data.smoke || 0), 100);
     const smokeVal = document.getElementById('smokeVal');
     if (smokeVal) smokeVal.textContent = smokePercent.toFixed(1);
     updateGauge('smokeGauge', smokePercent, 100);
@@ -858,8 +858,8 @@ function updateUI(data, isRealtimeUpdate = false) {
     const smokeThreshold = data.smokeThreshold || 9;  // Use device threshold or fallback to 9%
     const tempThreshold = data.tempThreshold || 39;  // Use device threshold or fallback to 39°C
     
-    // Check if readings exceed the actual configured thresholds
-    const smokeHigh = data.smoke && data.smoke >= smokeThreshold;
+    // Check if readings exceed the actual configured thresholds (use real values)
+    const smokeHigh = data.smoke && data.smoke >= smokeThreshold;  // Use real smoke value for threshold check
     const gasHigh = data.gas && data.gas >= gasThreshold;
     const tempHigh = data.temperature && data.temperature >= tempThreshold;
     
@@ -874,7 +874,7 @@ function updateUI(data, isRealtimeUpdate = false) {
       gasHigh: gasHigh,
       tempHigh: tempHigh,
       shouldPlayAlarm: shouldPlayAlarm,
-      smoke: data.smoke,
+      smoke: data.smokeDisplay !== undefined ? data.smokeDisplay : (data.smoke || 0),  // Use display value for UI
       gas: data.gas,
       temperature: data.temperature,
       thresholds: { gas: gasThreshold, smoke: smokeThreshold, temp: tempThreshold }
@@ -1758,7 +1758,7 @@ function updateGasSensorUI(data) {
     const tempThreshold = data.tempThreshold || 39;
     
     const gasHigh = data.gas && data.gas >= gasThreshold;
-    const smokeHigh = data.smoke && data.smoke >= smokeThreshold;
+    const smokeHigh = data.smoke && data.smoke >= smokeThreshold;  // Use real smoke value for threshold check
     const tempHigh = data.temperature && data.temperature >= tempThreshold;
     const coHigh = data.coPpm && data.coPpm >= 35; // CO warning threshold
     
