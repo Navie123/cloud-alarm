@@ -3178,8 +3178,8 @@ function renderHistoricalStats(data, period) {
   // AQI
   updateHistoricalStatDisplay('aqi', stats.aqi, 500, 0);
   
-  // Smoke (use gas data if smoke not available)
-  updateHistoricalStatDisplay('smoke', stats.gas, 100, 1);
+  // Smoke
+  updateHistoricalStatDisplay('smoke', stats.smoke, 100, 1);
   
   // Update footer counts
   const totalReadingsEl = document.getElementById('totalReadings');
@@ -3218,20 +3218,24 @@ function updateHistoricalStatDisplay(prefix, stats, maxScale, decimals) {
   if (avgEl) avgEl.textContent = hasData && stats.avg !== null ? stats.avg.toFixed(decimals) : '--';
   
   if (hasData) {
+    // Use dynamic scaling: either maxScale or 120% of actual max value, whichever is smaller
+    // This makes the bars more visible for low values while keeping reasonable scale
+    const dynamicScale = Math.min(maxScale, Math.max(stats.max * 1.2, 10));
+    
     // Update bar fill (average position)
     if (barEl && stats.avg !== null) {
-      const avgPercent = Math.min((stats.avg / maxScale) * 100, 100);
+      const avgPercent = Math.min((stats.avg / dynamicScale) * 100, 100);
       barEl.style.width = avgPercent + '%';
     }
     
     // Update markers
     if (minMarker) {
-      const minPercent = Math.min((stats.min / maxScale) * 100, 100);
+      const minPercent = Math.min((stats.min / dynamicScale) * 100, 100);
       minMarker.style.left = minPercent + '%';
     }
     
     if (maxMarker) {
-      const maxPercent = Math.min((stats.max / maxScale) * 100, 100);
+      const maxPercent = Math.min((stats.max / dynamicScale) * 100, 100);
       maxMarker.style.left = maxPercent + '%';
     }
   } else {
