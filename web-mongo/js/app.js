@@ -740,6 +740,10 @@ function updateUI(data, isRealtimeUpdate = false) {
     
     // Smoke gauge update (MQ-2) - Use display value for UI
     const smokePercent = Math.min(data.smokeDisplay !== undefined ? data.smokeDisplay : (data.smoke || 0), 100);
+    
+    // Debug logging for troubleshooting
+    console.log('Smoke Debug - Raw:', data.smoke, 'Display:', data.smokeDisplay, 'Final:', smokePercent);
+    
     const smokeVal = document.getElementById('smokeVal');
     if (smokeVal) smokeVal.textContent = smokePercent.toFixed(1);
     updateGauge('smokeGauge', smokePercent, 100);

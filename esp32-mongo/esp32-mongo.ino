@@ -1233,6 +1233,10 @@ void sendDataToServer() {
   doc["smokeRaw"] = smokeRaw;
   doc["smokeStatus"] = smokeStatus;
   
+  // Debug output for troubleshooting
+  Serial.printf("Smoke Debug - Real: %.1f%%, Display: %.1f%%\n", 
+                smokePercent, (smokePercent < 4.0) ? 0.0 : smokePercent);
+  
   // MQ-7 CO sensor data
   doc["coPpm"] = coPpm;
   doc["coRaw"] = coRaw;
