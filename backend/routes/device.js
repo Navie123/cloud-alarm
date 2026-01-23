@@ -385,7 +385,14 @@ router.post('/:deviceId/data', async (req, res) => {
       wss.clients.forEach(client => {
         if (client.deviceId === deviceId && client.authenticated && 
             client.householdId === household.householdId && client.readyState === 1) {
-          client.send(JSON.stringify({ type: 'data', data: device.current }));
+          // Include CO thresholds in the data broadcast for auto-revert functionality
+          const dataWithThresholds = { ...device.current };
+          if (device.commands) {
+            dataWithThresholds.coWarningThreshold = device.commands.coWarningThreshold;
+            dataWithThresholds.coDangerThreshold = device.commands.coDangerThreshold;
+            dataWithThresholds.coCriticalThreshold = device.commands.coCriticalThreshold;
+          }
+          client.send(JSON.stringify({ type: 'data', data: dataWithThresholds }));
         }
       });
     }
@@ -482,7 +489,14 @@ router.post('/:deviceId/command', verifySession, requireAdmin, async (req, res) 
     if (wss) {
       wss.clients.forEach(client => {
         if (client.deviceId === deviceId && client.authenticated && client.readyState === 1) {
-          client.send(JSON.stringify({ type: 'data', data: device.current }));
+          // Include CO thresholds in the data broadcast for auto-revert functionality
+          const dataWithThresholds = { ...device.current };
+          if (device.commands) {
+            dataWithThresholds.coWarningThreshold = device.commands.coWarningThreshold;
+            dataWithThresholds.coDangerThreshold = device.commands.coDangerThreshold;
+            dataWithThresholds.coCriticalThreshold = device.commands.coCriticalThreshold;
+          }
+          client.send(JSON.stringify({ type: 'data', data: dataWithThresholds }));
         }
       });
     }
@@ -513,7 +527,14 @@ router.post('/:deviceId/silence', verifySession, requireAdmin, async (req, res) 
     if (wss) {
       wss.clients.forEach(client => {
         if (client.deviceId === deviceId && client.authenticated && client.readyState === 1) {
-          client.send(JSON.stringify({ type: 'data', data: device.current }));
+          // Include CO thresholds in the data broadcast for auto-revert functionality
+          const dataWithThresholds = { ...device.current };
+          if (device.commands) {
+            dataWithThresholds.coWarningThreshold = device.commands.coWarningThreshold;
+            dataWithThresholds.coDangerThreshold = device.commands.coDangerThreshold;
+            dataWithThresholds.coCriticalThreshold = device.commands.coCriticalThreshold;
+          }
+          client.send(JSON.stringify({ type: 'data', data: dataWithThresholds }));
         }
       });
     }

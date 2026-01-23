@@ -186,7 +186,14 @@ app.ws('/ws/:deviceId', async (ws, req) => {
           if (client.deviceId === deviceId && !client.isDevice && 
               client.authenticated && client.householdId === ws.householdId && 
               client.readyState === 1) {
-            client.send(JSON.stringify({ type: 'data', data: device.current }));
+            // Include CO thresholds in the data broadcast for auto-revert functionality
+            const dataWithThresholds = { ...device.current };
+            if (device.commands) {
+              dataWithThresholds.coWarningThreshold = device.commands.coWarningThreshold;
+              dataWithThresholds.coDangerThreshold = device.commands.coDangerThreshold;
+              dataWithThresholds.coCriticalThreshold = device.commands.coCriticalThreshold;
+            }
+            client.send(JSON.stringify({ type: 'data', data: dataWithThresholds }));
           }
         });
       }

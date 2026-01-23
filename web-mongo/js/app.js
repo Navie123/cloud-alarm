@@ -346,9 +346,16 @@ async function loadInitialData() {
   try {
     const device = await api.getDevice(CONFIG.DEVICE_ID);
     if (device && device.current) {
-      updateUI(device.current);
+      // Pass the full device object so updateUI can access commands for CO thresholds
+      const dataWithCommands = { ...device.current };
+      if (device.commands) {
+        dataWithCommands.coWarningThreshold = device.commands.coWarningThreshold;
+        dataWithCommands.coDangerThreshold = device.commands.coDangerThreshold;
+        dataWithCommands.coCriticalThreshold = device.commands.coCriticalThreshold;
+      }
+      updateUI(dataWithCommands);
     }
-    // Also load CO thresholds from device.commands
+    // Also load CO thresholds from device.commands (backup)
     if (device && device.commands) {
       updateCOThresholds(device.commands);
     }
@@ -879,6 +886,24 @@ function updateUI(data, isRealtimeUpdate = false) {
       const smokeLevel = getGasLevel(smokeThreshold);
       updateSliderColors(elements.smokeThresholdSlider, elements.smokeSliderValue, smokeLevel);
     }
+  }
+  
+  // Update CO threshold sliders from server data (same as other sliders)
+  const coWarningSlider = document.getElementById('coWarningSlider');
+  const coDangerSlider = document.getElementById('coDangerSlider');
+  const coCriticalSlider = document.getElementById('coCriticalSlider');
+  
+  if (!coWarningSliderActive && coWarningSlider && data.coWarningThreshold !== undefined) {
+    coWarningSlider.value = data.coWarningThreshold;
+    updateCOSliderValue('coWarningSlider', 'coWarningVal');
+  }
+  if (!coDangerSliderActive && coDangerSlider && data.coDangerThreshold !== undefined) {
+    coDangerSlider.value = data.coDangerThreshold;
+    updateCOSliderValue('coDangerSlider', 'coDangerVal');
+  }
+  if (!coCriticalSliderActive && coCriticalSlider && data.coCriticalThreshold !== undefined) {
+    coCriticalSlider.value = data.coCriticalThreshold;
+    updateCOSliderValue('coCriticalSlider', 'coCriticalVal');
   }
   
   sirenEnabled = data.sirenEnabled !== false;
