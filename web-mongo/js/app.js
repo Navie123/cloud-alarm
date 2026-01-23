@@ -745,7 +745,7 @@ function updateUI(data, isRealtimeUpdate = false) {
     } else {
       // Fallback: Apply normalization manually if smokeDisplay not available
       const rawSmoke = data.smoke || 0;
-      smokePercent = rawSmoke < 4.0 ? 0.0 : rawSmoke;
+      smokePercent = rawSmoke < 3.0 ? 0.0 : rawSmoke;
     }
     
     // Debug logging for troubleshooting
@@ -885,7 +885,7 @@ function updateUI(data, isRealtimeUpdate = false) {
       gasHigh: gasHigh,
       tempHigh: tempHigh,
       shouldPlayAlarm: shouldPlayAlarm,
-      smoke: (data.smokeDisplay !== undefined && data.smokeDisplay !== null) ? data.smokeDisplay : (data.smoke && data.smoke < 4.0 ? 0.0 : (data.smoke || 0)),  // Use display value or apply normalization
+      smoke: (data.smokeDisplay !== undefined && data.smokeDisplay !== null) ? data.smokeDisplay : (data.smoke && data.smoke < 3.0 ? 0.0 : (data.smoke || 0)),  // Use display value or apply normalization
       gas: data.gas,
       temperature: data.temperature,
       thresholds: { gas: gasThreshold, smoke: smokeThreshold, temp: tempThreshold }

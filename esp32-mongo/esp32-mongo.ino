@@ -803,9 +803,9 @@ void readGasSensors() {
   smokePercent = map(smokeRaw, 0, 4095, 0, 100);
   smokePercent = constrain(smokePercent, 0, 100);
   
-  // Display normalization: Show 0% if below 4% baseline for better UX
+  // Display normalization: Show 0% if below 3% baseline for better UX
   // (Real value still used for thresholds and data storage)
-  float smokePercentDisplay = (smokePercent < 4.0) ? 0.0 : smokePercent;
+  float smokePercentDisplay = (smokePercent < 3.0) ? 0.0 : smokePercent;
   
   // MQ-7 Gas percentage (for backward compatibility with gasPercent)
   gasPercent = map(coRaw, 0, 4095, 0, 100);
@@ -1229,7 +1229,7 @@ void sendDataToServer() {
   
   // MQ-2 Smoke sensor data
   doc["smoke"] = smokePercent;  // Real value for thresholds/storage
-  float displayValue = (smokePercent < 4.0) ? 0.0 : smokePercent;
+  float displayValue = (smokePercent < 3.0) ? 0.0 : smokePercent;
   doc["smokeDisplay"] = displayValue;  // Display value for UI - ensure float type
   doc["smokeRaw"] = smokeRaw;
   doc["smokeStatus"] = smokeStatus;
@@ -1607,7 +1607,7 @@ void displaySilenceNotification() {
 
 // Helper function to get display-normalized smoke percentage
 float getSmokePercentDisplay() {
-  return (smokePercent < 4.0) ? 0.0 : smokePercent;
+  return (smokePercent < 3.0) ? 0.0 : smokePercent;
 }
 
 // Display Mode 0: Default Clean Display
