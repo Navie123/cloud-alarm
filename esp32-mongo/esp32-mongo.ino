@@ -1229,13 +1229,14 @@ void sendDataToServer() {
   
   // MQ-2 Smoke sensor data
   doc["smoke"] = smokePercent;  // Real value for thresholds/storage
-  doc["smokeDisplay"] = (smokePercent < 4.0) ? 0.0 : smokePercent;  // Display value for UI
+  float displayValue = (smokePercent < 4.0) ? 0.0 : smokePercent;
+  doc["smokeDisplay"] = displayValue;  // Display value for UI - ensure float type
   doc["smokeRaw"] = smokeRaw;
   doc["smokeStatus"] = smokeStatus;
   
   // Debug output for troubleshooting
-  Serial.printf("Smoke Debug - Real: %.1f%%, Display: %.1f%%\n", 
-                smokePercent, (smokePercent < 4.0) ? 0.0 : smokePercent);
+  Serial.printf("Smoke Debug - Real: %.1f%%, Display: %.1f%%, JSON Check: %.1f%%\n", 
+                smokePercent, displayValue, doc["smokeDisplay"].as<float>());
   
   // MQ-7 CO sensor data
   doc["coPpm"] = coPpm;
@@ -1264,6 +1265,10 @@ void sendDataToServer() {
   
   String payload;
   serializeJson(doc, payload);
+  
+  // Debug: Print JSON payload to see what's actually being sent
+  Serial.println("JSON Payload:");
+  Serial.println(payload);
   
   int httpCode = http.POST(payload);
   

@@ -738,8 +738,15 @@ function updateUI(data, isRealtimeUpdate = false) {
     if (gasVal) gasVal.textContent = gasPercent.toFixed(1);
     updateGauge('gasGauge', gasPercent, 100);
     
-    // Smoke gauge update (MQ-2) - Use display value for UI
-    const smokePercent = Math.min(data.smokeDisplay !== undefined ? data.smokeDisplay : (data.smoke || 0), 100);
+    // Smoke gauge update (MQ-2) - Use display value for UI with aggressive normalization
+    let smokePercent;
+    if (data.smokeDisplay !== undefined && data.smokeDisplay !== null) {
+      smokePercent = Math.min(data.smokeDisplay, 100);
+    } else {
+      // Fallback: Apply normalization manually if smokeDisplay not available
+      const rawSmoke = data.smoke || 0;
+      smokePercent = rawSmoke < 4.0 ? 0.0 : rawSmoke;
+    }
     
     // Debug logging for troubleshooting
     console.log('Smoke Debug - Raw:', data.smoke, 'Display:', data.smokeDisplay, 'Final:', smokePercent);
@@ -878,7 +885,7 @@ function updateUI(data, isRealtimeUpdate = false) {
       gasHigh: gasHigh,
       tempHigh: tempHigh,
       shouldPlayAlarm: shouldPlayAlarm,
-      smoke: data.smokeDisplay !== undefined ? data.smokeDisplay : (data.smoke || 0),  // Use display value for UI
+      smoke: (data.smokeDisplay !== undefined && data.smokeDisplay !== null) ? data.smokeDisplay : (data.smoke && data.smoke < 4.0 ? 0.0 : (data.smoke || 0)),  // Use display value or apply normalization
       gas: data.gas,
       temperature: data.temperature,
       thresholds: { gas: gasThreshold, smoke: smokeThreshold, temp: tempThreshold }
