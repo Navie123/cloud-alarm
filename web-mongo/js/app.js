@@ -20,6 +20,9 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 let sliderActive = false;
 let tempSliderActive = false;
 let smokeSliderActive = false;
+let coWarningSliderActive = false;
+let coDangerSliderActive = false;
+let coCriticalSliderActive = false;
 
 // Track if we've received real-time data from ESP32 (not just database)
 let hasReceivedRealtimeData = false;
@@ -199,16 +202,34 @@ function setupCOSliders() {
   if (coWarningSlider) {
     updateCOSliderValue('coWarningSlider', 'coWarningVal');
     coWarningSlider.addEventListener('input', () => updateCOSliderValue('coWarningSlider', 'coWarningVal'));
+    
+    // Add slider active tracking to prevent auto-revert during user interaction
+    coWarningSlider.addEventListener('mousedown', () => { coWarningSliderActive = true; });
+    coWarningSlider.addEventListener('touchstart', () => { coWarningSliderActive = true; });
+    coWarningSlider.addEventListener('mouseup', () => { coWarningSliderActive = false; });
+    coWarningSlider.addEventListener('touchend', () => { coWarningSliderActive = false; });
   }
   
   if (coDangerSlider) {
     updateCOSliderValue('coDangerSlider', 'coDangerVal');
     coDangerSlider.addEventListener('input', () => updateCOSliderValue('coDangerSlider', 'coDangerVal'));
+    
+    // Add slider active tracking to prevent auto-revert during user interaction
+    coDangerSlider.addEventListener('mousedown', () => { coDangerSliderActive = true; });
+    coDangerSlider.addEventListener('touchstart', () => { coDangerSliderActive = true; });
+    coDangerSlider.addEventListener('mouseup', () => { coDangerSliderActive = false; });
+    coDangerSlider.addEventListener('touchend', () => { coDangerSliderActive = false; });
   }
   
   if (coCriticalSlider) {
     updateCOSliderValue('coCriticalSlider', 'coCriticalVal');
     coCriticalSlider.addEventListener('input', () => updateCOSliderValue('coCriticalSlider', 'coCriticalVal'));
+    
+    // Add slider active tracking to prevent auto-revert during user interaction
+    coCriticalSlider.addEventListener('mousedown', () => { coCriticalSliderActive = true; });
+    coCriticalSlider.addEventListener('touchstart', () => { coCriticalSliderActive = true; });
+    coCriticalSlider.addEventListener('mouseup', () => { coCriticalSliderActive = false; });
+    coCriticalSlider.addEventListener('touchend', () => { coCriticalSliderActive = false; });
   }
 }
 
@@ -342,15 +363,16 @@ function updateCOThresholds(commands) {
   const coDangerSlider = document.getElementById('coDangerSlider');
   const coCriticalSlider = document.getElementById('coCriticalSlider');
   
-  if (coWarningSlider && commands.coWarningThreshold !== undefined) {
+  // Only update sliders if they're not being actively dragged by user
+  if (coWarningSlider && commands.coWarningThreshold !== undefined && !coWarningSliderActive) {
     coWarningSlider.value = commands.coWarningThreshold;
     updateCOSliderValue('coWarningSlider', 'coWarningVal');
   }
-  if (coDangerSlider && commands.coDangerThreshold !== undefined) {
+  if (coDangerSlider && commands.coDangerThreshold !== undefined && !coDangerSliderActive) {
     coDangerSlider.value = commands.coDangerThreshold;
     updateCOSliderValue('coDangerSlider', 'coDangerVal');
   }
-  if (coCriticalSlider && commands.coCriticalThreshold !== undefined) {
+  if (coCriticalSlider && commands.coCriticalThreshold !== undefined && !coCriticalSliderActive) {
     coCriticalSlider.value = commands.coCriticalThreshold;
     updateCOSliderValue('coCriticalSlider', 'coCriticalVal');
   }
