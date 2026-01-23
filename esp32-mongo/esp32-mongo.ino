@@ -1627,15 +1627,19 @@ void displayDefault() {
   
   // Row 2: Gas and Smoke levels with better formatting (using display value for smoke)
   lcd.setCursor(0, 2);
+  lcd.print("                    ");  // Clear line first
+  lcd.setCursor(0, 2);
   snprintf(buf, 21, "Gas:%.0f%% Smoke:%.0f%%", gasPercent, getSmokePercentDisplay());
   lcd.print(buf);
   
-  // Row 3: AQI with status
+  // Row 3: AQI with status (shortened to fit 20 chars)
+  lcd.setCursor(0, 3);
+  lcd.print("                    ");  // Clear line first
   lcd.setCursor(0, 3);
   String aqiStatusText = "Good";
-  if (aqi > 50) aqiStatusText = "Moderate";
+  if (aqi > 50) aqiStatusText = "Mod";  // Shortened "Moderate" to "Mod"
   if (aqi > 100) aqiStatusText = "Poor";
-  snprintf(buf, 21, "AQI: %.0f (%s)", aqi, aqiStatusText.c_str());
+  snprintf(buf, 21, "AQI:%.0f (%s)", aqi, aqiStatusText.c_str());  // Removed space after colon
   lcd.print(buf);
 }
 
@@ -1688,14 +1692,16 @@ void displayGasAQI() {
   snprintf(buf, 21, "Air Quality: %.0f AQI", aqi);
   lcd.print(buf);
   
-  // Row 3: Status
+  // Row 3: Status (shortened to fit 20 chars)
   lcd.setCursor(0, 3);
-  String gasStatus = "Normal";
+  lcd.print("                    ");  // Clear line first
+  lcd.setCursor(0, 3);
+  String gasStatus = "OK";  // Shortened from "Normal"
   if (gasPercent >= gasThreshold * 0.8) gasStatus = "High";
   if (gasPercent >= gasThreshold) gasStatus = "DANGER";
   
   String aqiStatus = "Good";
-  if (aqi > 50) aqiStatus = "Moderate";
+  if (aqi > 50) aqiStatus = "Mod";  // Shortened "Moderate" to "Mod"
   if (aqi > 100) aqiStatus = "Poor";
   
   snprintf(buf, 21, "Gas:%s AQI:%s", gasStatus.c_str(), aqiStatus.c_str());
@@ -1830,9 +1836,9 @@ void displayAlarmScreen() {
   }
   lcd.print(buf);
   
-  // Row 3: Action instruction
+  // Row 3: Action instruction (shortened to fit 20 chars)
   lcd.setCursor(0, 3);
-  lcd.print("Press BTN5 to SILENCE");
+  lcd.print("BTN5 = SILENCE ALARM");  // Shortened from "Press BTN5 to SILENCE" (21 chars) to fit 20 chars
 }
 
 // Warning Screen for elevated readings

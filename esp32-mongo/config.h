@@ -56,7 +56,7 @@
 
 // Default Thresholds - Sensitive for testing
 #define DEFAULT_GAS_THRESHOLD 5     // Sensitive threshold for testing
-#define DEFAULT_SMOKE_THRESHOLD 5   // Sensitive threshold for testing  
+#define DEFAULT_SMOKE_THRESHOLD 4   // Minimum threshold for smoke detection  
 #define DEFAULT_TEMP_THRESHOLD 60   // Match backend server default
 
 // CO Thresholds (PPM) - Very high to prevent false alarms during sensor warmup
