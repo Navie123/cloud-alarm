@@ -789,18 +789,74 @@ router.get('/:deviceId/stats/:period', verifySession, async (req, res) => {
           gasMin: { $min: '$gas' },
           gasMax: { $max: '$gas' },
           gasAvg: { $avg: '$gas' },
-          // Smoke stats
-          smokeMin: { $min: '$smoke' },
-          smokeMax: { $max: '$smoke' },
-          smokeAvg: { $avg: '$smoke' },
-          // CO stats
-          coMin: { $min: '$coPpm' },
+          // Smoke stats (normalized to match display - show 0 when below 3%)
+          smokeMin: { 
+            $min: { 
+              $cond: [
+                { $lt: ['$smoke', 3] }, 
+                0, 
+                '$smoke'
+              ] 
+            } 
+          },
+          smokeMax: { 
+            $max: { 
+              $cond: [
+                { $lt: ['$smoke', 3] }, 
+                0, 
+                '$smoke'
+              ] 
+            } 
+          },
+          smokeAvg: { 
+            $avg: { 
+              $cond: [
+                { $lt: ['$smoke', 3] }, 
+                0, 
+                '$smoke'
+              ] 
+            } 
+          },
+          // CO stats (allow true zero readings)
+          coMin: { 
+            $min: { 
+              $cond: [
+                { $lt: ['$coPpm', 0.1] }, 
+                0, 
+                '$coPpm'
+              ] 
+            } 
+          },
           coMax: { $max: '$coPpm' },
-          coAvg: { $avg: '$coPpm' },
-          // AQI stats
-          aqiMin: { $min: '$aqi' },
+          coAvg: { 
+            $avg: { 
+              $cond: [
+                { $lt: ['$coPpm', 0.1] }, 
+                0, 
+                '$coPpm'
+              ] 
+            } 
+          },
+          // AQI stats (allow true zero readings)
+          aqiMin: { 
+            $min: { 
+              $cond: [
+                { $lt: ['$aqi', 1] }, 
+                0, 
+                '$aqi'
+              ] 
+            } 
+          },
           aqiMax: { $max: '$aqi' },
-          aqiAvg: { $avg: '$aqi' },
+          aqiAvg: { 
+            $avg: { 
+              $cond: [
+                { $lt: ['$aqi', 1] }, 
+                0, 
+                '$aqi'
+              ] 
+            } 
+          },
           // Counts
           totalReadings: { $sum: 1 },
           warningCount: {
