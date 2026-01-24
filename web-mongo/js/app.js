@@ -24,6 +24,22 @@ let coWarningSliderActive = false;
 let coDangerSliderActive = false;
 let coCriticalSliderActive = false;
 
+// Auto-revert timers for offline scenarios
+let sliderRevertTimer = null;
+let tempSliderRevertTimer = null;
+let smokeSliderRevertTimer = null;
+let coWarningSliderRevertTimer = null;
+let coDangerSliderRevertTimer = null;
+let coCriticalSliderRevertTimer = null;
+
+// Store original values for auto-revert
+let originalThreshold = 40;
+let originalTempThreshold = 60;
+let originalSmokeThreshold = 40;
+let originalCoWarningThreshold = 35;
+let originalCoDangerThreshold = 100;
+let originalCoCriticalThreshold = 400;
+
 // Track if we've received real-time data from ESP32 (not just database)
 let hasReceivedRealtimeData = false;
 
@@ -201,33 +217,66 @@ function setupCOSliders() {
   
   if (coWarningSlider) {
     updateCOSliderValue('coWarningSlider', 'coWarningVal');
-    coWarningSlider.addEventListener('input', () => updateCOSliderValue('coWarningSlider', 'coWarningVal'));
+    coWarningSlider.addEventListener('input', () => {
+      updateCOSliderValue('coWarningSlider', 'coWarningVal');
+      // Start auto-revert timer when user changes value
+      startSliderRevertTimer('coWarning', originalCoWarningThreshold, 'coWarningSlider', 'coWarningVal', 
+        () => updateCOSliderValue('coWarningSlider', 'coWarningVal'));
+    });
     
     // Add slider active tracking to prevent auto-revert during user interaction
-    coWarningSlider.addEventListener('mousedown', () => { coWarningSliderActive = true; });
-    coWarningSlider.addEventListener('touchstart', () => { coWarningSliderActive = true; });
+    coWarningSlider.addEventListener('mousedown', () => { 
+      coWarningSliderActive = true; 
+      clearSliderRevertTimer('coWarning');
+    });
+    coWarningSlider.addEventListener('touchstart', () => { 
+      coWarningSliderActive = true; 
+      clearSliderRevertTimer('coWarning');
+    });
     coWarningSlider.addEventListener('mouseup', () => { coWarningSliderActive = false; });
     coWarningSlider.addEventListener('touchend', () => { coWarningSliderActive = false; });
   }
   
   if (coDangerSlider) {
     updateCOSliderValue('coDangerSlider', 'coDangerVal');
-    coDangerSlider.addEventListener('input', () => updateCOSliderValue('coDangerSlider', 'coDangerVal'));
+    coDangerSlider.addEventListener('input', () => {
+      updateCOSliderValue('coDangerSlider', 'coDangerVal');
+      // Start auto-revert timer when user changes value
+      startSliderRevertTimer('coDanger', originalCoDangerThreshold, 'coDangerSlider', 'coDangerVal',
+        () => updateCOSliderValue('coDangerSlider', 'coDangerVal'));
+    });
     
     // Add slider active tracking to prevent auto-revert during user interaction
-    coDangerSlider.addEventListener('mousedown', () => { coDangerSliderActive = true; });
-    coDangerSlider.addEventListener('touchstart', () => { coDangerSliderActive = true; });
+    coDangerSlider.addEventListener('mousedown', () => { 
+      coDangerSliderActive = true; 
+      clearSliderRevertTimer('coDanger');
+    });
+    coDangerSlider.addEventListener('touchstart', () => { 
+      coDangerSliderActive = true; 
+      clearSliderRevertTimer('coDanger');
+    });
     coDangerSlider.addEventListener('mouseup', () => { coDangerSliderActive = false; });
     coDangerSlider.addEventListener('touchend', () => { coDangerSliderActive = false; });
   }
   
   if (coCriticalSlider) {
     updateCOSliderValue('coCriticalSlider', 'coCriticalVal');
-    coCriticalSlider.addEventListener('input', () => updateCOSliderValue('coCriticalSlider', 'coCriticalVal'));
+    coCriticalSlider.addEventListener('input', () => {
+      updateCOSliderValue('coCriticalSlider', 'coCriticalVal');
+      // Start auto-revert timer when user changes value
+      startSliderRevertTimer('coCritical', originalCoCriticalThreshold, 'coCriticalSlider', 'coCriticalVal',
+        () => updateCOSliderValue('coCriticalSlider', 'coCriticalVal'));
+    });
     
     // Add slider active tracking to prevent auto-revert during user interaction
-    coCriticalSlider.addEventListener('mousedown', () => { coCriticalSliderActive = true; });
-    coCriticalSlider.addEventListener('touchstart', () => { coCriticalSliderActive = true; });
+    coCriticalSlider.addEventListener('mousedown', () => { 
+      coCriticalSliderActive = true; 
+      clearSliderRevertTimer('coCritical');
+    });
+    coCriticalSlider.addEventListener('touchstart', () => { 
+      coCriticalSliderActive = true; 
+      clearSliderRevertTimer('coCritical');
+    });
     coCriticalSlider.addEventListener('mouseup', () => { coCriticalSliderActive = false; });
     coCriticalSlider.addEventListener('touchend', () => { coCriticalSliderActive = false; });
   }
@@ -240,6 +289,53 @@ function updateCOSliderValue(sliderId, valueId) {
   
   const value = parseInt(slider.value);
   valueEl.textContent = value + ' PPM';
+}
+
+// Auto-revert timer functions for offline scenarios
+function startSliderRevertTimer(sliderType, originalValue, sliderId, valueId, updateFunction) {
+  // Clear existing timer
+  const timerMap = {
+    'gas': 'sliderRevertTimer',
+    'temp': 'tempSliderRevertTimer', 
+    'smoke': 'smokeSliderRevertTimer',
+    'coWarning': 'coWarningSliderRevertTimer',
+    'coDanger': 'coDangerSliderRevertTimer',
+    'coCritical': 'coCriticalSliderRevertTimer'
+  };
+  
+  const timerName = timerMap[sliderType];
+  if (window[timerName]) {
+    clearTimeout(window[timerName]);
+  }
+  
+  // Set 3-second auto-revert timer
+  window[timerName] = setTimeout(() => {
+    const slider = document.getElementById(sliderId);
+    if (slider && !window[sliderType + 'SliderActive']) {
+      slider.value = originalValue;
+      if (updateFunction) {
+        updateFunction();
+      }
+      console.log(`Auto-reverted ${sliderType} slider to ${originalValue}`);
+    }
+  }, 3000);
+}
+
+function clearSliderRevertTimer(sliderType) {
+  const timerMap = {
+    'gas': 'sliderRevertTimer',
+    'temp': 'tempSliderRevertTimer',
+    'smoke': 'smokeSliderRevertTimer', 
+    'coWarning': 'coWarningSliderRevertTimer',
+    'coDanger': 'coDangerSliderRevertTimer',
+    'coCritical': 'coCriticalSliderRevertTimer'
+  };
+  
+  const timerName = timerMap[sliderType];
+  if (window[timerName]) {
+    clearTimeout(window[timerName]);
+    window[timerName] = null;
+  }
 }
 
 // Track last data received time
@@ -372,14 +468,17 @@ function updateCOThresholds(commands) {
   
   // Only update sliders if they're not being actively dragged by user
   if (coWarningSlider && commands.coWarningThreshold !== undefined && !coWarningSliderActive) {
+    originalCoWarningThreshold = commands.coWarningThreshold; // Store original value for auto-revert
     coWarningSlider.value = commands.coWarningThreshold;
     updateCOSliderValue('coWarningSlider', 'coWarningVal');
   }
   if (coDangerSlider && commands.coDangerThreshold !== undefined && !coDangerSliderActive) {
+    originalCoDangerThreshold = commands.coDangerThreshold; // Store original value for auto-revert
     coDangerSlider.value = commands.coDangerThreshold;
     updateCOSliderValue('coDangerSlider', 'coDangerVal');
   }
   if (coCriticalSlider && commands.coCriticalThreshold !== undefined && !coCriticalSliderActive) {
+    originalCoCriticalThreshold = commands.coCriticalThreshold; // Store original value for auto-revert
     coCriticalSlider.value = commands.coCriticalThreshold;
     updateCOSliderValue('coCriticalSlider', 'coCriticalVal');
   }
@@ -539,8 +638,14 @@ function setupSlider() {
   const setupGasSlider = (slider, valueEl) => {
     if (!slider) return;
     
-    slider.addEventListener('mousedown', () => { sliderActive = true; });
-    slider.addEventListener('touchstart', () => { sliderActive = true; });
+    slider.addEventListener('mousedown', () => { 
+      sliderActive = true; 
+      clearSliderRevertTimer('gas');
+    });
+    slider.addEventListener('touchstart', () => { 
+      sliderActive = true; 
+      clearSliderRevertTimer('gas');
+    });
     slider.addEventListener('mouseup', () => { sliderActive = false; });
     slider.addEventListener('touchend', () => { sliderActive = false; });
     
@@ -559,6 +664,21 @@ function setupSlider() {
         if (sideSlider) updateSliderColors(sideSlider, sideVal, level);
       }
       if (elements.thresholdSlider !== slider) elements.thresholdSlider.value = value;
+      
+      // Start auto-revert timer when user changes value
+      startSliderRevertTimer('gas', originalThreshold, 'thresholdSlider', 'sliderValue', () => {
+        const level = getGasLevel(originalThreshold);
+        elements.sliderValue.textContent = originalThreshold + '%';
+        updateSliderColors(elements.thresholdSlider, elements.sliderValue, level);
+        // Also update sidebar slider
+        const sideSlider = document.getElementById('sliderSide');
+        const sideVal = document.getElementById('sliderValSide');
+        if (sideSlider) sideSlider.value = originalThreshold;
+        if (sideVal) {
+          sideVal.textContent = originalThreshold + '%';
+          updateSliderColors(sideSlider, sideVal, level);
+        }
+      });
     });
   };
   
@@ -568,8 +688,14 @@ function setupSlider() {
   const setupTempSlider = (slider, valueEl) => {
     if (!slider) return;
     
-    slider.addEventListener('mousedown', () => { tempSliderActive = true; });
-    slider.addEventListener('touchstart', () => { tempSliderActive = true; });
+    slider.addEventListener('mousedown', () => { 
+      tempSliderActive = true; 
+      clearSliderRevertTimer('temp');
+    });
+    slider.addEventListener('touchstart', () => { 
+      tempSliderActive = true; 
+      clearSliderRevertTimer('temp');
+    });
     slider.addEventListener('mouseup', () => { tempSliderActive = false; });
     slider.addEventListener('touchend', () => { tempSliderActive = false; });
     
@@ -579,6 +705,13 @@ function setupSlider() {
       
       elements.tempSliderValue.textContent = value + '°C';
       updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, level);
+      
+      // Start auto-revert timer when user changes value
+      startSliderRevertTimer('temp', originalTempThreshold, 'tempThresholdSlider', 'tempSliderValue', () => {
+        const level = getTempLevel(originalTempThreshold);
+        elements.tempSliderValue.textContent = originalTempThreshold + '°C';
+        updateSliderColors(elements.tempThresholdSlider, elements.tempSliderValue, level);
+      });
     });
   };
   
@@ -588,8 +721,14 @@ function setupSlider() {
   const setupSmokeSlider = (slider, valueEl) => {
     if (!slider) return;
     
-    slider.addEventListener('mousedown', () => { smokeSliderActive = true; });
-    slider.addEventListener('touchstart', () => { smokeSliderActive = true; });
+    slider.addEventListener('mousedown', () => { 
+      smokeSliderActive = true; 
+      clearSliderRevertTimer('smoke');
+    });
+    slider.addEventListener('touchstart', () => { 
+      smokeSliderActive = true; 
+      clearSliderRevertTimer('smoke');
+    });
     slider.addEventListener('mouseup', () => { smokeSliderActive = false; });
     slider.addEventListener('touchend', () => { smokeSliderActive = false; });
     
@@ -601,6 +740,15 @@ function setupSlider() {
         elements.smokeSliderValue.textContent = value + '%';
         updateSliderColors(slider, elements.smokeSliderValue, level);
       }
+      
+      // Start auto-revert timer when user changes value
+      startSliderRevertTimer('smoke', originalSmokeThreshold, 'smokeThresholdSlider', 'smokeSliderValue', () => {
+        const level = getGasLevel(originalSmokeThreshold);
+        if (elements.smokeSliderValue) {
+          elements.smokeSliderValue.textContent = originalSmokeThreshold + '%';
+          updateSliderColors(slider, elements.smokeSliderValue, level);
+        }
+      });
     });
   };
   
@@ -859,6 +1007,7 @@ function updateUI(data, isRealtimeUpdate = false) {
   
   if (!sliderActive && elements.thresholdSlider) {
     currentThreshold = data.threshold || 40;
+    originalThreshold = currentThreshold; // Store original value for auto-revert
     elements.thresholdSlider.value = currentThreshold;
     if (elements.sliderValue) {
       elements.sliderValue.textContent = currentThreshold + '%';
@@ -869,6 +1018,7 @@ function updateUI(data, isRealtimeUpdate = false) {
   
   if (!tempSliderActive && elements.tempThresholdSlider) {
     currentTempThreshold = data.tempThreshold || 60;
+    originalTempThreshold = currentTempThreshold; // Store original value for auto-revert
     elements.tempThresholdSlider.value = currentTempThreshold;
     if (elements.tempSliderValue) {
       elements.tempSliderValue.textContent = currentTempThreshold + '°C';
@@ -880,6 +1030,7 @@ function updateUI(data, isRealtimeUpdate = false) {
   // Update smoke threshold slider from server data
   if (!smokeSliderActive && elements.smokeThresholdSlider) {
     const smokeThreshold = data.smokeThreshold || 40;
+    originalSmokeThreshold = smokeThreshold; // Store original value for auto-revert
     elements.smokeThresholdSlider.value = smokeThreshold;
     if (elements.smokeSliderValue) {
       elements.smokeSliderValue.textContent = smokeThreshold + '%';
@@ -894,14 +1045,17 @@ function updateUI(data, isRealtimeUpdate = false) {
   const coCriticalSlider = document.getElementById('coCriticalSlider');
   
   if (!coWarningSliderActive && coWarningSlider && data.coWarningThreshold !== undefined) {
+    originalCoWarningThreshold = data.coWarningThreshold; // Store original value for auto-revert
     coWarningSlider.value = data.coWarningThreshold;
     updateCOSliderValue('coWarningSlider', 'coWarningVal');
   }
   if (!coDangerSliderActive && coDangerSlider && data.coDangerThreshold !== undefined) {
+    originalCoDangerThreshold = data.coDangerThreshold; // Store original value for auto-revert
     coDangerSlider.value = data.coDangerThreshold;
     updateCOSliderValue('coDangerSlider', 'coDangerVal');
   }
   if (!coCriticalSliderActive && coCriticalSlider && data.coCriticalThreshold !== undefined) {
+    originalCoCriticalThreshold = data.coCriticalThreshold; // Store original value for auto-revert
     coCriticalSlider.value = data.coCriticalThreshold;
     updateCOSliderValue('coCriticalSlider', 'coCriticalVal');
   }
