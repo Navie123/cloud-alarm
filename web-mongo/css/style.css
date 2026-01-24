@@ -6850,6 +6850,90 @@ header {
   margin-bottom: 10px;
 }
 
+/* Admin Email Management Styles */
+.admin-email-current {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.current-email-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.email-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: var(--success);
+  color: white;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: 500;
+}
+
+.admin-email-change-section {
+  margin-bottom: 20px;
+}
+
+.admin-email-verify-section {
+  margin-top: 20px;
+  padding: 20px;
+  background: var(--warning-bg, #fff3cd);
+  border: 1px solid var(--warning, #ffc107);
+  border-radius: 8px;
+}
+
+.verify-step-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.verify-step-header i {
+  font-size: 2em;
+  color: var(--warning);
+  margin-bottom: 10px;
+}
+
+.verify-step-header h4 {
+  margin: 0 0 5px 0;
+  color: var(--text);
+}
+
+.verify-step-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.verify-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.admin-email-note {
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--info-bg, #d1ecf1);
+  border-left: 4px solid var(--info, #17a2b8);
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+
+.admin-email-note i {
+  color: var(--info, #17a2b8);
+  margin-right: 5px;
+}
+
 .access-code-input {
   flex: 1;
   padding: 12px 15px;

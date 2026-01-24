@@ -1593,6 +1593,57 @@
             </div>
           </div>
 
+          <!-- Admin Email Management -->
+          <div class="card">
+            <div class="card-title"><i class="fas fa-envelope"></i> Admin Email</div>
+            <p class="card-subtitle">Change the admin Gmail account that receives alarm notifications</p>
+            
+            <div class="admin-email-current">
+              <div class="current-email-display">
+                <span class="info-label">Current Admin Email:</span>
+                <span class="info-value" id="currentAdminEmail">--</span>
+                <span class="email-verified-badge" id="adminEmailVerifiedBadge">
+                  <i class="fas fa-check-circle"></i> Verified
+                </span>
+              </div>
+            </div>
+            
+            <div class="admin-email-change-section">
+              <div class="form-group">
+                <label><i class="fas fa-envelope"></i> New Admin Gmail</label>
+                <input type="email" id="newAdminEmailInput" class="form-input" placeholder="new.admin@gmail.com" pattern="[a-zA-Z0-9._%+-]+@gmail\.com$">
+              </div>
+              <button class="btn btn-primary" onclick="changeAdminEmail()">
+                <i class="fas fa-paper-plane"></i> Send Verification Code
+              </button>
+              <p class="admin-email-note">
+                <i class="fas fa-info-circle"></i> 
+                A verification code will be sent to the new email address. All future alarm notifications will be sent to the new email once verified.
+              </p>
+            </div>
+            
+            <!-- Email Verification Step (hidden initially) -->
+            <div class="admin-email-verify-section hidden" id="adminEmailVerifySection">
+              <div class="verify-step-header">
+                <i class="fas fa-shield-check"></i>
+                <h4>Verify New Email</h4>
+                <p>Enter the 6-digit code sent to <span id="pendingEmailDisplay">--</span></p>
+              </div>
+              <div class="form-group">
+                <label><i class="fas fa-key"></i> Verification Code</label>
+                <input type="text" id="adminEmailVerifyCode" class="form-input" maxlength="6" placeholder="123456" pattern="[0-9]{6}">
+              </div>
+              <div class="verify-actions">
+                <button class="btn btn-success" onclick="verifyAdminEmailChange()">
+                  <i class="fas fa-check"></i> Verify & Update
+                </button>
+                <button class="btn btn-secondary" onclick="cancelAdminEmailChange()">
+                  <i class="fas fa-times"></i> Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Access Code Management -->
           <div class="card">
             <div class="card-title"><i class="fas fa-key"></i> Change Access Code</div>

@@ -97,7 +97,8 @@ const sendOTPEmail = async (email, code, purpose) => {
     setup: 'complete your setup',
     login: 'log in as Admin',
     reset: 'reset your Admin PIN',
-    member: 'verify your email for alarm alerts'
+    member: 'verify your email for alarm alerts',
+    admin_email_change: 'change your admin email address'
   };
 
   console.log('[Email] Sending OTP to:', email, 'Purpose:', purpose);
@@ -122,6 +123,13 @@ const sendOTPEmail = async (email, code, purpose) => {
             </div>
             <p style="color: #999; font-size: 12px;">This code expires in 10 minutes.</p>
             <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+            ${purpose === 'admin_email_change' ? `
+              <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p style="color: #1976d2; margin: 0; font-size: 14px;">
+                  <strong>Important:</strong> Once verified, all future alarm notifications will be sent to this email address.
+                </p>
+              </div>
+            ` : ''}
           </div>
         </div>
       `

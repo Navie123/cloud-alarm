@@ -2588,12 +2588,14 @@ async function loadHouseholdInfoForMembers() {
     
     const householdIdEl = document.getElementById('membersHouseholdId');
     const accessCodeEl = document.getElementById('membersAccessCode');
+    const currentAdminEmailEl = document.getElementById('currentAdminEmail');
     
     if (householdIdEl) householdIdEl.textContent = info.householdId || '--';
     if (accessCodeEl) {
       accessCodeEl.dataset.code = info.accessCode || '------';
       accessCodeEl.textContent = accessCodeVisible ? info.accessCode : '******';
     }
+    if (currentAdminEmailEl) currentAdminEmailEl.textContent = info.adminEmail || '--';
   } catch (error) {
     console.error('Failed to load household info:', error);
   }
@@ -2838,6 +2840,115 @@ async function changeAccessCode() {
   } catch (error) {
     showToast('Failed to change access code', 'error');
   }
+}
+
+// ============ ADMIN EMAIL CHANGE FUNCTIONS ============
+async function changeAdminEmail() {
+  const input = document.getElementById('newAdminEmailInput');
+  const newEmail = input?.value?.trim() || '';
+  
+  // Validate Gmail format
+  const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+  if (!gmailRegex.test(newEmail)) {
+    showToast('Please enter a valid Gmail address', 'error');
+    return;
+  }
+  
+  // Check if it's the same as current email
+  const currentEmail = document.getElementById('currentAdminEmail')?.textContent;
+  if (newEmail === currentEmail) {
+    showToast('This is already your current email', 'error');
+    return;
+  }
+  
+  try {
+    // Send verification code to new email
+    const response = await fetch(`${CONFIG.API_URL}/api/household/admin/change-email/request`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('householdToken')}`
+      },
+      body: JSON.stringify({ newEmail })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to send verification code');
+    }
+    
+    // Show verification section
+    const verifySection = document.getElementById('adminEmailVerifySection');
+    const pendingEmailDisplay = document.getElementById('pendingEmailDisplay');
+    
+    if (verifySection) verifySection.classList.remove('hidden');
+    if (pendingEmailDisplay) pendingEmailDisplay.textContent = newEmail;
+    
+    showToast('Verification code sent to ' + newEmail, 'success');
+    
+    // Clear input
+    if (input) input.value = '';
+    
+  } catch (error) {
+    console.error('Admin email change error:', error);
+    showToast(error.message || 'Failed to send verification code', 'error');
+  }
+}
+
+async function verifyAdminEmailChange() {
+  const codeInput = document.getElementById('adminEmailVerifyCode');
+  const code = codeInput?.value?.trim() || '';
+  const pendingEmail = document.getElementById('pendingEmailDisplay')?.textContent;
+  
+  if (!/^\d{6}$/.test(code)) {
+    showToast('Please enter a valid 6-digit code', 'error');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${CONFIG.API_URL}/api/household/admin/change-email/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('householdToken')}`
+      },
+      body: JSON.stringify({ 
+        newEmail: pendingEmail,
+        verificationCode: code 
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Verification failed');
+    }
+    
+    // Success - update UI
+    const currentEmailEl = document.getElementById('currentAdminEmail');
+    if (currentEmailEl) currentEmailEl.textContent = pendingEmail;
+    
+    // Hide verification section
+    cancelAdminEmailChange();
+    
+    showToast('Admin email updated successfully!', 'success');
+    
+    // Reload household info to get updated data
+    loadHouseholdInfoForMembers();
+    
+  } catch (error) {
+    console.error('Admin email verification error:', error);
+    showToast(error.message || 'Verification failed', 'error');
+  }
+}
+
+function cancelAdminEmailChange() {
+  const verifySection = document.getElementById('adminEmailVerifySection');
+  const codeInput = document.getElementById('adminEmailVerifyCode');
+  const emailInput = document.getElementById('newAdminEmailInput');
+  
+  if (verifySection) verifySection.classList.add('hidden');
+  if (codeInput) codeInput.value = '';
+  if (emailInput) emailInput.value = '';
 }
 
 // Initialize members tab on page load
