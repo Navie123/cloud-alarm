@@ -1608,14 +1608,27 @@
               </div>
             </div>
             
-            <div class="admin-email-change-section">
+            <!-- Initial Button (shown by default) -->
+            <div class="admin-email-button-section" id="adminEmailButtonSection">
+              <button class="btn btn-primary" onclick="showAdminEmailChangeForm()">
+                <i class="fas fa-edit"></i> Change Admin Email
+              </button>
+            </div>
+            
+            <!-- Change Email Form (hidden initially) -->
+            <div class="admin-email-change-section hidden" id="adminEmailChangeSection">
               <div class="form-group">
                 <label><i class="fas fa-envelope"></i> New Admin Gmail</label>
                 <input type="email" id="newAdminEmailInput" class="form-input" placeholder="new.admin@gmail.com" pattern="[a-zA-Z0-9._%+-]+@gmail\.com$">
               </div>
-              <button class="btn btn-primary" onclick="changeAdminEmail()">
-                <i class="fas fa-paper-plane"></i> Send Verification Code
-              </button>
+              <div class="admin-email-actions">
+                <button class="btn btn-primary" onclick="changeAdminEmail()">
+                  <i class="fas fa-paper-plane"></i> Send Verification Code
+                </button>
+                <button class="btn btn-secondary" onclick="hideAdminEmailChangeForm()">
+                  <i class="fas fa-times"></i> Cancel
+                </button>
+              </div>
               <p class="admin-email-note">
                 <i class="fas fa-info-circle"></i> 
                 A verification code will be sent to the new email address. All future alarm notifications will be sent to the new email once verified.

@@ -6878,8 +6878,20 @@ header {
   font-weight: 500;
 }
 
+.admin-email-button-section {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
 .admin-email-change-section {
   margin-bottom: 20px;
+}
+
+.admin-email-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
 }
 
 .admin-email-verify-section {
@@ -6932,6 +6944,20 @@ header {
 .admin-email-note i {
   color: var(--info, #17a2b8);
   margin-right: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .admin-email-actions,
+  .verify-actions {
+    flex-direction: column;
+  }
+  
+  .current-email-display {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }
 
 .access-code-input {

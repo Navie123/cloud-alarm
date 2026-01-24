@@ -2877,7 +2877,7 @@ async function changeAdminEmail() {
       throw new Error(error.error || 'Failed to send verification code');
     }
     
-    // Show verification section
+    // Show verification section (keep change section visible)
     const verifySection = document.getElementById('adminEmailVerifySection');
     const pendingEmailDisplay = document.getElementById('pendingEmailDisplay');
     
@@ -2886,7 +2886,7 @@ async function changeAdminEmail() {
     
     showToast('Verification code sent to ' + newEmail, 'success');
     
-    // Clear input
+    // Clear input but keep form visible
     if (input) input.value = '';
     
   } catch (error) {
@@ -2927,8 +2927,8 @@ async function verifyAdminEmailChange() {
     const currentEmailEl = document.getElementById('currentAdminEmail');
     if (currentEmailEl) currentEmailEl.textContent = pendingEmail;
     
-    // Hide verification section
-    cancelAdminEmailChange();
+    // Hide verification section and change form, show button
+    hideAdminEmailChangeForm();
     
     showToast('Admin email updated successfully!', 'success');
     
@@ -2948,6 +2948,36 @@ function cancelAdminEmailChange() {
   
   if (verifySection) verifySection.classList.add('hidden');
   if (codeInput) codeInput.value = '';
+  if (emailInput) emailInput.value = '';
+  
+  // Also hide the change form and show the button
+  hideAdminEmailChangeForm();
+}
+
+// Show/hide admin email change form
+function showAdminEmailChangeForm() {
+  const buttonSection = document.getElementById('adminEmailButtonSection');
+  const changeSection = document.getElementById('adminEmailChangeSection');
+  
+  if (buttonSection) buttonSection.classList.add('hidden');
+  if (changeSection) changeSection.classList.remove('hidden');
+  
+  // Focus on email input
+  const emailInput = document.getElementById('newAdminEmailInput');
+  if (emailInput) {
+    setTimeout(() => emailInput.focus(), 100);
+  }
+}
+
+function hideAdminEmailChangeForm() {
+  const buttonSection = document.getElementById('adminEmailButtonSection');
+  const changeSection = document.getElementById('adminEmailChangeSection');
+  const verifySection = document.getElementById('adminEmailVerifySection');
+  const emailInput = document.getElementById('newAdminEmailInput');
+  
+  if (buttonSection) buttonSection.classList.remove('hidden');
+  if (changeSection) changeSection.classList.add('hidden');
+  if (verifySection) verifySection.classList.add('hidden');
   if (emailInput) emailInput.value = '';
 }
 
