@@ -996,7 +996,7 @@ function updateUI(data, isRealtimeUpdate = false) {
     }
   }
   
-  updateSidebarInfo(data);
+  updateSidebarInfo(data, isDeviceOnline);
 }
 
 // Format uptime in human readable format
@@ -1492,7 +1492,7 @@ function exportPDF() {
   showToast('PDF exported successfully');
 }
 
-function updateSidebarInfo(data) {
+function updateSidebarInfo(data, isDeviceOnline = false) {
   if (!sliderActive) {
     const sideSlider = document.getElementById('sliderSide');
     const sideVal = document.getElementById('sliderValSide');
@@ -1507,7 +1507,8 @@ function updateSidebarInfo(data) {
   const sidebarLastUpdate = document.getElementById('sidebarLastUpdate');
   const freeHeap = document.getElementById('freeHeap');
   
-  if (sidebarStatus) sidebarStatus.textContent = isConnected ? 'Connected' : 'Disconnected';
+  // Use device online status instead of WebSocket connection status
+  if (sidebarStatus) sidebarStatus.textContent = isDeviceOnline ? 'Connected' : 'Disconnected';
   if (sidebarHeap) sidebarHeap.textContent = data.heap ? Math.round(data.heap / 1024) + ' KB' : '-- KB';
   if (sidebarLastUpdate) sidebarLastUpdate.textContent = data.timestamp || '--';
   if (freeHeap) freeHeap.textContent = data.heap ? Math.round(data.heap / 1024) + ' KB' : '--';

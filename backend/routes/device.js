@@ -817,46 +817,14 @@ router.get('/:deviceId/stats/:period', verifySession, async (req, res) => {
               ] 
             } 
           },
-          // CO stats (allow true zero readings)
-          coMin: { 
-            $min: { 
-              $cond: [
-                { $lt: ['$coPpm', 0.1] }, 
-                0, 
-                '$coPpm'
-              ] 
-            } 
-          },
+          // CO stats (allow true zero readings but don't force zeros)
+          coMin: { $min: '$coPpm' },
           coMax: { $max: '$coPpm' },
-          coAvg: { 
-            $avg: { 
-              $cond: [
-                { $lt: ['$coPpm', 0.1] }, 
-                0, 
-                '$coPpm'
-              ] 
-            } 
-          },
-          // AQI stats (allow true zero readings)
-          aqiMin: { 
-            $min: { 
-              $cond: [
-                { $lt: ['$aqi', 1] }, 
-                0, 
-                '$aqi'
-              ] 
-            } 
-          },
+          coAvg: { $avg: '$coPpm' },
+          // AQI stats (allow true zero readings but don't force zeros)
+          aqiMin: { $min: '$aqi' },
           aqiMax: { $max: '$aqi' },
-          aqiAvg: { 
-            $avg: { 
-              $cond: [
-                { $lt: ['$aqi', 1] }, 
-                0, 
-                '$aqi'
-              ] 
-            } 
-          },
+          aqiAvg: { $avg: '$aqi' },
           // Counts
           totalReadings: { $sum: 1 },
           warningCount: {
