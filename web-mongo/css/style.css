@@ -9220,3 +9220,33 @@ header {
     min-width: 100px;
   }
 }
+/* Account Chooser Section */
+.account-chooser-section {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.choose-account-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.choose-account-btn:hover {
+  background: var(--bg2);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.choose-account-btn i {
+  font-size: 0.9rem;
+}

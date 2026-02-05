@@ -73,15 +73,67 @@ function initGoogleSetup() {
     return;
   }
   
+  // Aggressively disable auto-selection
+  google.accounts.id.disableAutoSelect();
+  
   google.accounts.id.initialize({
     client_id: CONFIG.GOOGLE_CLIENT_ID,
-    callback: handleGoogleSetup
+    callback: handleGoogleSetup,
+    auto_select: false,  // Disable auto-selection
+    cancel_on_tap_outside: false,
+    use_fedcm_for_prompt: false  // Disable FedCM which can cause auto-selection
   });
   
   google.accounts.id.renderButton(
     document.getElementById('googleSetupBtn'),
-    { theme: 'filled_black', size: 'large', text: 'continue_with', width: 280 }
+    { 
+      theme: 'filled_black', 
+      size: 'large', 
+      text: 'signin_with',
+      width: 280,
+      shape: 'rectangular',
+      logo_alignment: 'left'
+    }
   );
+  
+  // Additional: Clear any existing One Tap state
+  google.accounts.id.cancel();
+}
+
+function forceAccountChooser() {
+  // Show loading state
+  const btn = event.target;
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clearing session...';
+  btn.disabled = true;
+  
+  // Method 1: Clear Google's stored account selection
+  if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+    google.accounts.id.disableAutoSelect();
+  }
+  
+  // Method 2: Open Google logout in hidden iframe to clear session
+  const logoutFrame = document.createElement('iframe');
+  logoutFrame.style.display = 'none';
+  logoutFrame.src = 'https://accounts.google.com/logout';
+  document.body.appendChild(logoutFrame);
+  
+  setTimeout(() => {
+    document.body.removeChild(logoutFrame);
+    
+    // Method 3: Reload the page to reset Google Sign-In state
+    showToast('Session cleared! Please click "Sign in with Google" to choose your account.', 'success');
+    
+    // Reset button
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+    
+    // Re-initialize Google Sign-In to reset state
+    setTimeout(() => {
+      initGoogleSetup();
+    }, 500);
+    
+  }, 2000);
 }
 
 async function handleGoogleSetup(response) {
