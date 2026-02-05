@@ -488,25 +488,70 @@ async function performFactoryReset() {
   const confirmText = document.getElementById('resetConfirmInput').value.trim();
   
   if (!pin) {
-    alert('Please enter your Admin PIN');
+    showToast('Please enter your Admin PIN', 'error');
     document.getElementById('resetPinInput').focus();
     return;
   }
   
   if (confirmText !== 'RESET') {
-    alert('Please type RESET to confirm');
+    showToast('Please type exactly "RESET" in the confirmation field', 'error');
     document.getElementById('resetConfirmInput').focus();
+    document.getElementById('resetConfirmInput').select();
     return;
   }
   
-  // Double confirmation
-  if (!confirm('⚠️ FINAL WARNING ⚠️\n\nThis will permanently delete ALL data and cannot be undone.\n\nAre you absolutely sure?')) {
-    return;
+  // Show FireWire-styled confirmation modal instead of browser alert
+  showFinalConfirmation();
+}
+
+function showFinalConfirmation() {
+  // Create custom confirmation overlay
+  const confirmOverlay = document.createElement('div');
+  confirmOverlay.className = 'final-confirm-overlay';
+  confirmOverlay.innerHTML = `
+    <div class="final-confirm-modal">
+      <div class="final-confirm-header">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h3>⚠️ FINAL WARNING ⚠️</h3>
+      </div>
+      <div class="final-confirm-body">
+        <p>This will <strong>permanently delete ALL data</strong> and cannot be undone.</p>
+        <p>Are you absolutely sure you want to proceed?</p>
+      </div>
+      <div class="final-confirm-actions">
+        <button class="btn btn-secondary" onclick="cancelFinalConfirmation()">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button class="btn btn-danger" onclick="executeFinalReset()">
+          <i class="fas fa-trash-can"></i> Yes, Delete Everything
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(confirmOverlay);
+  
+  // Add to global scope for cleanup
+  window.currentConfirmOverlay = confirmOverlay;
+}
+
+function cancelFinalConfirmation() {
+  if (window.currentConfirmOverlay) {
+    document.body.removeChild(window.currentConfirmOverlay);
+    window.currentConfirmOverlay = null;
   }
+}
+
+async function executeFinalReset() {
+  // Remove confirmation overlay
+  cancelFinalConfirmation();
+  
+  const pin = document.getElementById('resetPinInput').value.trim();
+  const confirmText = document.getElementById('resetConfirmInput').value.trim();
   
   try {
     // Disable the button to prevent double-clicks
-    const resetButton = event.target;
+    const resetButton = document.querySelector('.modal-footer .btn-danger');
     resetButton.disabled = true;
     resetButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
     
@@ -521,16 +566,25 @@ async function performFactoryReset() {
     // Close WebSocket
     if (window.ws) window.ws.close();
     
-    alert('Factory reset complete!\n\nAll data has been deleted. You will now be redirected to setup.');
+    // Show success message with FireWire styling
+    showToast('Factory reset complete! Redirecting to setup...', 'success');
     
-    // Reload page to go to setup
-    window.location.reload();
+    // Hide the modal
+    hideFactoryResetModal();
+    
+    // Reload page to go to setup after a short delay
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+    
   } catch (error) {
     // Re-enable button on error
-    const resetButton = event.target;
-    resetButton.disabled = false;
-    resetButton.innerHTML = '<i class="fas fa-trash-can"></i> Reset Everything';
+    const resetButton = document.querySelector('.modal-footer .btn-danger');
+    if (resetButton) {
+      resetButton.disabled = false;
+      resetButton.innerHTML = '<i class="fas fa-trash-can"></i> Reset Everything';
+    }
     
-    alert('Factory reset failed: ' + error.message);
+    showToast('Factory reset failed: ' + error.message, 'error');
   }
 }
