@@ -1625,8 +1625,8 @@
     
     <!-- Factory Reset Modal -->
     <div id="factoryResetModal" class="modal hidden">
-      <div class="modal-overlay" onclick="hideFactoryResetModal()"></div>
-      <div class="modal-content">
+      <div class="modal-overlay"></div>
+      <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header">
           <i class="fas fa-exclamation-triangle modal-icon-danger"></i>
           <h3>Factory Reset</h3>
@@ -1643,16 +1643,16 @@
           
           <div class="form-group">
             <label><i class="fas fa-lock"></i> Enter Admin PIN</label>
-            <input type="password" id="resetPinInput" placeholder="Your PIN" maxlength="6">
+            <input type="password" id="resetPinInput" placeholder="Your PIN" maxlength="6" onclick="event.stopPropagation()">
           </div>
           <div class="form-group">
             <label><i class="fas fa-keyboard"></i> Type RESET to confirm</label>
-            <input type="text" id="resetConfirmInput" placeholder="Type RESET" autocomplete="off">
+            <input type="text" id="resetConfirmInput" placeholder="Type RESET" autocomplete="off" onclick="event.stopPropagation()">
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="hideFactoryResetModal()">Cancel</button>
-          <button class="btn btn-danger" onclick="performFactoryReset()">
+          <button class="btn btn-secondary" onclick="event.stopPropagation(); hideFactoryResetModal()">Cancel</button>
+          <button class="btn btn-danger" onclick="event.stopPropagation(); performFactoryReset()">
             <i class="fas fa-trash-can"></i> Reset Everything
           </button>
         </div>

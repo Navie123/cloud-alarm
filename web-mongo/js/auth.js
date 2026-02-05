@@ -451,14 +451,36 @@ function getMemberId() {
 
 // ============ FACTORY RESET ============
 function showFactoryResetModal() {
-  document.getElementById('factoryResetModal').classList.remove('hidden');
+  const modal = document.getElementById('factoryResetModal');
+  modal.classList.remove('hidden');
   document.getElementById('resetPinInput').value = '';
   document.getElementById('resetConfirmInput').value = '';
-  document.getElementById('resetPinInput').focus();
+  
+  // Add click handler to modal overlay to close modal
+  const overlay = modal.querySelector('.modal-overlay');
+  overlay.onclick = hideFactoryResetModal;
+  
+  // Add escape key handler
+  document.addEventListener('keydown', handleFactoryResetEscape);
+  
+  // Focus on PIN input
+  setTimeout(() => {
+    document.getElementById('resetPinInput').focus();
+  }, 100);
 }
 
 function hideFactoryResetModal() {
-  document.getElementById('factoryResetModal').classList.add('hidden');
+  const modal = document.getElementById('factoryResetModal');
+  modal.classList.add('hidden');
+  
+  // Remove escape key handler
+  document.removeEventListener('keydown', handleFactoryResetEscape);
+}
+
+function handleFactoryResetEscape(event) {
+  if (event.key === 'Escape') {
+    hideFactoryResetModal();
+  }
 }
 
 async function performFactoryReset() {
@@ -467,11 +489,13 @@ async function performFactoryReset() {
   
   if (!pin) {
     alert('Please enter your Admin PIN');
+    document.getElementById('resetPinInput').focus();
     return;
   }
   
   if (confirmText !== 'RESET') {
     alert('Please type RESET to confirm');
+    document.getElementById('resetConfirmInput').focus();
     return;
   }
   
@@ -481,6 +505,11 @@ async function performFactoryReset() {
   }
   
   try {
+    // Disable the button to prevent double-clicks
+    const resetButton = event.target;
+    resetButton.disabled = true;
+    resetButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+    
     const result = await api.request('/api/household/admin/factory-reset', {
       method: 'POST',
       body: JSON.stringify({ pin, confirmText })
@@ -497,6 +526,11 @@ async function performFactoryReset() {
     // Reload page to go to setup
     window.location.reload();
   } catch (error) {
+    // Re-enable button on error
+    const resetButton = event.target;
+    resetButton.disabled = false;
+    resetButton.innerHTML = '<i class="fas fa-trash-can"></i> Reset Everything';
+    
     alert('Factory reset failed: ' + error.message);
   }
 }
