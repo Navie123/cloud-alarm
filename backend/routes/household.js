@@ -75,6 +75,16 @@ router.post('/setup/google', async (req, res) => {
     if (household && household.setupComplete) {
       return res.status(400).json({ error: 'This email is already registered as Admin' });
     }
+    
+    // Clean up any incomplete setup for this email (older than 1 hour)
+    if (household && !household.setupComplete) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      if (household.createdAt && household.createdAt < oneHourAgo) {
+        console.log(`[Setup] Cleaning up old incomplete setup for ${email}`);
+        await Household.deleteOne({ _id: household._id });
+        household = null;
+      }
+    }
 
     // Create or update household
     if (!household) {
@@ -184,6 +194,33 @@ router.post('/setup/complete', async (req, res) => {
   } catch (error) {
     console.error('Setup complete error:', error);
     res.status(500).json({ error: 'Setup failed' });
+  }
+});
+
+// Send setup completion email with credentials
+router.post('/setup/send-credentials', async (req, res) => {
+  try {
+    const { householdId, accessCode, deviceSecret } = req.body;
+    
+    // Find the household
+    const household = await Household.findOne({ householdId });
+    if (!household) {
+      return res.status(404).json({ error: 'Household not found' });
+    }
+    
+    // Send setup completion email
+    const { sendSetupCompletionEmail } = require('../utils/email');
+    await sendSetupCompletionEmail(household.admin.email, {
+      householdId,
+      accessCode,
+      deviceSecret,
+      householdName: household.name
+    });
+    
+    res.json({ success: true, message: 'Setup completion email sent' });
+  } catch (error) {
+    console.error('Send setup email error:', error);
+    res.status(500).json({ error: 'Failed to send setup email' });
   }
 });
 

@@ -183,7 +183,10 @@ async function completeSetup() {
     });
     
     // Show success and credentials
-    alert(`Setup Complete!\n\nHousehold ID: ${result.householdId}\nAccess Code: ${accessCode}\n${result.deviceSecret ? `Device Secret: ${result.deviceSecret}` : ''}\n\nSave these credentials!`);
+    showSetupCompleteModal(result, accessCode);
+    
+    // Send setup completion email
+    await sendSetupCompletionEmail(result, accessCode);
     
     // Redirect to access screen
     showAccessScreen();
@@ -587,4 +590,114 @@ async function executeFinalReset() {
     
     showToast('Factory reset failed: ' + error.message, 'error');
   }
+}
+
+// ============ SETUP COMPLETION ============
+function showSetupCompleteModal(result, accessCode) {
+  // Create setup completion modal
+  const modal = document.createElement('div');
+  modal.className = 'setup-complete-overlay';
+  modal.innerHTML = `
+    <div class="setup-complete-modal">
+      <div class="setup-complete-header">
+        <i class="fas fa-check-circle"></i>
+        <h2>🎉 Welcome to FireWire!</h2>
+        <p>Your smart fire monitoring system is ready</p>
+      </div>
+      <div class="setup-complete-body">
+        <div class="credentials-section">
+          <h3><i class="fas fa-key"></i> Your Login Credentials</h3>
+          <div class="credential-item">
+            <label>Household ID:</label>
+            <div class="credential-value">
+              <span id="householdIdValue">${result.householdId}</span>
+              <button class="copy-btn" onclick="copyToClipboard('householdIdValue')">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+          <div class="credential-item">
+            <label>Access Code:</label>
+            <div class="credential-value">
+              <span id="accessCodeValue">${accessCode}</span>
+              <button class="copy-btn" onclick="copyToClipboard('accessCodeValue')">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+          ${result.deviceSecret ? `
+          <div class="credential-item">
+            <label>Device Secret:</label>
+            <div class="credential-value">
+              <span id="deviceSecretValue">${result.deviceSecret}</span>
+              <button class="copy-btn" onclick="copyToClipboard('deviceSecretValue')">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+        <div class="email-notification">
+          <i class="fas fa-envelope"></i>
+          <p>These credentials have been sent to your email for safekeeping</p>
+        </div>
+        <div class="important-note">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p><strong>Important:</strong> Save these credentials! You'll need them to access your FireWire dashboard.</p>
+        </div>
+      </div>
+      <div class="setup-complete-footer">
+        <button class="btn btn-primary btn-large" onclick="proceedToDashboard()">
+          <i class="fas fa-rocket"></i> Launch My Fire Alarm
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  window.currentSetupModal = modal;
+}
+
+async function sendSetupCompletionEmail(result, accessCode) {
+  try {
+    await api.request('/api/household/setup/send-credentials', {
+      method: 'POST',
+      body: JSON.stringify({
+        householdId: result.householdId,
+        accessCode: accessCode,
+        deviceSecret: result.deviceSecret
+      })
+    });
+  } catch (error) {
+    console.error('Failed to send setup email:', error);
+    // Don't block the setup process if email fails
+  }
+}
+
+function copyToClipboard(elementId) {
+  const element = document.getElementById(elementId);
+  const text = element.textContent;
+  
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Copied to clipboard!', 'success');
+  }).catch(() => {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    showToast('Copied to clipboard!', 'success');
+  });
+}
+
+function proceedToDashboard() {
+  if (window.currentSetupModal) {
+    document.body.removeChild(window.currentSetupModal);
+    window.currentSetupModal = null;
+  }
+  
+  // Redirect to access screen
+  window.location.reload();
 }

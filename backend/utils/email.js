@@ -313,4 +313,209 @@ const sendAlarmEmail = async (email, alarmData) => {
   }
 };
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendOTPEmail, sendAlarmEmail };
+// Send setup completion email with credentials
+const sendSetupCompletionEmail = async (email, setupData) => {
+  const { householdId, accessCode, deviceSecret, householdName } = setupData;
+  const dashboardUrl = process.env.FRONTEND_URL || 'https://cloud-alarm.onrender.com';
+  
+  console.log('[Email] Sending setup completion email to:', email);
+
+  try {
+    // Try Resend first, fallback to Gmail SMTP if it fails
+    let emailSent = false;
+    let lastError = null;
+
+    try {
+      const { data, error } = await resend.emails.send({
+        from: 'FireWire Setup <onboarding@resend.dev>',
+        to: email,
+        subject: '🎉 Welcome to FireWire - Your Setup is Complete!',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #ff5722, #ff9800); padding: 40px; text-align: center; border-radius: 15px 15px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 2rem;">🔥 FireWire</h1>
+              <p style="color: #fff3e0; margin: 10px 0 0 0; font-size: 1.1rem;">Smart Fire Monitoring System</p>
+            </div>
+            <div style="padding: 40px; background: #f8f9fa; border-radius: 0 0 15px 15px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <h2 style="color: #ff5722; margin: 0 0 10px 0;">🎉 Setup Complete!</h2>
+                <p style="color: #666; margin: 0; font-size: 1.1rem;">Your FireWire system is ready to protect your home</p>
+              </div>
+              
+              <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; border: 2px solid #ff5722;">
+                <h3 style="color: #ff5722; margin: 0 0 20px 0; display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 1.2em;">🔑</span> Your Login Credentials
+                </h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household Name:</td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household ID:</td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdId}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Access Code:</td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${accessCode}</td>
+                  </tr>
+                  ${deviceSecret ? `
+                  <tr>
+                    <td style="padding: 12px 0; font-weight: 600; color: #333;">Device Secret:</td>
+                    <td style="padding: 12px 0; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${deviceSecret}</td>
+                  </tr>
+                  ` : ''}
+                </table>
+              </div>
+              
+              <div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; padding: 20px; margin-bottom: 25px;">
+                <h4 style="color: #2e7d32; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 1.1em;">💡</span> What's Next?
+                </h4>
+                <ul style="color: #2e7d32; margin: 0; padding-left: 20px; line-height: 1.6;">
+                  <li>Use your <strong>Household ID</strong> and <strong>Access Code</strong> to log in</li>
+                  <li>Share the Access Code with family members for monitoring access</li>
+                  <li>Configure your ESP32 device with the Device Secret (if provided)</li>
+                  <li>Set up email alerts and push notifications</li>
+                </ul>
+              </div>
+              
+              <div style="background: #fff3e0; border: 1px solid #ff9800; border-radius: 10px; padding: 20px; margin-bottom: 30px;">
+                <p style="color: #e65100; margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                  <span style="font-size: 1.1em;">⚠️</span> 
+                  <strong>Important:</strong> Save these credentials in a safe place!
+                </p>
+              </div>
+              
+              <div style="text-align: center;">
+                <a href="${dashboardUrl}" style="background: #ff5722; color: white; padding: 15px 40px; text-decoration: none; border-radius: 10px; font-weight: bold; display: inline-block; font-size: 1.1rem;">
+                  🚀 Access Your FireWire Dashboard
+                </a>
+              </div>
+            </div>
+            <div style="padding: 20px; background: #333; border-radius: 0 0 15px 15px; text-align: center;">
+              <p style="color: #999; font-size: 0.9rem; margin: 0;">
+                Welcome to FireWire - Your Smart Fire Protection Partner<br>
+                Keep this email for your records. You'll need these credentials to access your dashboard.
+              </p>
+            </div>
+          </div>
+        `
+      });
+
+      if (error) {
+        console.log('[Email] Resend failed, trying Gmail SMTP...', error.message);
+        lastError = error;
+      } else {
+        console.log('[Email] Setup completion email sent successfully via Resend to:', email);
+        return data;
+      }
+    } catch (resendError) {
+      console.log('[Email] Resend failed, trying Gmail SMTP...', resendError.message);
+      lastError = resendError;
+    }
+
+    // Fallback to Gmail SMTP
+    if (!emailSent) {
+      const nodemailer = require('nodemailer');
+      
+      const transporter = nodemailer.createTransporter({
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT) || 587,
+        secure: false,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS
+        }
+      });
+
+      const mailOptions = {
+        from: `"FireWire Setup" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: '🎉 Welcome to FireWire - Your Setup is Complete!',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #ff5722, #ff9800); padding: 40px; text-align: center; border-radius: 15px 15px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 2rem;">🔥 FireWire</h1>
+              <p style="color: #fff3e0; margin: 10px 0 0 0; font-size: 1.1rem;">Smart Fire Monitoring System</p>
+            </div>
+            <div style="padding: 40px; background: #f8f9fa; border-radius: 0 0 15px 15px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <h2 style="color: #ff5722; margin: 0 0 10px 0;">🎉 Setup Complete!</h2>
+                <p style="color: #666; margin: 0; font-size: 1.1rem;">Your FireWire system is ready to protect your home</p>
+              </div>
+              
+              <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; border: 2px solid #ff5722;">
+                <h3 style="color: #ff5722; margin: 0 0 20px 0; display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 1.2em;">🔑</span> Your Login Credentials
+                </h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household Name:</td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household ID:</td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdId}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Access Code:</td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${accessCode}</td>
+                  </tr>
+                  ${deviceSecret ? `
+                  <tr>
+                    <td style="padding: 12px 0; font-weight: 600; color: #333;">Device Secret:</td>
+                    <td style="padding: 12px 0; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${deviceSecret}</td>
+                  </tr>
+                  ` : ''}
+                </table>
+              </div>
+              
+              <div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; padding: 20px; margin-bottom: 25px;">
+                <h4 style="color: #2e7d32; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 1.1em;">💡</span> What's Next?
+                </h4>
+                <ul style="color: #2e7d32; margin: 0; padding-left: 20px; line-height: 1.6;">
+                  <li>Use your <strong>Household ID</strong> and <strong>Access Code</strong> to log in</li>
+                  <li>Share the Access Code with family members for monitoring access</li>
+                  <li>Configure your ESP32 device with the Device Secret (if provided)</li>
+                  <li>Set up email alerts and push notifications</li>
+                </ul>
+              </div>
+              
+              <div style="background: #fff3e0; border: 1px solid #ff9800; border-radius: 10px; padding: 20px; margin-bottom: 30px;">
+                <p style="color: #e65100; margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                  <span style="font-size: 1.1em;">⚠️</span> 
+                  <strong>Important:</strong> Save these credentials in a safe place!
+                </p>
+              </div>
+              
+              <div style="text-align: center;">
+                <a href="${dashboardUrl}" style="background: #ff5722; color: white; padding: 15px 40px; text-decoration: none; border-radius: 10px; font-weight: bold; display: inline-block; font-size: 1.1rem;">
+                  🚀 Access Your FireWire Dashboard
+                </a>
+              </div>
+            </div>
+            <div style="padding: 20px; background: #333; border-radius: 0 0 15px 15px; text-align: center;">
+              <p style="color: #999; font-size: 0.9rem; margin: 0;">
+                Welcome to FireWire - Your Smart Fire Protection Partner<br>
+                Keep this email for your records. You'll need these credentials to access your dashboard.
+              </p>
+            </div>
+          </div>
+        `
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log('[Email] Setup completion email sent successfully via Gmail SMTP to:', email, 'MessageId:', info.messageId);
+      return { id: info.messageId, provider: 'gmail' };
+    }
+
+  } catch (error) {
+    console.error('[Email] All email methods failed for setup completion:', error.message);
+    console.error('[Email] Last Resend error:', lastError?.message);
+    throw error;
+  }
+};
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendOTPEmail, sendAlarmEmail, sendSetupCompletionEmail };
