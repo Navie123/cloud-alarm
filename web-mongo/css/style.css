@@ -6850,7 +6850,7 @@ header {
   margin-bottom: 10px;
 }
 
-/* Admin Email Management Styles */
+/* Admin Email Display Styles */
 .admin-email-current {
   margin-bottom: 20px;
   padding: 18px;
@@ -6879,87 +6879,8 @@ header {
   box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 }
 
-.admin-email-button-section {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.admin-email-change-section {
-  margin-bottom: 20px;
-}
-
-.admin-email-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.admin-email-verify-section {
-  margin-top: 20px;
-  padding: 24px;
-  background: rgba(255, 152, 0, 0.1);
-  border: 1px solid rgba(255, 152, 0, 0.3);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.1);
-}
-
-.verify-step-header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.verify-step-header i {
-  font-size: 2.5em;
-  color: var(--warning, #ff9800);
-  margin-bottom: 12px;
-  filter: drop-shadow(0 2px 4px rgba(255, 152, 0, 0.3));
-}
-
-.verify-step-header h4 {
-  margin: 0 0 8px 0;
-  color: var(--text, #ffffff);
-  font-size: 1.3em;
-  font-weight: 600;
-}
-
-.verify-step-header p {
-  margin: 0;
-  color: var(--text-secondary, #cccccc);
-  font-size: 0.95em;
-}
-
-.verify-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.admin-email-note {
-  margin-top: 10px;
-  padding: 15px;
-  background: rgba(255, 87, 34, 0.1);
-  border: 1px solid rgba(255, 87, 34, 0.3);
-  border-left: 4px solid var(--accent, #ff5722);
-  border-radius: 8px;
-  font-size: 0.9em;
-  color: var(--text, #ffffff);
-}
-
-.admin-email-note i {
-  color: var(--accent, #ff5722);
-  margin-right: 8px;
-  font-size: 1.1em;
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .admin-email-actions,
-  .verify-actions {
-    flex-direction: column;
-  }
-  
   .current-email-display {
     flex-direction: column;
     align-items: flex-start;
@@ -6968,10 +6889,6 @@ header {
   
   .admin-email-current {
     padding: 15px;
-  }
-  
-  .admin-email-verify-section {
-    padding: 20px;
   }
 }
 

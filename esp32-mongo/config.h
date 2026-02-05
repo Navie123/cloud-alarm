@@ -39,6 +39,7 @@
 #define MQ2_PIN 33           // MQ-2 Smoke sensor (moved from 35 for better stability)
 #define MQ7_PIN 34           // MQ-7 Carbon Monoxide sensor
 #define MQ135_PIN 32         // MQ-135 Air Quality sensor
+#define BATTERY_PIN 35       // Battery voltage monitoring (ADC1_CH7)
 #define BUZZER_PIN 25        // Buzzer pin
 #define LED_PIN 2            // Built-in LED
 
@@ -46,8 +47,8 @@
 #define BTN1_PIN 15          // Button 1 - Temperature/Humidity view (safe digital pin)
 #define BTN2_PIN 19          // Button 2 - Gas Level/Air Quality view
 #define BTN3_PIN 13          // Button 3 - Smoke Level view
-#define BTN4_PIN 14          // Button 4 - System/WiFi info view
-#define BTN5_PIN 12          // Button 5 - Buzzer off/silence
+#define BTN4_PIN 14          // Button 4 - Carbon Monoxide info
+#define BTN5_PIN 27          // Button 5 - System/WiFi info
 
 // Update Intervals (milliseconds) - Optimized for fast response
 #define SENSOR_READ_INTERVAL 100     // Read sensors every 0.1 seconds (was 200ms)
@@ -58,6 +59,10 @@
 #define DEFAULT_GAS_THRESHOLD 5     // Sensitive threshold for testing
 #define DEFAULT_SMOKE_THRESHOLD 4   // Minimum threshold for smoke detection  
 #define DEFAULT_TEMP_THRESHOLD 60   // Match backend server default
+
+// Battery Monitoring
+#define LOW_BATTERY_VOLTAGE 6.0     // 3.0V per cell (2S battery pack)
+#define CRITICAL_BATTERY_VOLTAGE 5.6  // 2.8V per cell (shutdown threshold)
 
 // CO Thresholds (PPM) - Very high to prevent false alarms during sensor warmup
 #define DEFAULT_CO_WARNING 500

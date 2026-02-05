@@ -25,7 +25,7 @@ OUTPUT DEVICES:
   • Piezoelectric Buzzer (Active, 5V)
 
 INPUT DEVICES:
-  • 3x Momentary Push Buttons (for LCD display toggle)
+  • 5x Momentary Push Buttons (for LCD display toggle)
 
 CALIBRATION CONTROLS:
   • 10K Potentiometers (x3, one per MQ sensor - built into modules)
@@ -59,9 +59,11 @@ DIGITAL OUTPUTS:
   GPIO 2                Built-in LED            (onboard)
 
 DIGITAL INPUTS (Buttons):
-  GPIO 26               Button 1 (Climate)      White
-  GPIO 27               Button 2 (Gas)          Gray
-  GPIO 13               Button 3 (System)       Brown
+  GPIO 15               Button 1 (Temp/Humidity)    White
+  GPIO 19               Button 2 (Gas/AQI)          Gray
+  GPIO 13               Button 3 (Smoke Level)      Brown
+  GPIO 14               Button 4 (Carbon Monoxide)  Yellow
+  GPIO 27               Button 5 (System/WiFi)      Orange
 
 POWER PINS:
   3.3V                  HDC1080 VCC             Red
@@ -208,25 +210,27 @@ BATTERY SHIELD CONNECTIONS:
 ------------------------------------------------------------------------------
    Button        ESP32 Pin       Function
    ------        ---------       --------
-   Button 1      GPIO 26         Climate View (Temp/Humidity)
-   Button 2      GPIO 27         Gas Sensors View (MQ-2/7/135)
-   Button 3      GPIO 13         System Info View (WiFi/IP/Uptime)
+   Button 1      GPIO 15         Temperature/Humidity View
+   Button 2      GPIO 19         Gas Level/Air Quality View (CO PPM, AQI)
+   Button 3      GPIO 13         Smoke Level Detail View
+   Button 4      GPIO 14         Carbon Monoxide Detail View
+   Button 5      GPIO 12         System/WiFi Info View
 
    Wiring (for each button - 2-pin momentary switch):
    
      ESP32 GPIO ──────[BTN]────── GND
      
-   Example (New 5-Button Layout):
+   Current 5-Button Layout:
      GPIO 15 ────────[BTN1]────── GND  (Temperature/Humidity)
      GPIO 19 ────────[BTN2]────── GND  (Gas Level/Air Quality)
      GPIO 13 ────────[BTN3]────── GND  (Smoke Level)
-     GPIO 14 ────────[BTN4]────── GND  (System/WiFi Info)
-     GPIO 12 ────────[BTN5]────── GND  (Buzzer Off/Silence)
+     GPIO 14 ────────[BTN4]────── GND  (Carbon Monoxide Info)
+     GPIO 27 ────────[BTN5]────── GND  (System/WiFi Info)
 
    Note: Internal pull-up resistors are enabled in software.
          No external resistors needed.
          Press button = connects GPIO to GND = LOW signal detected.
-         Display auto-returns to Overview after 10 seconds.
+         Display auto-returns to Overview after 20 seconds.
 
 ================================================================================
                          WIRING DIAGRAM (ASCII)
@@ -288,14 +292,13 @@ BATTERY SHIELD CONNECTIONS:
      • BTN1: Temperature & Humidity Detail
      • BTN2: Gas Level & Air Quality (CO PPM, AQI)
      • BTN3: Smoke Level Detail with Thresholds
-     • BTN4: System & WiFi Info (Network, Uptime, Memory)
-     • BTN5: Buzzer Off/Silence Alarm (Immediate Action)
+     • BTN4: Carbon Monoxide Detail (PPM, Status, Safety Info)
+     • BTN5: System & WiFi Info (Network, Uptime, Memory)
      
      Smart Display Features:
      • Default Display: Clean FireWire overview with all readings
      • Warning Mode: Auto-switches when sensors detect elevated readings
      • Alarm Mode: Critical alarm screen overrides all displays
-     • Silence Notification: Shows confirmation when BTN5 pressed
      • Fast Animation: Quick transitions (150ms) between modes
      • Auto-Return: Returns to default after 20 seconds of inactivity
      • Button Debug: Serial output shows button press detection

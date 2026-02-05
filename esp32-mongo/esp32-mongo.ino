@@ -38,6 +38,9 @@ float temperature = 25.0;  // Start with safe room temp to avoid false alarms
 float humidity = 50.0;     // Start with normal humidity
 bool tempSensorReady = false;  // Track if we got a valid temp reading
 float voltage = 0;
+float batteryVoltage = 0;  // Battery voltage monitoring
+float batteryPercent = 0;  // Battery percentage (0-100%)
+bool lowBatteryDetected = false;
 int gasThreshold = DEFAULT_GAS_THRESHOLD;
 int tempThreshold = DEFAULT_TEMP_THRESHOLD;
 bool alarmActive = false;
@@ -116,8 +119,14 @@ unsigned long lastCommandCheck = 0;
 bool configPortalActive = false;
 bool wifiResetRequested = false;  // Server can request WiFi reset
 
+// WiFi Status Tracking
+bool wifiWasConnected = false;
+bool wifiJustDisconnected = false;
+unsigned long wifiDisconnectedTime = 0;
+bool showingStartupScreen = false;
+
 // LCD Display Mode (controlled by buttons)
-int displayMode = 0;  // 0=Default, 1=Temp/Humidity, 2=Gas/AQI, 3=Smoke, 4=System/WiFi
+int displayMode = 0;  // 0=Default, 1=Temp/Humidity, 2=Gas/AQI, 3=Smoke, 4=Carbon Monoxide, 5=System/WiFi
 unsigned long lastButtonPress = 0;
 const unsigned long DEBOUNCE_DELAY = 100;  // Reduced debounce for faster response
 const unsigned long AUTO_RETURN_DELAY = 20000;  // Return to default after 20s
@@ -173,13 +182,14 @@ void setup() {
   pinMode(MQ2_PIN, INPUT);
   pinMode(MQ7_PIN, INPUT);
   pinMode(MQ135_PIN, INPUT);
+  pinMode(BATTERY_PIN, INPUT);  // Battery voltage monitoring
   
   // Initialize button pins with internal pull-up resistors and stronger pull-up
   pinMode(BTN1_PIN, INPUT_PULLUP);  // Temp/Humidity
   pinMode(BTN2_PIN, INPUT_PULLUP);  // Gas Level/Air Quality
   pinMode(BTN3_PIN, INPUT_PULLUP);  // Smoke Level
-  pinMode(BTN4_PIN, INPUT_PULLUP);  // System/WiFi
-  pinMode(BTN5_PIN, INPUT_PULLUP);  // Buzzer Off
+  pinMode(BTN4_PIN, INPUT_PULLUP);  // Carbon Monoxide Info
+  pinMode(BTN5_PIN, INPUT_PULLUP);  // System/WiFi Info
   
   // Test button pins at startup
   Serial.println("Testing button pins at startup:");
@@ -261,14 +271,48 @@ void setup() {
   Serial.println("Sensors ready - showing real-time readings");
   Serial.printf("Current thresholds - Gas: %d%%, Smoke: %d%%, Temp: %d°C\n", 
                 gasThreshold, smokeThreshold, tempThreshold);
+  
+  // Initialize WiFi status tracking
+  wifiWasConnected = (WiFi.status() == WL_CONNECTED);
+  showingStartupScreen = !wifiWasConnected;
 }
 
 void loop() {
   unsigned long now = millis();
   static unsigned long lastLCDUpdate = 0;
   
-  // Check WiFi connection
-  if (WiFi.status() != WL_CONNECTED) {
+  // Check WiFi connection and handle status changes
+  bool currentWiFiStatus = (WiFi.status() == WL_CONNECTED);
+  
+  // Detect WiFi disconnection
+  if (wifiWasConnected && !currentWiFiStatus) {
+    wifiJustDisconnected = true;
+    wifiDisconnectedTime = millis();
+    Serial.println("WiFi disconnected - showing disconnection screen");
+    displayMode = 0;  // Reset to default mode
+  }
+  
+  // Detect WiFi reconnection
+  if (!wifiWasConnected && currentWiFiStatus) {
+    Serial.println("WiFi reconnected - resuming normal operation");
+    wifiJustDisconnected = false;
+    showingStartupScreen = false;
+    
+    // Show brief reconnection message
+    lcd.clear();
+    lcd.setCursor(0, 1);
+    lcd.print("  WiFi Reconnected! ");
+    lcd.setCursor(0, 2);
+    lcd.print("   Resuming...      ");
+    delay(2000);
+    lcd.clear();
+  }
+  
+  // Update WiFi status tracking
+  wifiWasConnected = currentWiFiStatus;
+  
+  // Handle WiFi reconnection attempts
+  if (!currentWiFiStatus) {
     Serial.println("WiFi disconnected, reconnecting...");
     connectWiFi();
   }
@@ -755,8 +799,50 @@ void readSensors() {
     }
   }
   
-  // Read voltage (fixed value)
+  // Read voltage and battery monitoring
   voltage = 3.3;
+  
+  // Read battery voltage (GPIO 35)
+  // Note: This depends on your battery shield's voltage output to ESP32
+  int batteryRaw = analogRead(BATTERY_PIN);
+  float rawVoltage = (batteryRaw / 4095.0) * 3.3;  // Convert ADC to voltage
+  
+  // Battery shield voltage interpretation (adjust based on your shield)
+  // Most shields provide a scaled-down voltage to ESP32 for monitoring
+  if (rawVoltage > 0.1) {  // Valid reading
+    // Common scaling: 3.3V ADC represents full battery voltage
+    // Adjust this multiplier based on your battery shield specs
+    batteryVoltage = rawVoltage * 2.5;  // Estimated scaling factor
+    
+    // Calculate battery percentage (for 2S Li-ion: 6.0V-8.4V range)
+    float minVoltage = 6.0;   // 3.0V per cell (empty)
+    float maxVoltage = 8.4;   // 4.2V per cell (full)
+    batteryPercent = ((batteryVoltage - minVoltage) / (maxVoltage - minVoltage)) * 100.0;
+    batteryPercent = constrain(batteryPercent, 0, 100);  // Keep within 0-100%
+    
+    // Check for low battery condition
+    if (batteryVoltage < CRITICAL_BATTERY_VOLTAGE && batteryVoltage > 1.0) {
+      lowBatteryDetected = true;
+      Serial.printf("CRITICAL LOW BATTERY: %.2fV (%.0f%%) - Disabling alarms\n", batteryVoltage, batteryPercent);
+    } else if (batteryVoltage < LOW_BATTERY_VOLTAGE && batteryVoltage > 1.0) {
+      Serial.printf("LOW BATTERY WARNING: %.2fV (%.0f%%)\n", batteryVoltage, batteryPercent);
+    } else if (batteryVoltage > LOW_BATTERY_VOLTAGE) {
+      lowBatteryDetected = false;  // Reset when battery is good
+    }
+    
+    // Debug output every 10 seconds
+    static unsigned long lastBatteryDebug = 0;
+    if (millis() - lastBatteryDebug > 10000) {
+      Serial.printf("Battery Monitor: Raw ADC=%d, Raw V=%.2f, Scaled V=%.2f, Percent=%.0f%%\n", 
+                    batteryRaw, rawVoltage, batteryVoltage, batteryPercent);
+      lastBatteryDebug = millis();
+    }
+  } else {
+    // No valid battery reading (probably on external power)
+    batteryVoltage = 0;
+    batteryPercent = 0;
+    lowBatteryDetected = false;
+  }
   
   // Read MQ-7 and MQ-135 gas sensors
   readGasSensors();
@@ -1071,6 +1157,14 @@ void performCalibration() {
 }
 
 void updateAlarmState() {
+  // LOW BATTERY PROTECTION - Disable alarms during low battery to prevent false triggers
+  if (lowBatteryDetected) {
+    alarmActive = false;
+    partialWarningActive = false;
+    Serial.println("ALARM DISABLED: Low battery detected - preventing false alarms");
+    return;
+  }
+  
   // Gas alarm when MQ-7 reading exceeds gas threshold
   bool gasAlarm = gasPercent >= gasThreshold;
   
@@ -1211,6 +1305,9 @@ void sendDataToServer() {
   doc["temperature"] = temperature;
   doc["humidity"] = humidity;
   doc["voltage"] = voltage;
+  doc["batteryVoltage"] = batteryVoltage;
+  doc["batteryPercent"] = batteryPercent;
+  doc["lowBattery"] = lowBatteryDetected;
   doc["threshold"] = gasThreshold;
   doc["smokeThreshold"] = smokeThreshold;
   doc["tempThreshold"] = tempThreshold;
@@ -1406,8 +1503,8 @@ void checkButtons() {
   bool btn1 = (digitalRead(BTN1_PIN) == LOW);  // Temp/Humidity
   bool btn2 = (digitalRead(BTN2_PIN) == LOW);  // Gas Level/Air Quality
   bool btn3 = (digitalRead(BTN3_PIN) == LOW);  // Smoke Level
-  bool btn4 = (digitalRead(BTN4_PIN) == LOW);  // System/WiFi
-  bool btn5 = (digitalRead(BTN5_PIN) == LOW);  // Buzzer Off
+  bool btn4 = (digitalRead(BTN4_PIN) == LOW);  // Carbon Monoxide Info
+  bool btn5 = (digitalRead(BTN5_PIN) == LOW);  // System/WiFi Info
   
   // Debug button states
   static unsigned long lastDebug = 0;
@@ -1436,26 +1533,19 @@ void checkButtons() {
     newMode = 3;
     Serial.println("BTN3 pressed - Smoke mode");
   }
-  // Button 4 - System/WiFi view
+  // Button 4 - Carbon Monoxide Info
   else if (btn4) {
     newMode = 4;
-    Serial.println("BTN4 pressed - System/WiFi mode");
+    Serial.println("BTN4 pressed - Carbon Monoxide mode");
   }
-  // Button 5 - Buzzer Off/Silence
+  // Button 5 - System/WiFi Info
   else if (btn5) {
-    silenceRequested = true;
-    Serial.println("BTN5 pressed - Buzzer silenced");
-    
-    // Show silence notification screen
-    displaySilenceNotification();
-    delay(2000);  // Show for 2 seconds
-    
-    lastButtonPress = now;
-    return;
+    newMode = 5;
+    Serial.println("BTN5 pressed - System/WiFi mode");
   }
   
   // If mode changed, start slide animation
-  if (newMode != displayMode && (btn1 || btn2 || btn3 || btn4)) {
+  if (newMode != displayMode && (btn1 || btn2 || btn3 || btn4 || btn5)) {
     displayMode = newMode;
     lastModeChange = now;
     lastButtonPress = now;
@@ -1528,6 +1618,32 @@ bool checkWarningState() {
 void updateLCD() {
   char buf[25];
   
+  // Priority 1: Low Battery Warning (highest priority)
+  if (lowBatteryDetected) {
+    displayLowBattery();
+    return;
+  }
+  
+  // Priority 2: Check WiFi status
+  if (WiFi.status() != WL_CONNECTED) {
+    if (wifiJustDisconnected) {
+      displayWiFiDisconnected();
+      return;
+    } else if (millis() < 30000) {  // Show startup screen for first 30 seconds
+      displayWiFiStartup();
+      return;
+    } else {
+      displayWiFiDisconnected();
+      return;
+    }
+  }
+  
+  // Priority 3: Critical alarm overrides everything when WiFi is connected
+  if (alarmActive) {
+    displayAlarmScreen();
+    return;
+  }
+  
   // Don't show warnings during the first 15 seconds after startup
   // This allows sensors to stabilize and prevents false warnings
   bool startupPeriod = millis() < 15000;
@@ -1550,12 +1666,6 @@ void updateLCD() {
     return;
   }
   
-  // CRITICAL ALARM MODE - Always show alarm regardless of display mode
-  if (alarmActive) {
-    displayAlarmScreen();
-    return;
-  }
-  
   // WARNING MODE - Show warning screen for high readings (but not during startup)
   if (warningMode && !startupPeriod) {
     displayWarningScreen();
@@ -1573,7 +1683,10 @@ void updateLCD() {
     case 3:  // Smoke Level
       displaySmokeLevel();
       break;
-    case 4:  // System/WiFi Info
+    case 4:  // Carbon Monoxide Info
+      displayCO();
+      break;
+    case 5:  // System/WiFi Info
       displaySystemWiFi();
       break;
     default:  // Default clean display (mode 0)
@@ -1800,6 +1913,158 @@ void displaySystemWiFi() {
   lcd.print(buf);
 }
 
+// Display Mode 5: Carbon Monoxide Detail
+void displayCO() {
+  char buf[25];
+  
+  // Row 0: Header
+  lcd.setCursor(0, 0);
+  lcd.print("====================");
+  lcd.setCursor(4, 0);
+  lcd.print("CARBON MONOXIDE");
+  
+  // Row 1: CO Level in PPM
+  lcd.setCursor(0, 1);
+  snprintf(buf, 21, "CO Level: %.1f PPM", coPpm);
+  lcd.print(buf);
+  
+  // Row 2: CO Status and Raw ADC
+  lcd.setCursor(0, 2);
+  lcd.print("                    ");  // Clear line first
+  lcd.setCursor(0, 2);
+  snprintf(buf, 21, "Status: %s (%d)", coStatus.c_str(), coRaw);
+  lcd.print(buf);
+  
+  // Row 3: Safety thresholds info
+  lcd.setCursor(0, 3);
+  lcd.print("                    ");  // Clear line first
+  lcd.setCursor(0, 3);
+  if (coPpm < 9) {
+    snprintf(buf, 21, "Safe: <9PPM Normal");
+  } else if (coPpm < 35) {
+    snprintf(buf, 21, "Caution: 9-35PPM");
+  } else if (coPpm < 200) {
+    snprintf(buf, 21, "Warning: 35-200PPM");
+  } else {
+    snprintf(buf, 21, "DANGER: >200PPM!");
+  }
+  lcd.print(buf);
+}
+
+// Low Battery Warning Screen
+void displayLowBattery() {
+  char buf[25];
+  static bool blink = false;
+  static unsigned long lastBlink = 0;
+  
+  // Blink effect every 1 second
+  if (millis() - lastBlink > 1000) {
+    blink = !blink;
+    lastBlink = millis();
+  }
+  
+  // Row 0: Header with warning
+  lcd.setCursor(0, 0);
+  if (blink) {
+    lcd.print("!!! LOW BATTERY !!!");
+  } else {
+    lcd.print("====================");
+  }
+  
+  // Row 1: Battery voltage and percentage
+  lcd.setCursor(0, 1);
+  if (batteryPercent > 0) {
+    snprintf(buf, 21, "%.2fV (%.0f%%) ", batteryVoltage, batteryPercent);
+  } else {
+    snprintf(buf, 21, "%.2fV (Unknown%%) ", batteryVoltage);
+  }
+  lcd.print(buf);
+  
+  // Row 2: Status message
+  lcd.setCursor(0, 2);
+  if (batteryVoltage < CRITICAL_BATTERY_VOLTAGE) {
+    lcd.print("CRITICAL - CHARGE NOW");
+  } else {
+    lcd.print("LOW - Please Charge ");
+  }
+  
+  // Row 3: Alarm status
+  lcd.setCursor(0, 3);
+  lcd.print("Alarms Disabled     ");
+}
+
+// WiFi Disconnected Screen
+void displayWiFiDisconnected() {
+  char buf[25];
+  static bool blink = false;
+  static unsigned long lastBlink = 0;
+  
+  // Blink effect every 1 second
+  if (millis() - lastBlink > 1000) {
+    blink = !blink;
+    lastBlink = millis();
+  }
+  
+  // Row 0: Header with warning
+  lcd.setCursor(0, 0);
+  if (blink) {
+    lcd.print("!!!! WiFi LOST !!!!");
+  } else {
+    lcd.print("====================");
+  }
+  
+  // Row 1: Connection status
+  lcd.setCursor(0, 1);
+  lcd.print("  NO WIFI CONNECTION");
+  
+  // Row 2: Attempting to reconnect
+  lcd.setCursor(0, 2);
+  unsigned long disconnectedSeconds = (millis() - wifiDisconnectedTime) / 1000;
+  snprintf(buf, 21, "Reconnecting... %lus", disconnectedSeconds);
+  lcd.print(buf);
+  
+  // Row 3: Instruction
+  lcd.setCursor(0, 3);
+  lcd.print("Check WiFi Settings ");
+}
+
+// WiFi Startup/Connecting Screen
+void displayWiFiStartup() {
+  char buf[25];
+  static int dots = 0;
+  static unsigned long lastDot = 0;
+  
+  // Animate dots every 500ms
+  if (millis() - lastDot > 500) {
+    dots = (dots + 1) % 4;
+    lastDot = millis();
+  }
+  
+  // Row 0: Header
+  lcd.setCursor(0, 0);
+  lcd.print("====================");
+  lcd.setCursor(6, 0);
+  lcd.print("FireWire");
+  
+  // Row 1: Status
+  lcd.setCursor(0, 1);
+  lcd.print("  Connecting to WiFi");
+  
+  // Row 2: Animated dots
+  lcd.setCursor(0, 2);
+  lcd.print("      Please wait");
+  for (int i = 0; i < dots; i++) {
+    lcd.print(".");
+  }
+  for (int i = dots; i < 3; i++) {
+    lcd.print(" ");
+  }
+  
+  // Row 3: Instruction
+  lcd.setCursor(0, 3);
+  lcd.print("Hold BOOT to reset  ");
+}
+
 // Critical Alarm Screen
 void displayAlarmScreen() {
   char buf[25];
@@ -1838,7 +2103,7 @@ void displayAlarmScreen() {
   
   // Row 3: Action instruction (shortened to fit 20 chars)
   lcd.setCursor(0, 3);
-  lcd.print("BTN5 = SILENCE ALARM");  // Shortened from "Press BTN5 to SILENCE" (21 chars) to fit 20 chars
+  lcd.print("   EVACUATE AREA!    ");  // Remove BTN5 silence instruction
 }
 
 // Warning Screen for elevated readings
@@ -1884,5 +2149,5 @@ void displayWarningScreen() {
   
   // Row 3: Instruction
   lcd.setCursor(0, 3);
-  lcd.print("BTN5 = SILENCE ALARM");
+  lcd.print("   EVACUATE AREA!    ");
 }

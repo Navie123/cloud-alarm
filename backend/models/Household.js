@@ -29,9 +29,6 @@ const householdSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
   },
 
-  // Pending admin email change
-  pendingAdminEmail: String,
-
   // Verification codes (OTP)
   verification: {
     code: String,
