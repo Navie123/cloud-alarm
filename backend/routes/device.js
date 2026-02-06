@@ -485,20 +485,26 @@ router.post('/:deviceId/command', verifySession, requireAdmin, async (req, res) 
     
     await device.save();
 
-    const wss = req.app.get('wss');
-    if (wss) {
-      wss.clients.forEach(client => {
-        if (client.deviceId === deviceId && client.authenticated && client.readyState === 1) {
-          // Include CO thresholds in the data broadcast for auto-revert functionality
-          const dataWithThresholds = { ...device.current };
-          if (device.commands) {
-            dataWithThresholds.coWarningThreshold = device.commands.coWarningThreshold;
-            dataWithThresholds.coDangerThreshold = device.commands.coDangerThreshold;
-            dataWithThresholds.coCriticalThreshold = device.commands.coCriticalThreshold;
+    // Check if device is online (lastSeen within 30 seconds)
+    const isDeviceOnline = device.lastSeen && (Date.now() - device.lastSeen.getTime()) < 30000;
+
+    // Only broadcast data if device is actually online
+    if (isDeviceOnline) {
+      const wss = req.app.get('wss');
+      if (wss) {
+        wss.clients.forEach(client => {
+          if (client.deviceId === deviceId && client.authenticated && client.readyState === 1) {
+            // Include CO thresholds in the data broadcast for auto-revert functionality
+            const dataWithThresholds = { ...device.current };
+            if (device.commands) {
+              dataWithThresholds.coWarningThreshold = device.commands.coWarningThreshold;
+              dataWithThresholds.coDangerThreshold = device.commands.coDangerThreshold;
+              dataWithThresholds.coCriticalThreshold = device.commands.coCriticalThreshold;
+            }
+            client.send(JSON.stringify({ type: 'data', data: dataWithThresholds }));
           }
-          client.send(JSON.stringify({ type: 'data', data: dataWithThresholds }));
-        }
-      });
+        });
+      }
     }
 
     res.json({ success: true });
@@ -523,20 +529,26 @@ router.post('/:deviceId/silence', verifySession, requireAdmin, async (req, res) 
     if (device.current) device.current.alarm = false;
     await device.save();
 
-    const wss = req.app.get('wss');
-    if (wss) {
-      wss.clients.forEach(client => {
-        if (client.deviceId === deviceId && client.authenticated && client.readyState === 1) {
-          // Include CO thresholds in the data broadcast for auto-revert functionality
-          const dataWithThresholds = { ...device.current };
-          if (device.commands) {
-            dataWithThresholds.coWarningThreshold = device.commands.coWarningThreshold;
-            dataWithThresholds.coDangerThreshold = device.commands.coDangerThreshold;
-            dataWithThresholds.coCriticalThreshold = device.commands.coCriticalThreshold;
+    // Check if device is online (lastSeen within 30 seconds)
+    const isDeviceOnline = device.lastSeen && (Date.now() - device.lastSeen.getTime()) < 30000;
+
+    // Only broadcast data if device is actually online
+    if (isDeviceOnline) {
+      const wss = req.app.get('wss');
+      if (wss) {
+        wss.clients.forEach(client => {
+          if (client.deviceId === deviceId && client.authenticated && client.readyState === 1) {
+            // Include CO thresholds in the data broadcast for auto-revert functionality
+            const dataWithThresholds = { ...device.current };
+            if (device.commands) {
+              dataWithThresholds.coWarningThreshold = device.commands.coWarningThreshold;
+              dataWithThresholds.coDangerThreshold = device.commands.coDangerThreshold;
+              dataWithThresholds.coCriticalThreshold = device.commands.coCriticalThreshold;
+            }
+            client.send(JSON.stringify({ type: 'data', data: dataWithThresholds }));
           }
-          client.send(JSON.stringify({ type: 'data', data: dataWithThresholds }));
-        }
-      });
+        });
+      }
     }
 
     res.json({ success: true });

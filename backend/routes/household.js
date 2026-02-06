@@ -100,8 +100,17 @@ router.post('/setup/google', async (req, res) => {
     const otp = household.generateOTP('setup');
     await household.save();
 
+    console.log(`[Setup] Generated OTP for ${email}: ${otp}`);
+
     // Send OTP email
-    await sendOTPEmail(email, otp, 'setup');
+    try {
+      await sendOTPEmail(email, otp, 'setup');
+      console.log(`[Setup] OTP email sent successfully to ${email}`);
+    } catch (emailError) {
+      console.error(`[Setup] Failed to send OTP email to ${email}:`, emailError);
+      // Don't fail the setup if email fails - user can still proceed manually
+      console.log(`[Setup] Continuing setup without email for ${email}, OTP: ${otp}`);
+    }
 
     res.json({
       success: true,
@@ -110,7 +119,16 @@ router.post('/setup/google', async (req, res) => {
     });
   } catch (error) {
     console.error('Setup Google error:', error);
-    res.status(500).json({ error: 'Setup failed' });
+    console.error('Error details:', error.stack);
+    
+    // Provide more specific error messages
+    if (error.message && error.message.includes('Gmail')) {
+      res.status(400).json({ error: error.message });
+    } else if (error.message && error.message.includes('already registered')) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: `Setup failed: ${error.message || 'Unknown error'}` });
+    }
   }
 });
 
@@ -145,7 +163,7 @@ router.post('/setup/verify-otp', async (req, res) => {
 // Step 3: Complete setup (set PIN, access code, device)
 router.post('/setup/complete', async (req, res) => {
   try {
-    const { email, adminPin, accessCode, householdName, deviceId } = req.body;
+    const { email, householdId, adminPin, accessCode, householdName, adminName, deviceId } = req.body;
 
     const household = await Household.findOne({ 'admin.email': email });
     if (!household) {
@@ -154,6 +172,21 @@ router.post('/setup/complete', async (req, res) => {
 
     if (!household.admin.emailVerified) {
       return res.status(400).json({ error: 'Email not verified' });
+    }
+
+    // Validate custom Household Passkey
+    if (!householdId || householdId.length < 6) {
+      return res.status(400).json({ error: 'Household Passkey must be at least 6 characters' });
+    }
+
+    if (!/^[A-Za-z0-9@#$%^&*_-]+$/.test(householdId)) {
+      return res.status(400).json({ error: 'Household Passkey can only contain letters, numbers, and @#$%^&*_-' });
+    }
+
+    // Check if Household Passkey already exists
+    const existingHousehold = await Household.findOne({ householdId, setupComplete: true });
+    if (existingHousehold) {
+      return res.status(400).json({ error: 'This Household Passkey is already taken. Please choose a different one.' });
     }
 
     // Validate PIN (4-6 digits)
@@ -167,6 +200,8 @@ router.post('/setup/complete', async (req, res) => {
     }
 
     // Set values
+    household.householdId = householdId; // Use custom ID
+    household.admin.name = adminName || '';
     household.setPin(adminPin);
     household.accessCode = accessCode;
     household.name = householdName || 'My Household';
@@ -410,6 +445,7 @@ router.post('/admin/login', async (req, res) => {
       expiresAt,
       accessType: 'admin',
       householdName: household.name,
+      adminName: household.admin.name || '',
       devices: household.devices.map(d => ({ deviceId: d.deviceId, name: d.name })),
       trustedToken: newTrustedToken
     });
@@ -426,6 +462,7 @@ router.get('/info', verifyHouseholdSession, (req, res) => {
     householdId: h.householdId,
     name: h.name,
     accessType: req.session.type,
+    adminName: h.admin.name || '',
     devices: h.devices.map(d => ({ deviceId: d.deviceId, name: d.name })),
     members: h.members.map(m => m.name)
   });

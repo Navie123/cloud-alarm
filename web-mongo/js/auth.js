@@ -5,6 +5,7 @@ let accessType = null; // 'household' or 'admin'
 let householdName = null;
 let memberId = localStorage.getItem('memberId');
 let setupEmail = null;
+let otpVerified = false; // Track if OTP was verified
 
 // ============ INITIALIZATION ============
 document.addEventListener('DOMContentLoaded', async () => {
@@ -29,6 +30,12 @@ async function checkSetupStatus() {
         const info = await api.getHouseholdInfo();
         accessType = info.accessType;
         householdName = info.name;
+        
+        // Set admin name for greeting if available
+        if (info.accessType === 'admin' && info.adminName) {
+          localStorage.setItem('memberName', info.adminName);
+        }
+        
         showMainApp();
         return;
       } catch (e) {
@@ -141,11 +148,13 @@ async function handleGoogleSetup(response) {
   errorEl.textContent = '';
   
   try {
+    console.log('Sending Google credential to backend...');
     const result = await api.request('/api/household/setup/google', {
       method: 'POST',
       body: JSON.stringify({ credential: response.credential })
     });
     
+    console.log('Setup response:', result);
     setupEmail = result.email;
     document.getElementById('setupEmail').textContent = result.email;
     
@@ -159,7 +168,8 @@ async function handleGoogleSetup(response) {
     document.getElementById('stepIndicator1').classList.add('completed');
     document.getElementById('stepIndicator2').classList.add('active');
   } catch (error) {
-    errorEl.textContent = error.message;
+    console.error('Setup error:', error);
+    errorEl.textContent = error.message || 'Setup failed';
   }
 }
 
@@ -179,9 +189,14 @@ async function verifySetupOTP() {
       body: JSON.stringify({ email: setupEmail, code })
     });
     
+    otpVerified = true; // Mark OTP as verified
+    
     // Move to step 3
     document.getElementById('setupStep2').classList.add('hidden');
     document.getElementById('setupStep3').classList.remove('hidden');
+    
+    // Clear Household ID field to prevent autocomplete issues
+    document.getElementById('setupHouseholdId').value = '';
     
     // Update step indicators
     document.getElementById('stepIndicator2').classList.remove('active');
@@ -206,11 +221,37 @@ async function resendSetupOTP() {
 
 async function completeSetup() {
   const householdName = document.getElementById('setupHouseholdName').value.trim();
+  const adminName = document.getElementById('setupAdminName').value.trim();
+  const householdId = document.getElementById('setupHouseholdId').value.trim();
   const adminPin = document.getElementById('setupAdminPin').value.trim();
   const accessCode = document.getElementById('setupAccessCode').value.trim();
   const deviceId = document.getElementById('setupDeviceId').value.trim();
   const errorEl = document.getElementById('setupCompleteError');
   errorEl.textContent = '';
+  
+  if (!adminName) {
+    errorEl.textContent = 'Please enter your name as the administrator';
+    document.getElementById('setupAdminName').focus();
+    return;
+  }
+  
+  if (!householdId) {
+    errorEl.textContent = 'Please create a Household Passkey';
+    document.getElementById('setupHouseholdId').focus();
+    return;
+  }
+  
+  if (householdId.length < 6) {
+    errorEl.textContent = 'Household Passkey must be at least 6 characters';
+    document.getElementById('setupHouseholdId').focus();
+    return;
+  }
+  
+  if (!/^[A-Za-z0-9@#$%^&*_-]+$/.test(householdId)) {
+    errorEl.textContent = 'Household Passkey can only contain letters, numbers, and @#$%^&*_-';
+    document.getElementById('setupHouseholdId').focus();
+    return;
+  }
   
   if (!/^\d{4,6}$/.test(adminPin)) {
     errorEl.textContent = 'Admin PIN must be 4-6 digits';
@@ -227,7 +268,9 @@ async function completeSetup() {
       method: 'POST',
       body: JSON.stringify({
         email: setupEmail,
+        householdId: householdId,
         householdName: householdName || 'My Household',
+        adminName: adminName,
         adminPin,
         accessCode,
         deviceId: deviceId || null
@@ -283,8 +326,8 @@ async function joinHousehold() {
   const errorEl = document.getElementById('householdError');
   errorEl.textContent = '';
   
-  if (householdId.length !== 10) {
-    errorEl.textContent = 'Household ID must be 10 digits';
+  if (!householdId || householdId.length < 6) {
+    errorEl.textContent = 'Please enter a valid Household Passkey';
     return;
   }
   
@@ -412,8 +455,8 @@ async function adminLogin() {
       localStorage.setItem('adminTrustedToken', result.trustedToken);
     }
     
-    // Save admin name from email (use part before @)
-    const adminName = adminLoginData.email.split('@')[0];
+    // Save admin name from response (fallback to email prefix if not provided)
+    const adminName = result.adminName || adminLoginData.email.split('@')[0];
     localStorage.setItem('memberName', adminName.charAt(0).toUpperCase() + adminName.slice(1));
     
     if (result.devices?.length > 0) {
@@ -660,7 +703,7 @@ function showSetupCompleteModal(result, accessCode) {
         <div class="credentials-section">
           <h3><i class="fas fa-key"></i> Your Login Credentials</h3>
           <div class="credential-item">
-            <label>Household ID:</label>
+            <label>Household Passkey:</label>
             <div class="credential-value">
               <span id="householdIdValue">${result.householdId}</span>
               <button class="copy-btn" onclick="copyToClipboard('householdIdValue')">
@@ -753,3 +796,275 @@ function proceedToDashboard() {
   // Redirect to access screen
   window.location.reload();
 }
+// ============ STEP NAVIGATION ============
+function goToStep(stepNumber) {
+  // Hide all steps
+  document.getElementById('setupStep1').classList.add('hidden');
+  document.getElementById('setupStep2').classList.add('hidden');
+  document.getElementById('setupStep3').classList.add('hidden');
+  
+  // Reset all step indicators
+  document.getElementById('stepIndicator1').classList.remove('active', 'completed');
+  document.getElementById('stepIndicator2').classList.remove('active', 'completed');
+  document.getElementById('stepIndicator3').classList.remove('active', 'completed');
+  
+  // Show selected step and update indicators
+  if (stepNumber === 1) {
+    document.getElementById('setupStep1').classList.remove('hidden');
+    document.getElementById('stepIndicator1').classList.add('active');
+    
+    // Clear any previous data
+    setupEmail = '';
+    otpVerified = false;
+    document.getElementById('setupError').textContent = '';
+    
+  } else if (stepNumber === 2) {
+    // Only allow step 2 if we have an email from step 1
+    if (!setupEmail) {
+      showToast('Please complete step 1 first', 'error');
+      goToStep(1);
+      return;
+    }
+    
+    document.getElementById('setupStep2').classList.remove('hidden');
+    document.getElementById('stepIndicator1').classList.add('completed');
+    document.getElementById('stepIndicator2').classList.add('active');
+    
+    // Focus on OTP input
+    document.getElementById('setupOtpInput').focus();
+    
+  } else if (stepNumber === 3) {
+    // Only allow step 3 if we have verified the OTP
+    if (!setupEmail || !otpVerified) {
+      showToast('Please complete steps 1 and 2 first', 'error');
+      goToStep(1);
+      return;
+    }
+    
+    document.getElementById('setupStep3').classList.remove('hidden');
+    document.getElementById('stepIndicator1').classList.add('completed');
+    document.getElementById('stepIndicator2').classList.add('completed');
+    document.getElementById('stepIndicator3').classList.add('active');
+    
+    // Clear Household ID field to prevent autocomplete issues
+    const householdIdInput = document.getElementById('setupHouseholdId');
+    if (householdIdInput && !householdIdInput.value) {
+      householdIdInput.value = '';
+    }
+    
+    // Focus on first input
+    document.getElementById('setupAdminName').focus();
+  }
+}
+
+
+// ============ HOUSEHOLD PASSKEY GENERATOR ============
+function generateStrongHouseholdId() {
+  const adjectives = ['Fire', 'Safe', 'Guard', 'Shield', 'Secure', 'Alert', 'Watch', 'Protect', 'Defend', 'Flame'];
+  const nouns = ['Home', 'House', 'Family', 'Haven', 'Nest', 'Base', 'Zone', 'Hub', 'Unit', 'Place'];
+  const symbols = ['@', '#', '$', '%', '^', '&', '*', '_', '-'];
+  
+  // Generate random strong ID
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  const num = Math.floor(Math.random() * 9000) + 1000; // 4-digit number
+  const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+  
+  const strongId = `${adj}${symbol}${noun}${num}`;
+  
+  // Set the generated ID
+  document.getElementById('setupHouseholdId').value = strongId;
+  document.getElementById('setupHouseholdId').type = 'text'; // Show it
+  
+  // Update strength indicator
+  checkHouseholdIdStrength(strongId);
+  
+  // Show toast
+  showToast('Strong Household Passkey generated!', 'success');
+  
+  // Animate the input
+  const input = document.getElementById('setupHouseholdId');
+  input.style.animation = 'pulse 0.5s ease';
+  setTimeout(() => {
+    input.style.animation = '';
+  }, 500);
+}
+
+function checkHouseholdIdStrength(id) {
+  const indicator = document.getElementById('householdIdStrength');
+  const strengthText = document.getElementById('strengthText');
+  const lengthWarning = document.querySelector('.id-length-warning');
+  
+  if (!id || id.length < 6) {
+    indicator.classList.add('hidden');
+    if (lengthWarning) lengthWarning.style.display = 'none';
+    return;
+  }
+  
+  indicator.classList.remove('hidden');
+  
+  // Show warning if ID is longer than 12 characters
+  if (lengthWarning) {
+    lengthWarning.style.display = id.length > 12 ? 'block' : 'none';
+  }
+  
+  let strength = 0;
+  
+  // Length check
+  if (id.length >= 8) strength++;
+  if (id.length >= 12) strength++;
+  
+  // Character variety
+  if (/[a-z]/.test(id)) strength++;
+  if (/[A-Z]/.test(id)) strength++;
+  if (/[0-9]/.test(id)) strength++;
+  if (/[@#$%^&*_-]/.test(id)) strength++;
+  
+  // Set strength class
+  indicator.className = 'strength-indicator';
+  if (strength <= 2) {
+    indicator.classList.add('strength-weak');
+    strengthText.textContent = 'Weak - Add more characters';
+  } else if (strength <= 4) {
+    indicator.classList.add('strength-medium');
+    strengthText.textContent = 'Medium - Good but can be stronger';
+  } else {
+    indicator.classList.add('strength-strong');
+    strengthText.textContent = 'Strong - Excellent!';
+  }
+}
+
+// Add event listener for real-time strength checking
+document.addEventListener('DOMContentLoaded', () => {
+  const householdIdInput = document.getElementById('setupHouseholdId');
+  if (householdIdInput) {
+    householdIdInput.addEventListener('input', (e) => {
+      checkHouseholdIdStrength(e.target.value);
+    });
+  }
+});
+
+// ============ TOGGLE PASSWORD VISIBILITY ============
+function togglePasswordVisibility(inputId) {
+  const input = document.getElementById(inputId);
+  const button = input.parentElement.querySelector('.toggle-password');
+  const icon = button.querySelector('i');
+  
+  // Handle both password and text inputs
+  if (input.type === 'password' || input.type === 'text') {
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  }
+}
+
+// Add pulse animation
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); box-shadow: 0 0 20px rgba(102, 126, 234, 0.5); }
+  }
+`;
+document.head.appendChild(style);
+
+
+// ============ KEYBOARD SUPPORT (ENTER KEY) ============
+document.addEventListener('DOMContentLoaded', () => {
+  // Setup Step 2: OTP Verification - Press Enter to verify
+  const setupOtpInput = document.getElementById('setupOtpInput');
+  if (setupOtpInput) {
+    setupOtpInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        verifySetupOTP();
+      }
+    });
+  }
+  
+  // Admin Login Step 1: Request OTP - Press Enter to send
+  const adminEmailInput = document.getElementById('adminEmail');
+  const adminHouseholdIdInput = document.getElementById('adminHouseholdId');
+  
+  if (adminEmailInput) {
+    adminEmailInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        requestAdminOTP();
+      }
+    });
+  }
+  
+  if (adminHouseholdIdInput) {
+    adminHouseholdIdInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        // Check if we're in step 1 or step 2
+        const step1 = document.getElementById('adminStep1');
+        if (step1 && !step1.classList.contains('hidden')) {
+          requestAdminOTP();
+        }
+      }
+    });
+  }
+  
+  // Admin Login Step 2: Login - Press Enter to login
+  const adminOtpInput = document.getElementById('adminOtpInput');
+  const adminPinInput = document.getElementById('adminPinInput');
+  
+  if (adminOtpInput) {
+    adminOtpInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        adminLogin();
+      }
+    });
+  }
+  
+  if (adminPinInput) {
+    adminPinInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        adminLogin();
+      }
+    });
+  }
+  
+  // Household Access: Press Enter to join
+  const householdIdInput = document.getElementById('householdIdInput');
+  const accessCodeInput = document.getElementById('accessCodeInput');
+  const memberNameInput = document.getElementById('memberNameInput');
+  
+  if (householdIdInput) {
+    householdIdInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        joinHousehold();
+      }
+    });
+  }
+  
+  if (accessCodeInput) {
+    accessCodeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        joinHousehold();
+      }
+    });
+  }
+  
+  if (memberNameInput) {
+    memberNameInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        joinHousehold();
+      }
+    });
+  }
+});

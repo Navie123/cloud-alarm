@@ -148,7 +148,7 @@ const sendOTPEmail = async (email, code, purpose) => {
     if (!emailSent) {
       const nodemailer = require('nodemailer');
       
-      const transporter = nodemailer.createTransporter({
+      const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.EMAIL_PORT) || 587,
         secure: false,
@@ -159,13 +159,14 @@ const sendOTPEmail = async (email, code, purpose) => {
       });
 
       const mailOptions = {
-        from: `"Cloud Fire Alarm" <${process.env.EMAIL_USER}>`,
+        from: `"FireWire Alert System" <${process.env.EMAIL_USER}>`,
         to: email,
-        subject: 'Your Verification Code - Cloud Fire Alarm',
+        subject: 'Your Verification Code - FireWire',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #ff5722, #ff9800); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0;">🔥 Cloud Fire Alarm</h1>
+              <h1 style="color: white; margin: 0;">🔥 FireWire</h1>
+              <p style="color: #fff3e0; margin: 10px 0 0 0;">Smart Fire Monitoring System</p>
             </div>
             <div style="padding: 30px; background: #f5f5f5; border-radius: 0 0 10px 10px;">
               <h2 style="color: #333;">Verification Code</h2>
@@ -352,7 +353,7 @@ const sendSetupCompletionEmail = async (email, setupData) => {
                     <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdName}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household ID:</td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household Passkey:</td>
                     <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdId}</td>
                   </tr>
                   <tr>
@@ -419,7 +420,7 @@ const sendSetupCompletionEmail = async (email, setupData) => {
     if (!emailSent) {
       const nodemailer = require('nodemailer');
       
-      const transporter = nodemailer.createTransporter({
+      const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.EMAIL_PORT) || 587,
         secure: false,
@@ -455,7 +456,7 @@ const sendSetupCompletionEmail = async (email, setupData) => {
                     <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdName}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household ID:</td>
+                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household Passkey:</td>
                     <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdId}</td>
                   </tr>
                   <tr>

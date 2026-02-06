@@ -800,25 +800,31 @@ function updateGreeting(hours) {
   const memberName = localStorage.getItem('memberName') || '';
   const userName = memberName ? `, ${memberName}` : '';
   
-  let greeting, iconClass, timeClass;
+  // Get current language
+  const lang = getCurrentLanguage();
+  const trans = translations[lang];
+  
+  let greetingKey, iconClass, timeClass;
   
   if (hours >= 5 && hours < 12) {
-    greeting = `Good Morning${userName}!`;
+    greetingKey = 'greetingMorning';
     iconClass = 'fa-sun';
     timeClass = 'morning';
   } else if (hours >= 12 && hours < 17) {
-    greeting = `Good Afternoon${userName}!`;
+    greetingKey = 'greetingAfternoon';
     iconClass = 'fa-cloud-sun';
     timeClass = 'afternoon';
   } else if (hours >= 17 && hours < 21) {
-    greeting = `Good Evening${userName}!`;
+    greetingKey = 'greetingEvening';
     iconClass = 'fa-cloud-moon';
     timeClass = 'evening';
   } else {
-    greeting = `Good Evening${userName}!`;
+    greetingKey = 'greetingNight';
     iconClass = 'fa-moon';
     timeClass = 'night';
   }
+  
+  const greeting = `${trans[greetingKey]}${userName}!`;
   
   if (greetEl) greetEl.textContent = greeting;
   if (subEl) subEl.style.display = 'none'; // Hide subtitle
@@ -1587,7 +1593,7 @@ function exportPDF() {
   doc.setFont(undefined, 'normal');
   doc.text('Alarm History Report', 15, 20);
   doc.text('Generated: ' + formatDatePH(new Date()), 15, 25);
-  doc.text('By Vince Angelo Nailon', pageW - 60, 20);
+  doc.text('FireWire Research Team', pageW - 60, 20);
   
   // Table header
   let y = 42;
@@ -3429,4 +3435,55 @@ function showStatsError() {
   const periodRange = document.getElementById('periodRange');
   if (periodRange) periodRange.textContent = 'Failed to load data';
   showStatsNoData();
+}
+
+
+// ============ LANGUAGE SYSTEM ============
+function setLanguage(lang) {
+  localStorage.setItem('language', lang);
+  applyTranslations(lang);
+  
+  // Update greeting with new language
+  const now = new Date();
+  updateGreeting(now.getHours());
+  
+  // Show toast notification
+  const message = lang === 'en' ? 'Language changed to English' : 'Wika ay napalitan sa Filipino';
+  showToast(message, 'success');
+}
+
+// Listen for language changes to update dynamic content
+document.addEventListener('languageChanged', (e) => {
+  const lang = e.detail.lang;
+  
+  // Update alarm status
+  updateAlarmUI();
+  
+  // Update sensor labels
+  updateSensorLabels();
+  
+  // Update stats if visible
+  if (!document.getElementById('sessionStatsPanel').classList.contains('hidden')) {
+    updateStatsLabels();
+  }
+});
+
+function updateSensorLabels() {
+  // This will be called when language changes to update any dynamic sensor text
+  // Most labels are handled by data-i18n attributes, but dynamic content needs manual update
+}
+
+function updateStatsLabels() {
+  // Update statistics labels when language changes
+  const lang = getCurrentLanguage();
+  const trans = translations[lang];
+  
+  // Update period tabs
+  document.querySelectorAll('.stats-period-tab').forEach(tab => {
+    const period = tab.getAttribute('data-period');
+    const icon = tab.querySelector('i').outerHTML;
+    if (period === 'today') tab.innerHTML = icon + ' ' + trans.statsToday;
+    if (period === 'week') tab.innerHTML = icon + ' ' + trans.statsWeek;
+    if (period === 'month') tab.innerHTML = icon + ' ' + trans.statsMonth;
+  });
 }

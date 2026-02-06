@@ -2,14 +2,14 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 
 const householdSchema = new mongoose.Schema({
-  // Unique household identifier (10-digit)
+  // Unique household identifier (custom: 6-20 characters, letters/numbers/symbols)
   householdId: {
     type: String,
     required: true,
     unique: true,
     validate: {
-      validator: v => /^\d{10}$/.test(v),
-      message: 'Household ID must be 10 digits'
+      validator: v => /^[A-Za-z0-9@#$%^&*_-]{6,20}$/.test(v),
+      message: 'Household ID must be 6-20 characters (letters, numbers, @#$%^&*_-)'
     }
   },
 
@@ -22,6 +22,7 @@ const householdSchema = new mongoose.Schema({
   // ============ ADMIN (Single, Required) ============
   admin: {
     email: { type: String, required: true }, // Gmail only
+    name: { type: String, default: '' }, // Admin's display name
     googleId: String, // From Google OAuth
     emailVerified: { type: Boolean, default: false },
     pin: String, // 4-6 digit PIN (hashed)

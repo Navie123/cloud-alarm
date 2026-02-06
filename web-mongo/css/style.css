@@ -1192,17 +1192,25 @@ body {
   transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--muted);
+  color: #ff5722;
   cursor: pointer;
   padding: 8px;
   font-size: 1rem;
   transition: all 0.3s ease;
   border-radius: 6px;
+  opacity: 0.8;
+  z-index: 10;
+  pointer-events: auto;
 }
 
 .toggle-password:hover {
-  color: var(--accent);
-  background: rgba(255, 87, 34, 0.1);
+  color: #ff5722;
+  background: rgba(255, 87, 34, 0.15);
+  opacity: 1;
+}
+
+.toggle-password:active {
+  transform: translateY(-50%) scale(0.95);
 }
 
 .form-options {
@@ -2225,14 +2233,24 @@ main.container {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 10px 8px;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--muted);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.theme-option span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .theme-option:hover {
@@ -6897,11 +6915,17 @@ header {
 
 .pin-input-group {
   margin-bottom: 15px;
+  position: relative;
+}
+
+.pin-input-group .input-wrapper {
+  position: relative;
+  width: 100%;
 }
 
 .pin-input {
   width: 100%;
-  padding: 15px 20px;
+  padding: 15px 50px 15px 20px;
   font-size: 1.5rem;
   text-align: center;
   letter-spacing: 10px;
@@ -9115,6 +9139,9 @@ header {
   color: var(--text);
   font-weight: 600;
   letter-spacing: 1px;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  line-height: 1.4;
 }
 
 .copy-btn {
@@ -9198,7 +9225,7 @@ header {
 @media (max-width: 768px) {
   .setup-complete-modal {
     max-width: 95vw;
-    padding: 30px 25px;
+    padding: 30px 20px;
   }
   
   .setup-complete-header h2 {
@@ -9209,15 +9236,40 @@ header {
     font-size: 3rem !important;
   }
   
+  .credential-item {
+    margin-bottom: 15px;
+  }
+  
+  .credential-item label {
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+  }
+  
   .credential-value {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  
+  .credential-value span {
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    word-break: break-all;
+    text-align: center;
   }
   
   .copy-btn {
     align-self: center;
-    min-width: 100px;
+    min-width: 120px;
+    padding: 10px 15px;
+  }
+  
+  .btn-large {
+    padding: 12px 20px;
+    font-size: 1rem;
+    min-width: auto;
+    width: 100%;
   }
 }
 /* Account Chooser Section */
@@ -9249,4 +9301,173 @@ header {
 
 .choose-account-btn i {
   font-size: 0.9rem;
+}
+/* Clickable Step Indicators */
+.step.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.step.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
+}
+
+.step.clickable.completed:hover {
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.step.clickable:active {
+  transform: translateY(0);
+}
+
+
+/* ============ HOUSEHOLD ID GENERATOR ============ */
+.input-with-action {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.input-with-action .input-wrapper {
+  flex: 1;
+}
+
+.btn-generate {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-generate:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-generate:active {
+  transform: translateY(0);
+}
+
+.btn-generate i {
+  font-size: 1rem;
+}
+
+/* Strength Indicator */
+.strength-indicator {
+  margin-top: 10px;
+}
+
+.strength-bar {
+  height: 6px;
+  background: var(--bg2);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.strength-fill {
+  height: 100%;
+  transition: all 0.3s ease;
+  border-radius: 3px;
+}
+
+.strength-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.strength-weak .strength-fill {
+  width: 33%;
+  background: #f44336;
+}
+
+.strength-weak .strength-text {
+  color: #f44336;
+}
+
+.strength-medium .strength-fill {
+  width: 66%;
+  background: #ff9800;
+}
+
+.strength-medium .strength-text {
+  color: #ff9800;
+}
+
+.strength-strong .strength-fill {
+  width: 100%;
+  background: #4caf50;
+}
+
+.strength-strong .strength-text {
+  color: #4caf50;
+}
+
+/* Improved Toggle Password Button */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper input {
+  flex: 1;
+  padding-right: 45px;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #ff5722;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 35px;
+  height: 35px;
+  opacity: 0.8;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.toggle-password:hover {
+  background: rgba(255, 87, 34, 0.15);
+  color: #ff5722;
+  opacity: 1;
+}
+
+.toggle-password:active {
+  transform: scale(0.95);
+}
+
+.toggle-password i {
+  font-size: 1rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .input-with-action {
+    flex-direction: column;
+  }
+  
+  .btn-generate {
+    width: 100%;
+    justify-content: center;
+  }
 }
