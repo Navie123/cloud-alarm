@@ -2124,9 +2124,16 @@ async function resetThresholdsToDefault() {
     return;
   }
   
-  if (!confirm('Reset all sensor thresholds to factory defaults?\n\n• Gas: 40%\n• Smoke: 40%\n• Temperature: 35°C (min) - 60°C (default)\n• CO: 35/100/400 PPM')) {
+  // Show confirmation toast with action buttons
+  const confirmReset = confirm('Reset all sensor thresholds to factory defaults?\n\n• Gas: 40%\n• Smoke: 40%\n• Temperature: 60°C (default)\n• CO: 35/100/400 PPM');
+  
+  if (!confirmReset) {
+    showToast('Reset cancelled', 'info');
     return;
   }
+  
+  // Show loading toast
+  showToast('Resetting thresholds...', 'info');
   
   // Default values
   const defaults = {
@@ -2211,10 +2218,10 @@ async function resetThresholdsToDefault() {
       })
     });
     
-    showToast('All thresholds reset to defaults', 'success');
+    showToast('✅ All thresholds reset to factory defaults successfully!', 'success');
   } catch (error) {
     console.error('Error resetting thresholds:', error);
-    showToast('Error resetting thresholds', 'error');
+    showToast('❌ Failed to reset thresholds. Please try again.', 'error');
   }
 }
 
