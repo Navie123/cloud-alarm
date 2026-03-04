@@ -35,7 +35,7 @@ POWER:
   • Dual 18650 Lithium Battery Shield V8 (3V/5V 3A output)
   • 2x 18650 Lithium-ion Batteries (3.7V, 2500mAh+ recommended)
   • Micro-USB Cable (for charging and programming)
-
+a
 ================================================================================
                          PIN ASSIGNMENTS
 ================================================================================

@@ -136,7 +136,7 @@ householdSchema.methods.verifyPin = function(pin) {
 // Create session
 householdSchema.methods.createSession = function(type, memberId = null) {
   const token = crypto.randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + (type === 'admin' ? 2 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000)); // Admin: 2hrs, Household: 30 days
+  const expiresAt = new Date(Date.now() + (type === 'admin' ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000)); // Admin: 7 days, Household: 30 days
   
   this.sessions.push({ token, type, memberId, expiresAt });
   return { token, expiresAt };

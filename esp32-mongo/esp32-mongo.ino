@@ -2135,7 +2135,7 @@ void displayWarningScreen() {
     snprintf(buf, 21, "TEMP HIGH: %.1fC", temperature);
   } else if (coPpm >= coWarningThreshold * 0.8) {
     snprintf(buf, 21, "CO DETECTED: %.0f PPM", coPpm);
-  } else if (aqi >= 40) {
+  } else if (aqi > 50) {
     snprintf(buf, 21, "POOR AIR: %.0f AQI", aqi);
   } else {
     snprintf(buf, 21, "MULTIPLE SENSORS");
