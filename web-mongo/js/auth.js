@@ -71,6 +71,16 @@ function showMainApp() {
   
   updateAccessUI();
   if (typeof initializeApp === 'function') initializeApp();
+
+  // Unlock browser audio context immediately on login while we're still
+  // inside the user gesture call stack (button click). This prevents the
+  // "no sound on first alarm" issue caused by browser autoplay policies.
+  try {
+    const unlock = new Audio();
+    unlock.volume = 0;
+    unlock.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    unlock.play().then(() => { unlock.src = ''; }).catch(() => {});
+  } catch(e) {}
 }
 
 // ============ FIRST-TIME SETUP ============

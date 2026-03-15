@@ -505,7 +505,18 @@ function enableAudio() {
   const audioPrompt = document.getElementById('audioPrompt');
   if (audioPrompt) audioPrompt.classList.add('hidden');
   
-  // Show confirmation
+  // Actually play a silent sound immediately to unlock the browser's audio context.
+  // Without this, browsers block audio until a real play() is called during a user gesture.
+  const silentUnlock = new Audio(selectedAlarmSound);
+  silentUnlock.volume = 0;
+  silentUnlock.play().then(() => {
+    silentUnlock.pause();
+    silentUnlock.src = '';
+    console.log('Audio context unlocked');
+  }).catch(() => {
+    // Silently ignore — user gesture may not have been strong enough
+  });
+
   showToast('Alarm sound enabled', 'success');
 }
 
