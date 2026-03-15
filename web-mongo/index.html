@@ -247,6 +247,26 @@
   <!-- ========== MAIN APP ========== -->
   <div id="mainApp" class="main-app hidden">
     <div class="siren-overlay" id="sirenOverlay"></div>
+
+  <!-- ========== DELETE MEMBER MODAL ========== -->
+  <div class="fw-modal-backdrop" id="deleteMemberModal">
+    <div class="fw-modal">
+      <div class="fw-modal-icon">
+        <i class="fas fa-user-minus"></i>
+      </div>
+      <h3 class="fw-modal-title" id="deleteMemberTitle">Remove Member</h3>
+      <p class="fw-modal-body" id="deleteMemberBody">Are you sure you want to remove this member?</p>
+      <p class="fw-modal-note">They will need to re-enter their name to access again.</p>
+      <div class="fw-modal-actions">
+        <button class="fw-modal-btn fw-modal-cancel" onclick="closeDeleteModal()">
+          <i class="fas fa-xmark"></i> Cancel
+        </button>
+        <button class="fw-modal-btn fw-modal-confirm" id="deleteMemberConfirmBtn">
+          <i class="fas fa-trash"></i> Remove
+        </button>
+      </div>
+    </div>
+  </div>
     <div id="audioPrompt" class="audio-prompt hidden">
       <div class="audio-prompt-content">
         <i class="fas fa-volume-up"></i>

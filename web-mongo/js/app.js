@@ -2818,55 +2818,61 @@ async function deleteSelectedMembers() {
     return;
   }
   
-  if (!confirm(`Delete ${selectedMembers.size} selected member(s)?\n\nThey will need to re-enter their names to access again.`)) {
-    return;
-  }
-  
-  try {
-    const memberIds = Array.from(selectedMembers);
-    await api.removeMultipleMembers(memberIds);
-    
-    showToast(`Removed ${selectedMembers.size} member(s)`);
-    selectedMembers.clear();
-    updateSelectedCount();
-    loadMembersFullList();
-    
-    // Update select all checkbox
-    const selectAllCheckbox = document.getElementById('selectAllMembers');
-    if (selectAllCheckbox) selectAllCheckbox.checked = false;
-  } catch (error) {
-    showToast('Failed to remove members', 'error');
-  }
+  if (selectedMembers.size === 0) return;
+
+  showDeleteModal(
+    `Remove ${selectedMembers.size} Member${selectedMembers.size > 1 ? 's' : ''}?`,
+    `This will remove <strong>${selectedMembers.size} selected member${selectedMembers.size > 1 ? 's' : ''}</strong> from the household.`,
+    async () => {
+      try {
+        const memberIds = Array.from(selectedMembers);
+        await api.removeMultipleMembers(memberIds);
+        showToast(`Removed ${selectedMembers.size} member(s)`);
+        selectedMembers.clear();
+        updateSelectedCount();
+        loadMembersFullList();
+        const selectAllCheckbox = document.getElementById('selectAllMembers');
+        if (selectAllCheckbox) selectAllCheckbox.checked = false;
+      } catch (error) {
+        showToast('Failed to remove members', 'error');
+      }
+    }
+  );
 }
 
 async function removeMember(memberId, memberName) {
-  if (!confirm(`Remove "${memberName}" from this household?\n\nThey will need to re-enter their name to access again.`)) {
-    return;
-  }
-  
-  try {
-    await api.removeMember(memberId);
-    showToast(`Removed ${memberName}`);
-    loadMembersFullList();
-  } catch (error) {
-    showToast('Failed to remove member', 'error');
-  }
+  showDeleteModal(
+    `Remove "${memberName}"?`,
+    `This will remove <strong>${memberName}</strong> from the household.`,
+    async () => {
+      try {
+        await api.removeMember(memberId);
+        showToast(`Removed ${memberName}`);
+        loadMembersFullList();
+      } catch (error) {
+        showToast('Failed to remove member', 'error');
+      }
+    }
+  );
 }
 
 async function clearAllMembers() {
-  if (!confirm('Remove ALL household members?\n\nThis will log out everyone except the admin. They will need to re-enter their names to access again.')) {
-    return;
-  }
-  
-  try {
-    await api.clearAllMembers();
-    showToast('All members removed');
-    selectedMembers.clear();
-    updateSelectedCount();
-    loadMembersFullList();
-  } catch (error) {
-    showToast('Failed to clear members', 'error');
-  }
+  showDeleteModal(
+    'Remove ALL Members?',
+    'This will log out <strong>everyone</strong> except the admin.',
+    async () => {
+      try {
+        await api.clearAllMembers();
+        showToast('All members removed');
+        selectedMembers.clear();
+        updateSelectedCount();
+        loadMembersFullList();
+      } catch (error) {
+        showToast('Failed to clear members', 'error');
+      }
+    },
+    'Remove All'
+  );
 }
 
 async function changeAccessCode() {
@@ -3571,3 +3577,40 @@ function updateSmartAlarmModeUI(enabled) {
     ? 'Smoke alone = Warning only; needs temp rise for full alarm'
     : 'Any sensor trigger = Full Alarm';
 }
+
+// ============ DELETE MEMBER MODAL ============
+function showDeleteModal(title, body, onConfirm, confirmLabel = 'Remove') {
+  const modal = document.getElementById('deleteMemberModal');
+  const titleEl = document.getElementById('deleteMemberTitle');
+  const bodyEl = document.getElementById('deleteMemberBody');
+  const confirmBtn = document.getElementById('deleteMemberConfirmBtn');
+
+  if (!modal) return;
+
+  titleEl.textContent = title;
+  bodyEl.innerHTML = body;
+  confirmBtn.innerHTML = `<i class="fas fa-trash"></i> ${confirmLabel}`;
+
+  // Set confirm action
+  confirmBtn.onclick = async () => {
+    closeDeleteModal();
+    await onConfirm();
+  };
+
+  modal.classList.add('active');
+}
+
+function closeDeleteModal() {
+  const modal = document.getElementById('deleteMemberModal');
+  if (modal) modal.classList.remove('active');
+}
+
+// Close modal on backdrop click
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('deleteMemberModal');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeDeleteModal();
+    });
+  }
+});
