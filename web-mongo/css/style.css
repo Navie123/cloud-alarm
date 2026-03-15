@@ -2353,11 +2353,49 @@ main.container {
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.3s;
+  z-index: 10;
 }
 
 .siren-overlay.active { opacity: 1; animation: flash 0.5s infinite; }
 
 @keyframes flash { 50% { opacity: 0.2; } }
+
+/* Warning mode full-screen ambient overlay */
+.warning-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 10;
+  transition: opacity 0.4s ease;
+  background: radial-gradient(ellipse at top, rgba(249,115,22,0.08) 0%, transparent 70%);
+}
+
+body.warning-mode .warning-overlay {
+  opacity: 1;
+  animation: warningAmbient 2.5s ease-in-out infinite;
+}
+
+@keyframes warningAmbient {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Warning mode — subtle orange edge glow on body */
+body.warning-mode::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  box-shadow: inset 0 0 80px rgba(249, 115, 22, 0.12);
+  animation: warningEdge 2s ease-in-out infinite;
+}
+
+@keyframes warningEdge {
+  0%, 100% { box-shadow: inset 0 0 80px rgba(249,115,22,0.08); }
+  50% { box-shadow: inset 0 0 120px rgba(249,115,22,0.2); }
+}
 
 .toast {
   position: fixed;
@@ -9500,21 +9538,33 @@ header {
 
 /* ============ WARNING STATE (Smart Alarm Mode) ============ */
 .alarm-banner.warning-active {
-  background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
-  border-color: #f59e0b !important;
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4) !important;
+  background: linear-gradient(135deg, rgba(251,146,60,0.15), rgba(234,88,12,0.1)) !important;
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 2px rgba(249,115,22,0.3), 0 4px 24px rgba(249,115,22,0.2) !important;
+  animation: warningBannerPulse 2s ease-in-out infinite !important;
 }
 
 .alarm-banner.warning-active .alarm-icon-wrap i {
-  color: #d97706 !important;
+  color: #f97316 !important;
+  animation: warningIconPulse 1.5s ease-in-out infinite !important;
 }
 
 .alarm-banner.warning-active .alarm-title {
-  color: #92400e !important;
+  color: #fed7aa !important;
 }
 
 .alarm-banner.warning-active .alarm-subtitle {
-  color: #b45309 !important;
+  color: #fdba74 !important;
+}
+
+@keyframes warningBannerPulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(249,115,22,0.3), 0 4px 24px rgba(249,115,22,0.15); }
+  50% { box-shadow: 0 0 0 4px rgba(249,115,22,0.5), 0 4px 32px rgba(249,115,22,0.35); }
+}
+
+@keyframes warningIconPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.7; }
 }
 
 /* ============ DELETE MEMBER MODAL ============ */

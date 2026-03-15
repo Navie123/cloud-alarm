@@ -1236,7 +1236,7 @@ function updateAlarmState(isAlarm, tempWarning, isPartialWarning = false) {
     if (alarmText) alarmText.textContent = 'System Normal';
     if (alarmSubtitle) alarmSubtitle.textContent = 'All sensors within safe range';
     if (sirenOverlay) sirenOverlay.classList.remove('active');
-    document.body.classList.remove('alarm-mode');
+    document.body.classList.remove('alarm-mode', 'warning-mode');
     stopAlarmSound();
   }
 }
@@ -2084,12 +2084,15 @@ function updateAlarmStateExtended(data) {
     if (alarmIcon) alarmIcon.className = 'fas fa-triangle-exclamation';
     if (alarmText) alarmText.textContent = `${warningType} WARNING`;
     if (alarmSubtitle) alarmSubtitle.textContent = 'Detected but no temperature rise — monitor the area';
+    document.body.classList.add('warning-mode');
+    document.body.classList.remove('alarm-mode');
     stopAlarmSound();
     return;
   }
 
-  // Clear warning-active if not in partial warning
+  // Clear warning state
   if (alarmCard) alarmCard.classList.remove('warning-active');
+  document.body.classList.remove('warning-mode');
   
   // Fire risk takes highest priority
   if (data.fireRisk) {
