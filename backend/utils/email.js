@@ -3,43 +3,72 @@ const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// ─── Shared layout helpers ────────────────────────────────────────────────────
+
+const header = (accentColor = '#e25822') => `
+  <div style="background:${accentColor};padding:28px 32px;border-radius:8px 8px 0 0;">
+    <p style="margin:0;font-size:20px;font-weight:700;color:#fff;letter-spacing:0.5px;">FireWire</p>
+    <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.75);letter-spacing:1px;text-transform:uppercase;">Smart Fire Monitoring</p>
+  </div>`;
+
+const footer = () => `
+  <div style="padding:20px 32px;background:#f0f0f0;border-radius:0 0 8px 8px;border-top:1px solid #e0e0e0;">
+    <p style="margin:0;font-size:11px;color:#999;line-height:1.6;">
+      This is an automated message from FireWire. Do not reply to this email.<br>
+      If you did not request this, you can safely ignore it.
+    </p>
+  </div>`;
+
+const wrap = (inner) => `
+  <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;max-width:580px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #e0e0e0;overflow:hidden;">
+    ${inner}
+  </div>`;
+
+const body = (inner) => `
+  <div style="padding:32px;">
+    ${inner}
+  </div>`;
+
+const row = (label, value, valueColor = '#111') => `
+  <tr>
+    <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:#666;width:40%;">${label}</td>
+    <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:13px;color:${valueColor};font-weight:600;">${value}</td>
+  </tr>`;
+
+const btn = (text, url, color = '#e25822') => `
+  <div style="margin-top:28px;">
+    <a href="${url}" style="display:inline-block;background:${color};color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600;">${text}</a>
+  </div>`;
+
+// ─── Verification email ───────────────────────────────────────────────────────
+
 const sendVerificationEmail = async (email, token) => {
   const verifyUrl = `${process.env.FRONTEND_URL}/verify.html?token=${token}`;
-  
   console.log('[Email] Sending verification email to:', email);
-  console.log('[Email] Verify URL:', verifyUrl);
-  
+
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Cloud Fire Alarm <onboarding@resend.dev>',
+      from: 'FireWire <onboarding@resend.dev>',
       to: email,
-      subject: 'Verify Your Email - Cloud Fire Alarm',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #ff5722, #ff9800); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0;">🔥 Cloud Fire Alarm</h1>
-          </div>
-          <div style="padding: 30px; background: #f5f5f5; border-radius: 0 0 10px 10px;">
-            <h2 style="color: #333;">Verify Your Email</h2>
-            <p style="color: #666;">Thanks for registering! Please click the button below to verify your email address.</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${verifyUrl}" style="background: #ff5722; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                Verify Email
-              </a>
-            </div>
-            <p style="color: #999; font-size: 12px;">This link expires in 24 hours. If you didn't create an account, ignore this email.</p>
-            <p style="color: #999; font-size: 12px;">Or copy this link: ${verifyUrl}</p>
-          </div>
-        </div>
-      `
+      subject: 'Verify your email — FireWire',
+      html: wrap(`
+        ${header()}
+        ${body(`
+          <h2 style="margin:0 0 8px;font-size:20px;color:#111;">Verify your email</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6;">
+            Click the button below to verify your email address and complete registration.
+          </p>
+          ${btn('Verify Email', verifyUrl)}
+          <p style="margin-top:20px;font-size:12px;color:#999;">
+            This link expires in 24 hours.<br>
+            Or copy this URL: <span style="color:#e25822;">${verifyUrl}</span>
+          </p>
+        `)}
+        ${footer()}
+      `),
     });
-
-    if (error) {
-      console.error('[Email] Resend error:', error);
-      throw new Error(error.message);
-    }
-
-    console.log('[Email] Verification email sent successfully to:', email, 'ID:', data?.id);
+    if (error) throw new Error(error.message);
+    console.log('[Email] Verification email sent:', data?.id);
     return data;
   } catch (error) {
     console.error('[Email] Failed to send verification email:', error.message);
@@ -47,43 +76,34 @@ const sendVerificationEmail = async (email, token) => {
   }
 };
 
+// ─── Password reset ───────────────────────────────────────────────────────────
+
 const sendPasswordResetEmail = async (email, token) => {
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${token}`;
-  
   console.log('[Email] Sending password reset email to:', email);
-  console.log('[Email] Reset URL:', resetUrl);
-  
+
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Cloud Fire Alarm <onboarding@resend.dev>',
+      from: 'FireWire <onboarding@resend.dev>',
       to: email,
-      subject: 'Reset Your Password - Cloud Fire Alarm',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #ff5722, #ff9800); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0;">🔥 Cloud Fire Alarm</h1>
-          </div>
-          <div style="padding: 30px; background: #f5f5f5; border-radius: 0 0 10px 10px;">
-            <h2 style="color: #333;">Reset Your Password</h2>
-            <p style="color: #666;">You requested a password reset. Click the button below to set a new password.</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetUrl}" style="background: #ff5722; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-                Reset Password
-              </a>
-            </div>
-            <p style="color: #999; font-size: 12px;">This link expires in 1 hour. If you didn't request this, ignore this email.</p>
-            <p style="color: #999; font-size: 12px;">Or copy this link: ${resetUrl}</p>
-          </div>
-        </div>
-      `
+      subject: 'Reset your password — FireWire',
+      html: wrap(`
+        ${header()}
+        ${body(`
+          <h2 style="margin:0 0 8px;font-size:20px;color:#111;">Reset your password</h2>
+          <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6;">
+            We received a request to reset your password. Click below to set a new one.
+          </p>
+          ${btn('Reset Password', resetUrl)}
+          <p style="margin-top:20px;font-size:12px;color:#999;">
+            This link expires in 1 hour. If you didn't request this, no action is needed.
+          </p>
+        `)}
+        ${footer()}
+      `),
     });
-
-    if (error) {
-      console.error('[Email] Resend error:', error);
-      throw new Error(error.message);
-    }
-
-    console.log('[Email] Password reset email sent successfully to:', email, 'ID:', data?.id);
+    if (error) throw new Error(error.message);
+    console.log('[Email] Password reset email sent:', data?.id);
     return data;
   } catch (error) {
     console.error('[Email] Failed to send password reset email:', error.message);
@@ -91,222 +111,136 @@ const sendPasswordResetEmail = async (email, token) => {
   }
 };
 
-// Send OTP email for admin verification
+// ─── OTP verification ─────────────────────────────────────────────────────────
+
 const sendOTPEmail = async (email, code, purpose) => {
   const purposeText = {
     setup: 'complete your setup',
     login: 'log in as Admin',
     reset: 'reset your Admin PIN',
-    member: 'verify your email for alarm alerts'
+    member: 'verify your email for alarm alerts',
   };
 
   console.log('[Email] Sending OTP to:', email, 'Purpose:', purpose);
 
+  const htmlContent = wrap(`
+    ${header()}
+    ${body(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#111;">Verification code</h2>
+      <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6;">
+        Use the code below to ${purposeText[purpose] || 'verify your identity'}.
+      </p>
+      <div style="background:#f7f7f7;border:1px solid #e0e0e0;border-radius:6px;padding:20px 32px;display:inline-block;margin-bottom:24px;">
+        <span style="font-size:36px;font-weight:700;letter-spacing:12px;color:#111;font-family:'Courier New',monospace;">${code}</span>
+      </div>
+      <p style="margin:0;font-size:12px;color:#999;">This code expires in 10 minutes.</p>
+    `)}
+    ${footer()}
+  `);
+
   try {
-    // Try Resend first, fallback to Gmail SMTP if it fails
-    let emailSent = false;
-    let lastError = null;
+    const { data, error } = await resend.emails.send({
+      from: 'FireWire <onboarding@resend.dev>',
+      to: email,
+      subject: 'Your verification code — FireWire',
+      html: htmlContent,
+    });
 
-    try {
-      const { data, error } = await resend.emails.send({
-        from: 'Cloud Fire Alarm <onboarding@resend.dev>',
-        to: email,
-        subject: `Your Verification Code - Cloud Fire Alarm`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #ff5722, #ff9800); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0;">🔥 Cloud Fire Alarm</h1>
-            </div>
-            <div style="padding: 30px; background: #f5f5f5; border-radius: 0 0 10px 10px;">
-              <h2 style="color: #333;">Verification Code</h2>
-              <p style="color: #666;">Use this code to ${purposeText[purpose] || 'verify your identity'}:</p>
-              <div style="text-align: center; margin: 30px 0;">
-                <div style="background: #333; color: #ff5722; padding: 20px 40px; font-size: 32px; font-weight: bold; letter-spacing: 8px; border-radius: 8px; display: inline-block;">
-                  ${code}
-                </div>
-              </div>
-              <p style="color: #999; font-size: 12px;">This code expires in 10 minutes.</p>
-              <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
-            </div>
-          </div>
-        `
-      });
-
-      if (error) {
-        console.log('[Email] Resend failed, trying Gmail SMTP...', error.message);
-        lastError = error;
-      } else {
-        console.log('[Email] OTP sent successfully via Resend to:', email);
-        return data;
-      }
-    } catch (resendError) {
-      console.log('[Email] Resend failed, trying Gmail SMTP...', resendError.message);
-      lastError = resendError;
+    if (!error) {
+      console.log('[Email] OTP sent via Resend to:', email);
+      return data;
     }
-
-    // Fallback to Gmail SMTP
-    if (!emailSent) {
-      const nodemailer = require('nodemailer');
-      
-      const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.EMAIL_PORT) || 587,
-        secure: false,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
-        }
-      });
-
-      const mailOptions = {
-        from: `"FireWire Alert System" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: 'Your Verification Code - FireWire',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #ff5722, #ff9800); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1 style="color: white; margin: 0;">🔥 FireWire</h1>
-              <p style="color: #fff3e0; margin: 10px 0 0 0;">Smart Fire Monitoring System</p>
-            </div>
-            <div style="padding: 30px; background: #f5f5f5; border-radius: 0 0 10px 10px;">
-              <h2 style="color: #333;">Verification Code</h2>
-              <p style="color: #666;">Use this code to ${purposeText[purpose] || 'verify your identity'}:</p>
-              <div style="text-align: center; margin: 30px 0;">
-                <div style="background: #333; color: #ff5722; padding: 20px 40px; font-size: 32px; font-weight: bold; letter-spacing: 8px; border-radius: 8px; display: inline-block;">
-                  ${code}
-                </div>
-              </div>
-              <p style="color: #999; font-size: 12px;">This code expires in 10 minutes.</p>
-              <p style="color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
-            </div>
-          </div>
-        `
-      };
-
-      const info = await transporter.sendMail(mailOptions);
-      console.log('[Email] OTP sent successfully via Gmail SMTP to:', email, 'MessageId:', info.messageId);
-      return { id: info.messageId, provider: 'gmail' };
-    }
-
-  } catch (error) {
-    console.error('[Email] All email methods failed:', error.message);
-    console.error('[Email] Last Resend error:', lastError?.message);
-    throw error;
+    console.log('[Email] Resend failed, trying Gmail SMTP...', error.message);
+  } catch (resendError) {
+    console.log('[Email] Resend failed, trying Gmail SMTP...', resendError.message);
   }
+
+  // Fallback: Gmail SMTP
+  const nodemailer = require('nodemailer');
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT) || 587,
+    secure: false,
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  });
+
+  const info = await transporter.sendMail({
+    from: `"FireWire" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Your verification code — FireWire',
+    html: htmlContent,
+  });
+
+  console.log('[Email] OTP sent via Gmail SMTP to:', email, info.messageId);
+  return { id: info.messageId, provider: 'gmail' };
 };
 
-// Send alarm alert email
+// ─── Alarm alert ──────────────────────────────────────────────────────────────
+
 const sendAlarmEmail = async (email, alarmData) => {
   const { deviceId, trigger, gas, smoke, temperature, humidity, timestamp, baselineTemp, tempRise, isWarningOnly } = alarmData;
   const dashboardUrl = process.env.FRONTEND_URL || 'https://cloud-alarm.onrender.com';
-  
-  const triggerMessages = {
-    gas: '🔥 High gas levels detected!',
-    smoke: '💨 High smoke levels detected!',
-    temperature: '🌡️ Dangerous temperature detected!',
-    both: '🚨 Gas/Smoke AND high temperature detected!',
-    smoke_warning: '⚠️ Smoke detected without temperature rise',
-    gas_warning: '⚠️ Gas detected without temperature rise',
-    smoke_gas_warning: '⚠️ Smoke & Gas detected without temperature rise'
-  };
 
-  // Different styling for warnings vs alarms
   const isWarning = isWarningOnly || trigger.includes('_warning');
-  const bgColor = isWarning ? '#ff9800' : '#d32f2f';
-  const bgGradient = isWarning ? 'linear-gradient(135deg, #ff9800, #ffb74d)' : 'linear-gradient(135deg, #d32f2f, #ff5722)';
-  const subject = isWarning ? '⚠️ PARTIAL WARNING - Check Your Home' : '🚨 FIRE ALARM TRIGGERED - Immediate Action Required!';
-  const title = isWarning ? '⚠️ PARTIAL WARNING' : '🚨 FIRE ALARM!';
-  const actionText = isWarning ? 'Check Your Home' : 'Immediate Action Required';
+  const accentColor = isWarning ? '#b45309' : '#c0392b';
 
-  console.log(`[Email] Sending ${isWarning ? 'SMOKE WARNING' : 'ALARM'} alert to:`, email);
+  const triggerLabel = {
+    gas: 'High gas level',
+    smoke: 'High smoke level',
+    temperature: 'High temperature',
+    both: 'Gas/smoke and high temperature',
+    smoke_warning: 'Smoke detected — no temperature rise',
+    gas_warning: 'Gas detected — no temperature rise',
+    smoke_gas_warning: 'Smoke and gas detected — no temperature rise',
+  }[trigger] || 'Sensor threshold exceeded';
+
+  const subject = isWarning
+    ? `[Warning] Sensor alert — ${triggerLabel}`
+    : `[Alarm] Fire alarm triggered — ${triggerLabel}`;
+
+  console.log(`[Email] Sending ${isWarning ? 'WARNING' : 'ALARM'} alert to:`, email);
+
+  const statusColor = (val, threshold) => val > threshold ? accentColor : '#333';
+
+  const html = wrap(`
+    ${header(accentColor)}
+    ${body(`
+      <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${accentColor};">
+        ${isWarning ? 'Sensor Warning' : 'Fire Alarm'}
+      </p>
+      <h2 style="margin:0 0 16px;font-size:22px;color:#111;">${triggerLabel}</h2>
+      <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6;">
+        ${isWarning
+          ? `Your FireWire device detected ${trigger.includes('smoke_gas') ? 'smoke and gas' : trigger.includes('smoke') ? 'smoke' : 'gas'} but temperature remained stable (${temperature?.toFixed(1)}°C, rise: ${tempRise?.toFixed(1)}°C). This may be steam, cooking smoke, or a minor gas leak. Please check the area.`
+          : 'Your FireWire device has detected a potential fire hazard. Check your home immediately and evacuate if necessary.'
+        }
+      </p>
+
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        ${row('Device', deviceId)}
+        ${row('Gas level', `${gas?.toFixed(1) || 0}%`, statusColor(gas, 40))}
+        ${row('Smoke level', `${smoke?.toFixed(1) || 0}%`, statusColor(smoke, 10))}
+        ${row('Temperature', `${temperature?.toFixed(1) || 0} °C`, statusColor(temperature, 35))}
+        ${isWarning && baselineTemp ? row('Baseline temp', `${baselineTemp?.toFixed(1)} °C`) : ''}
+        ${isWarning && tempRise !== undefined ? row('Temp rise', `${tempRise?.toFixed(1)} °C`) : ''}
+        ${row('Humidity', `${humidity?.toFixed(1) || 0}%`)}
+        ${row('Time', timestamp)}
+      </table>
+
+      ${btn('Open Dashboard', dashboardUrl, accentColor)}
+    `)}
+    ${footer()}
+  `);
 
   try {
     const { data, error } = await resend.emails.send({
       from: 'FireWire Alert <onboarding@resend.dev>',
       to: email,
       subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: ${bgGradient}; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 28px;">${title}</h1>
-            <p style="color: ${isWarning ? '#fff3e0' : '#ffcdd2'}; margin: 10px 0 0 0; font-size: 16px;">${triggerMessages[trigger] || 'Alarm triggered!'}</p>
-          </div>
-          <div style="padding: 30px; background: ${isWarning ? '#fff8e1' : '#fff3e0'}; border-left: 4px solid ${bgColor};">
-            <h2 style="color: ${bgColor}; margin-top: 0;">${isWarning ? '⚠️' : '⚠️'} ${actionText}</h2>
-            <p style="color: #333; font-size: 16px;">
-              ${isWarning 
-                ? `Your FireWire device detected ${trigger.includes('smoke_gas') ? 'smoke and gas' : trigger.includes('smoke') ? 'smoke' : 'gas'} but no temperature rise. This could be steam, cooking smoke, dust, or minor gas leak. Please check your home to ensure safety.`
-                : 'Your FireWire device has detected a potential fire hazard. Please check your home immediately!'
-              }
-            </p>
-            ${isWarning ? `
-              <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                <p style="color: #1976d2; margin: 0; font-size: 14px;">
-                  <strong>Smart Detection:</strong> Only intermittent beeping was triggered because temperature remained stable (${temperature?.toFixed(1)}°C vs baseline ${baselineTemp?.toFixed(1)}°C, rise: ${tempRise?.toFixed(1)}°C).
-                </p>
-              </div>
-            ` : ''}
-          </div>
-          <div style="padding: 30px; background: #f5f5f5;">
-            <h3 style="color: #333; margin-top: 0;">Sensor Readings:</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Device:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;">${deviceId}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Gas Level:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${gas > 40 ? '#d32f2f' : '#333'};">${gas?.toFixed(1) || 0}% ${gas > 40 ? '⚠️ HIGH' : ''}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Smoke Level:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${smoke > 10 ? (isWarning ? '#ff9800' : '#d32f2f') : '#333'};">${smoke?.toFixed(1) || 0}% ${smoke > 10 ? (isWarning ? '⚠️ DETECTED' : '⚠️ HIGH') : ''}</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Temperature:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd; color: ${temperature > 35 ? '#d32f2f' : '#333'};">${temperature?.toFixed(1) || 0}°C ${temperature > 35 ? '⚠️ HIGH' : ''}</td>
-              </tr>
-              ${isWarning && baselineTemp ? `
-              <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Baseline Temp:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;">${baselineTemp?.toFixed(1)}°C</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Temp Rise:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;">${tempRise?.toFixed(1)}°C</td>
-              </tr>
-              ` : ''}
-              <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;"><strong>Humidity:</strong></td>
-                <td style="padding: 10px; border-bottom: 1px solid #ddd;">${humidity?.toFixed(1) || 0}%</td>
-              </tr>
-              <tr>
-                <td style="padding: 10px;"><strong>Time:</strong></td>
-                <td style="padding: 10px;">${timestamp}</td>
-              </tr>
-            </table>
-          </div>
-          <div style="padding: 30px; background: #f5f5f5; text-align: center;">
-            <a href="${dashboardUrl}" style="background: ${bgColor}; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 18px;">
-              View Dashboard
-            </a>
-          </div>
-          <div style="padding: 20px; background: #333; border-radius: 0 0 10px 10px;">
-            <p style="color: #999; font-size: 12px; margin: 0; text-align: center;">
-              This is an automated alert from your FireWire Smart Fire Alarm System.<br>
-              ${isWarning ? 'This is a warning notification - no buzzer alarm was triggered.' : 'If this is a false alarm, you can silence it from the dashboard.'}
-            </p>
-          </div>
-        </div>
-      `
+      html,
     });
-
-    if (error) {
-      console.error('[Email] Resend error:', error);
-      throw new Error(error.message);
-    }
-
-    console.log(`[Email] ${isWarning ? 'SMOKE WARNING' : 'ALARM'} alert sent successfully to:`, email, 'ID:', data?.id);
+    if (error) throw new Error(error.message);
+    console.log(`[Email] ${isWarning ? 'WARNING' : 'ALARM'} alert sent:`, data?.id);
     return data;
   } catch (error) {
     console.error('[Email] Failed to send alarm alert:', error.message);
@@ -314,209 +248,78 @@ const sendAlarmEmail = async (email, alarmData) => {
   }
 };
 
-// Send setup completion email with credentials
+// ─── Setup completion ─────────────────────────────────────────────────────────
+
 const sendSetupCompletionEmail = async (email, setupData) => {
   const { householdId, accessCode, deviceSecret, householdName } = setupData;
   const dashboardUrl = process.env.FRONTEND_URL || 'https://cloud-alarm.onrender.com';
-  
+
   console.log('[Email] Sending setup completion email to:', email);
 
+  const html = wrap(`
+    ${header()}
+    ${body(`
+      <h2 style="margin:0 0 8px;font-size:20px;color:#111;">Your system is ready</h2>
+      <p style="margin:0 0 28px;font-size:14px;color:#555;line-height:1.6;">
+        FireWire has been set up for <strong>${householdName}</strong>. Keep the credentials below in a safe place — you'll need them to log in.
+      </p>
+
+      <div style="background:#f7f7f7;border:1px solid #e0e0e0;border-radius:6px;padding:20px 24px;margin-bottom:24px;">
+        <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#999;">Login Credentials</p>
+        <table style="width:100%;border-collapse:collapse;">
+          ${row('Household name', householdName)}
+          ${row('Household passkey', householdId, '#e25822')}
+          ${row('Access code', accessCode, '#e25822')}
+          ${deviceSecret ? row('Device secret', deviceSecret, '#e25822') : ''}
+        </table>
+      </div>
+
+      <div style="background:#fff8f0;border-left:3px solid #e25822;padding:12px 16px;border-radius:0 4px 4px 0;margin-bottom:28px;">
+        <p style="margin:0;font-size:13px;color:#7c3a00;line-height:1.5;">
+          Share the <strong>Access Code</strong> with family members so they can monitor the dashboard. Keep the <strong>Passkey</strong> private — it's your admin credential.
+        </p>
+      </div>
+
+      ${btn('Open Dashboard', dashboardUrl)}
+    `)}
+    ${footer()}
+  `);
+
   try {
-    // Try Resend first, fallback to Gmail SMTP if it fails
-    let emailSent = false;
-    let lastError = null;
+    const { data, error } = await resend.emails.send({
+      from: 'FireWire Setup <onboarding@resend.dev>',
+      to: email,
+      subject: 'FireWire setup complete — your credentials',
+      html,
+    });
 
-    try {
-      const { data, error } = await resend.emails.send({
-        from: 'FireWire Setup <onboarding@resend.dev>',
-        to: email,
-        subject: '🎉 Welcome to FireWire - Your Setup is Complete!',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #ff5722, #ff9800); padding: 40px; text-align: center; border-radius: 15px 15px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 2rem;">🔥 FireWire</h1>
-              <p style="color: #fff3e0; margin: 10px 0 0 0; font-size: 1.1rem;">Smart Fire Monitoring System</p>
-            </div>
-            <div style="padding: 40px; background: #f8f9fa; border-radius: 0 0 15px 15px;">
-              <div style="text-align: center; margin-bottom: 30px;">
-                <h2 style="color: #ff5722; margin: 0 0 10px 0;">🎉 Setup Complete!</h2>
-                <p style="color: #666; margin: 0; font-size: 1.1rem;">Your FireWire system is ready to protect your home</p>
-              </div>
-              
-              <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; border: 2px solid #ff5722;">
-                <h3 style="color: #ff5722; margin: 0 0 20px 0; display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 1.2em;">🔑</span> Your Login Credentials
-                </h3>
-                <table style="width: 100%; border-collapse: collapse;">
-                  <tr>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household Name:</td>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdName}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household Passkey:</td>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdId}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Access Code:</td>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${accessCode}</td>
-                  </tr>
-                  ${deviceSecret ? `
-                  <tr>
-                    <td style="padding: 12px 0; font-weight: 600; color: #333;">Device Secret:</td>
-                    <td style="padding: 12px 0; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${deviceSecret}</td>
-                  </tr>
-                  ` : ''}
-                </table>
-              </div>
-              
-              <div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; padding: 20px; margin-bottom: 25px;">
-                <h4 style="color: #2e7d32; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 1.1em;">💡</span> What's Next?
-                </h4>
-                <ul style="color: #2e7d32; margin: 0; padding-left: 20px; line-height: 1.6;">
-                  <li>Use your <strong>Household ID</strong> and <strong>Access Code</strong> to log in</li>
-                  <li>Share the Access Code with family members for monitoring access</li>
-                  <li>Configure your ESP32 device with the Device Secret (if provided)</li>
-                  <li>Set up email alerts and push notifications</li>
-                </ul>
-              </div>
-              
-              <div style="background: #fff3e0; border: 1px solid #ff9800; border-radius: 10px; padding: 20px; margin-bottom: 30px;">
-                <p style="color: #e65100; margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 600;">
-                  <span style="font-size: 1.1em;">⚠️</span> 
-                  <strong>Important:</strong> Save these credentials in a safe place!
-                </p>
-              </div>
-              
-              <div style="text-align: center;">
-                <a href="${dashboardUrl}" style="background: #ff5722; color: white; padding: 15px 40px; text-decoration: none; border-radius: 10px; font-weight: bold; display: inline-block; font-size: 1.1rem;">
-                  🚀 Access Your FireWire Dashboard
-                </a>
-              </div>
-            </div>
-            <div style="padding: 20px; background: #333; border-radius: 0 0 15px 15px; text-align: center;">
-              <p style="color: #999; font-size: 0.9rem; margin: 0;">
-                Welcome to FireWire - Your Smart Fire Protection Partner<br>
-                Keep this email for your records. You'll need these credentials to access your dashboard.
-              </p>
-            </div>
-          </div>
-        `
-      });
-
-      if (error) {
-        console.log('[Email] Resend failed, trying Gmail SMTP...', error.message);
-        lastError = error;
-      } else {
-        console.log('[Email] Setup completion email sent successfully via Resend to:', email);
-        return data;
-      }
-    } catch (resendError) {
-      console.log('[Email] Resend failed, trying Gmail SMTP...', resendError.message);
-      lastError = resendError;
+    if (!error) {
+      console.log('[Email] Setup completion email sent via Resend:', data?.id);
+      return data;
     }
-
-    // Fallback to Gmail SMTP
-    if (!emailSent) {
-      const nodemailer = require('nodemailer');
-      
-      const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.EMAIL_PORT) || 587,
-        secure: false,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
-        }
-      });
-
-      const mailOptions = {
-        from: `"FireWire Setup" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: '🎉 Welcome to FireWire - Your Setup is Complete!',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #ff5722, #ff9800); padding: 40px; text-align: center; border-radius: 15px 15px 0 0;">
-              <h1 style="color: white; margin: 0; font-size: 2rem;">🔥 FireWire</h1>
-              <p style="color: #fff3e0; margin: 10px 0 0 0; font-size: 1.1rem;">Smart Fire Monitoring System</p>
-            </div>
-            <div style="padding: 40px; background: #f8f9fa; border-radius: 0 0 15px 15px;">
-              <div style="text-align: center; margin-bottom: 30px;">
-                <h2 style="color: #ff5722; margin: 0 0 10px 0;">🎉 Setup Complete!</h2>
-                <p style="color: #666; margin: 0; font-size: 1.1rem;">Your FireWire system is ready to protect your home</p>
-              </div>
-              
-              <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; border: 2px solid #ff5722;">
-                <h3 style="color: #ff5722; margin: 0 0 20px 0; display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 1.2em;">🔑</span> Your Login Credentials
-                </h3>
-                <table style="width: 100%; border-collapse: collapse;">
-                  <tr>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household Name:</td>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdName}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Household Passkey:</td>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${householdId}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-weight: 600; color: #333;">Access Code:</td>
-                    <td style="padding: 12px 0; border-bottom: 1px solid #eee; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${accessCode}</td>
-                  </tr>
-                  ${deviceSecret ? `
-                  <tr>
-                    <td style="padding: 12px 0; font-weight: 600; color: #333;">Device Secret:</td>
-                    <td style="padding: 12px 0; font-family: 'Courier New', monospace; color: #ff5722; font-weight: 600;">${deviceSecret}</td>
-                  </tr>
-                  ` : ''}
-                </table>
-              </div>
-              
-              <div style="background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; padding: 20px; margin-bottom: 25px;">
-                <h4 style="color: #2e7d32; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 1.1em;">💡</span> What's Next?
-                </h4>
-                <ul style="color: #2e7d32; margin: 0; padding-left: 20px; line-height: 1.6;">
-                  <li>Use your <strong>Household ID</strong> and <strong>Access Code</strong> to log in</li>
-                  <li>Share the Access Code with family members for monitoring access</li>
-                  <li>Configure your ESP32 device with the Device Secret (if provided)</li>
-                  <li>Set up email alerts and push notifications</li>
-                </ul>
-              </div>
-              
-              <div style="background: #fff3e0; border: 1px solid #ff9800; border-radius: 10px; padding: 20px; margin-bottom: 30px;">
-                <p style="color: #e65100; margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 600;">
-                  <span style="font-size: 1.1em;">⚠️</span> 
-                  <strong>Important:</strong> Save these credentials in a safe place!
-                </p>
-              </div>
-              
-              <div style="text-align: center;">
-                <a href="${dashboardUrl}" style="background: #ff5722; color: white; padding: 15px 40px; text-decoration: none; border-radius: 10px; font-weight: bold; display: inline-block; font-size: 1.1rem;">
-                  🚀 Access Your FireWire Dashboard
-                </a>
-              </div>
-            </div>
-            <div style="padding: 20px; background: #333; border-radius: 0 0 15px 15px; text-align: center;">
-              <p style="color: #999; font-size: 0.9rem; margin: 0;">
-                Welcome to FireWire - Your Smart Fire Protection Partner<br>
-                Keep this email for your records. You'll need these credentials to access your dashboard.
-              </p>
-            </div>
-          </div>
-        `
-      };
-
-      const info = await transporter.sendMail(mailOptions);
-      console.log('[Email] Setup completion email sent successfully via Gmail SMTP to:', email, 'MessageId:', info.messageId);
-      return { id: info.messageId, provider: 'gmail' };
-    }
-
-  } catch (error) {
-    console.error('[Email] All email methods failed for setup completion:', error.message);
-    console.error('[Email] Last Resend error:', lastError?.message);
-    throw error;
+    console.log('[Email] Resend failed, trying Gmail SMTP...', error.message);
+  } catch (resendError) {
+    console.log('[Email] Resend failed, trying Gmail SMTP...', resendError.message);
   }
+
+  // Fallback: Gmail SMTP
+  const nodemailer = require('nodemailer');
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT) || 587,
+    secure: false,
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  });
+
+  const info = await transporter.sendMail({
+    from: `"FireWire" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'FireWire setup complete — your credentials',
+    html,
+  });
+
+  console.log('[Email] Setup completion email sent via Gmail SMTP:', info.messageId);
+  return { id: info.messageId, provider: 'gmail' };
 };
 
 module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendOTPEmail, sendAlarmEmail, sendSetupCompletionEmail };
