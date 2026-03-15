@@ -361,7 +361,7 @@ function startDeviceStatusChecker() {
       
       if (lastSeen) {
         if (diffSeconds < 10) {
-          lastSeen.textContent = 'Just now';
+          lastSeen.textContent = t('statJustNow');
         } else if (diffSeconds < 60) {
           lastSeen.textContent = Math.floor(diffSeconds) + 's ago';
         } else if (diffSeconds < 3600) {
@@ -517,7 +517,7 @@ function enableAudio() {
     // Silently ignore — user gesture may not have been strong enough
   });
 
-  showToast('Alarm sound enabled', 'success');
+  showToast(t('toastAudioEnabled'), 'success');
 }
 
 // Auto-enable audio on first user interaction (modern browser requirement)
@@ -900,7 +900,7 @@ function updateUI(data, isRealtimeUpdate = false) {
     if (!isFinite(diffSeconds) || diffSeconds === Infinity) {
       lastSeen.textContent = '--';
     } else if (diffSeconds < 10) {
-      lastSeen.textContent = 'Just now';
+      lastSeen.textContent = t('statJustNow');
     } else if (diffSeconds < 60) {
       lastSeen.textContent = Math.floor(diffSeconds) + 's ago';
     } else if (diffSeconds < 3600) {
@@ -1244,8 +1244,8 @@ function updateAlarmState(isAlarm, tempWarning, isPartialWarning = false) {
   } else {
     if (alarmCard) alarmCard.classList.remove('alarm-active', 'warning-active');
     if (alarmIcon) alarmIcon.className = 'fas fa-shield-check';
-    if (alarmText) alarmText.textContent = 'System Normal';
-    if (alarmSubtitle) alarmSubtitle.textContent = 'All sensors within safe range';
+    if (alarmText) alarmText.textContent = t('alarmNormal');
+    if (alarmSubtitle) alarmSubtitle.textContent = t('alarmNormalSub');
     if (sirenOverlay) sirenOverlay.classList.remove('active');
     document.body.classList.remove('alarm-mode', 'warning-mode');
     stopAlarmSound();
@@ -1281,9 +1281,12 @@ function setConnected(connected) {
 }
 
 function updateSirenUI() {
+  const sirenOnText = t('sidebarSirenOn');
+  const sirenOffText = t('sidebarSirenOff');
+
   // Update Settings tab button
   if (elements.sirenIcon) elements.sirenIcon.className = sirenEnabled ? 'fas fa-bell' : 'fas fa-bell-slash';
-  if (elements.sirenText) elements.sirenText.textContent = sirenEnabled ? 'Siren On' : 'Siren Off';
+  if (elements.sirenText) elements.sirenText.textContent = sirenEnabled ? sirenOnText : sirenOffText;
   
   // Update Sidebar button
   const sideIcon = document.getElementById('sirenIconSide');
@@ -1291,17 +1294,13 @@ function updateSirenUI() {
   const sirenSideBtn = document.getElementById('sirenToggleSideBtn');
   
   if (sideIcon) sideIcon.className = sirenEnabled ? 'fas fa-bell' : 'fas fa-bell-slash';
-  if (sideText) sideText.textContent = sirenEnabled ? 'Siren On' : 'Siren Off';
+  if (sideText) sideText.textContent = sirenEnabled ? sirenOnText : sirenOffText;
   
   if (sirenSideBtn) {
-    // Remove all state classes
     sirenSideBtn.classList.remove('btn-active', 'btn-disabled', 'btn-secondary');
-    
     if (sirenEnabled) {
-      // Enabled state - green color
       sirenSideBtn.classList.add('btn-active');
     } else {
-      // Disabled state - red color
       sirenSideBtn.classList.add('btn-disabled');
     }
   }
@@ -1312,7 +1311,7 @@ function updateSirenUI() {
   const sirenToggleBtn = document.getElementById('sirenToggleBtn');
   
   if (alertIcon) alertIcon.className = sirenEnabled ? 'fas fa-bell' : 'fas fa-bell-slash';
-  if (alertText) alertText.textContent = sirenEnabled ? 'Siren On' : 'Siren Off';
+  if (alertText) alertText.textContent = sirenEnabled ? sirenOnText : sirenOffText;
   
   // Update button visual state
   if (sirenToggleBtn) {
@@ -1411,7 +1410,7 @@ function renderHistory(history) {
     historyList.innerHTML = `
       <div class="empty-state">
         <i class="fas fa-check-circle"></i>
-        <p>No alarm history</p>
+        <p>${t('historyEmpty')}</p>
       </div>`;
     return;
   }
@@ -3573,10 +3572,10 @@ async function saveSmartAlarmMode(enabled) {
     await api.setSmartAlarmMode(enabled);
     smartAlarmModeEnabled = enabled;
     updateSmartAlarmModeUI(enabled);
-    showToast(enabled ? 'Smart Alarm Mode enabled' : 'Sensitive Mode enabled', 'success');
+    showToast(enabled ? t('settingsSmartEnabled') : t('settingsSensitiveEnabled'), 'success');
   } catch (error) {
     console.error('Failed to save smart alarm mode:', error);
-    showToast('Failed to update Smart Alarm Mode', 'error');
+    showToast(t('toastFailedSmartMode'), 'error');
     // Revert toggle on failure
     const toggle = document.getElementById('smartAlarmModeToggle');
     if (toggle) toggle.checked = !enabled;
@@ -3586,10 +3585,10 @@ async function saveSmartAlarmMode(enabled) {
 function updateSmartAlarmModeUI(enabled) {
   const label = document.getElementById('smartAlarmModeLabel');
   const desc = document.getElementById('smartAlarmModeDesc');
-  if (label) label.textContent = enabled ? 'Smart Mode' : 'Sensitive Mode';
+  if (label) label.textContent = enabled ? t('settingsSmartModeOn') : t('settingsSensitiveMode');
   if (desc) desc.textContent = enabled
-    ? 'Smoke alone = Warning only; needs temp rise for full alarm'
-    : 'Any sensor trigger = Full Alarm';
+    ? t('settingsSmartModeOnDesc')
+    : t('settingsSensitiveModeDesc');
 }
 
 // ============ DELETE MEMBER MODAL ============
