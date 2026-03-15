@@ -1083,7 +1083,8 @@ function updateUI(data, isRealtimeUpdate = false) {
     const tempHigh = data.temperature && data.temperature >= tempThreshold;
     
     // Only trigger full alarm sound for actual alarms, not partial warnings (smart mode)
-    const shouldPlayAlarm = data.alarm || gasHigh || tempHigh || (smokeHigh && !data.partialWarning);
+    // If ESP32 says partialWarning=true, it means smart mode is handling it as warning only
+    const shouldPlayAlarm = data.alarm && !data.partialWarning;
     
     console.log('Alarm state check:', {
       deviceOnline: isDeviceOnline,
@@ -1099,7 +1100,7 @@ function updateUI(data, isRealtimeUpdate = false) {
       thresholds: { gas: gasThreshold, smoke: smokeThreshold, temp: tempThreshold }
     });
     
-    updateAlarmState(shouldPlayAlarm, data.tempWarning);
+    updateAlarmState(shouldPlayAlarm, data.tempWarning, data.partialWarning);
     
     // Debug logging
     if (shouldPlayAlarm) {
@@ -1191,13 +1192,28 @@ function updateGauge(gaugeId, value, max) {
   gauge.style.strokeDashoffset = offset;
 }
 
-function updateAlarmState(isAlarm, tempWarning) {
+function updateAlarmState(isAlarm, tempWarning, isPartialWarning = false) {
   const alarmCard = document.getElementById('alarmCard');
   const alarmIcon = document.getElementById('alarmIcon');
   const alarmText = document.getElementById('alarmText');
   const alarmSubtitle = document.getElementById('alarmSubtitle');
   const sirenOverlay = document.getElementById('sirenOverlay');
   
+  // Partial warning — yellow card, no sound, no red screen
+  if (isPartialWarning && !isAlarm) {
+    if (alarmCard) {
+      alarmCard.classList.remove('alarm-active', 'fire-risk');
+      alarmCard.classList.add('warning-active');
+    }
+    if (alarmIcon) alarmIcon.className = 'fas fa-triangle-exclamation';
+    if (alarmText) alarmText.textContent = 'SMOKE WARNING';
+    if (alarmSubtitle) alarmSubtitle.textContent = 'Smoke detected — no temperature rise. Monitor the area.';
+    if (sirenOverlay) sirenOverlay.classList.remove('active');
+    document.body.classList.remove('alarm-mode');
+    stopAlarmSound();
+    return;
+  }
+
   if (isAlarm) {
     // Always show visual alarm regardless of siren setting
     if (alarmCard) alarmCard.classList.add('alarm-active');
