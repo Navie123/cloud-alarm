@@ -1619,11 +1619,12 @@ bool checkWarningState() {
   }
   
   // Check for critical conditions that should trigger warning screen
-  bool gasHigh = gasPercent >= gasThreshold * 0.7;  // 70% of threshold (was 80%)
-  bool smokeHigh = smokePercent >= smokeThreshold * 0.7;  // 70% of threshold (was 80%)
-  bool tempHigh = temperature >= tempThreshold;  // Use actual threshold, not 95%
-  bool coHigh = coPpm >= coWarningThreshold * 0.8;  // 80% of CO warning level
-  bool aqiPoor = aqi >= 40;  // Moderate or worse AQI (was 50)
+  // Use 90% of threshold to avoid false warnings from ambient readings
+  bool gasHigh = gasPercent >= gasThreshold * 0.9;
+  bool smokeHigh = smokePercent >= smokeThreshold * 0.9;
+  bool tempHigh = temperature >= tempThreshold;
+  bool coHigh = coPpm >= coWarningThreshold * 0.9;
+  bool aqiPoor = aqi >= 100;  // Only warn at Unhealthy for Sensitive Groups (was 40)
   
   return gasHigh || smokeHigh || tempHigh || coHigh || aqiPoor || alarmActive;
 }
@@ -1858,7 +1859,7 @@ void displaySmokeLevel() {
   // Row 3: Status and safety margin (using real value for calculations)
   lcd.setCursor(0, 3);
   String smokeStatus = "Safe";
-  if (smokePercent >= smokeThreshold * 0.7) smokeStatus = "Warning";
+  if (smokePercent >= smokeThreshold * 0.9) smokeStatus = "Warning";
   if (smokePercent >= smokeThreshold) smokeStatus = "DANGER";
   
   float margin = smokeThreshold - smokePercent;
@@ -1916,14 +1917,15 @@ void displaySystemWiFi() {
   }
   lcd.print(buf);
   
-  // Row 3: Uptime and Memory
+  // Row 3: Smart Alarm Mode status
   lcd.setCursor(0, 3);
   lcd.print("                    ");  // Clear line
   lcd.setCursor(0, 3);
-  unsigned long uptime = millis() / 1000;
-  int hrs = uptime / 3600;
-  int mins = (uptime % 3600) / 60;
-  snprintf(buf, 21, "Up:%dh%dm Mem:%dK", hrs, mins, ESP.getFreeHeap() / 1024);
+  if (smartAlarmMode) {
+    snprintf(buf, 21, "Mode: SMART (ON)");
+  } else {
+    snprintf(buf, 21, "Mode: SENSITIVE");
+  }
   lcd.print(buf);
 }
 
@@ -2141,15 +2143,15 @@ void displayWarningScreen() {
   
   // Row 1: Show which sensor is elevated (using display values for user messages)
   lcd.setCursor(0, 1);
-  if (smokePercent >= smokeThreshold * 0.7) {
+  if (smokePercent >= smokeThreshold * 0.9) {
     snprintf(buf, 21, "SMOKE HIGH: %.1f%%", getSmokePercentDisplay());
-  } else if (gasPercent >= gasThreshold * 0.7) {
+  } else if (gasPercent >= gasThreshold * 0.9) {
     snprintf(buf, 21, "GAS HIGH: %.1f%%", gasPercent);
-  } else if (temperature >= tempThreshold) {  // Use actual threshold, not 95%
+  } else if (temperature >= tempThreshold) {
     snprintf(buf, 21, "TEMP HIGH: %.1fC", temperature);
-  } else if (coPpm >= coWarningThreshold * 0.8) {
+  } else if (coPpm >= coWarningThreshold * 0.9) {
     snprintf(buf, 21, "CO DETECTED: %.0f PPM", coPpm);
-  } else if (aqi > 50) {
+  } else if (aqi > 100) {
     snprintf(buf, 21, "POOR AIR: %.0f AQI", aqi);
   } else {
     snprintf(buf, 21, "MULTIPLE SENSORS");
