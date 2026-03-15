@@ -2041,18 +2041,10 @@ updateUI = function(data, isRealtimeUpdate = false) {
   originalUpdateUI(data, isRealtimeUpdate);
   updateGasSensorUI(data);
   
-  // Only update alarm state if device is online
-  // Device online status is determined in originalUpdateUI
-  const isDeviceOnline = isConnected && hasReceivedRealtimeData;
+  // Check device online — also allow REST API data (not just realtime) to show warnings
+  const isDeviceOnline = isConnected || (data && data.timestamp);
   if (isDeviceOnline) {
-    // Only treat partial warning as alarm if smartAlarmMode is OFF
-    // When smartAlarmMode is ON, partial warning = yellow warning card, no alarm sound
-    const alarmData = { ...data };
-    if (data.partialWarning && !data.alarm) {
-      // Don't escalate to full alarm — let updateAlarmStateExtended handle warning display
-      console.log('Extended: Partial warning detected - showing warning card (no alarm sound)');
-    }
-    updateAlarmStateExtended(alarmData);
+    updateAlarmStateExtended(data);
   } else {
     // Clear alarm when offline
     const alarmCard = document.getElementById('alarmCard');
@@ -2074,6 +2066,24 @@ function updateAlarmStateExtended(data) {
   const alarmIcon = document.getElementById('alarmIcon');
   const alarmText = document.getElementById('alarmText');
   const alarmSubtitle = document.getElementById('alarmSubtitle');
+
+  // Partial warning — highest priority when no full alarm (smart mode)
+  if (data.partialWarning && !data.alarm && !data.fireRisk) {
+    if (alarmCard) {
+      alarmCard.classList.remove('alarm-active', 'fire-risk');
+      alarmCard.classList.add('warning-active');
+    }
+    const warningType = data.smokeWarningOnly && data.gasWarningOnly ? 'Smoke & Gas' :
+                        data.smokeWarningOnly ? 'Smoke' : 'Gas';
+    if (alarmIcon) alarmIcon.className = 'fas fa-triangle-exclamation';
+    if (alarmText) alarmText.textContent = `${warningType} WARNING`;
+    if (alarmSubtitle) alarmSubtitle.textContent = 'Detected but no temperature rise — monitor the area';
+    stopAlarmSound();
+    return;
+  }
+
+  // Clear warning-active if not in partial warning
+  if (alarmCard) alarmCard.classList.remove('warning-active');
   
   // Fire risk takes highest priority
   if (data.fireRisk) {
@@ -2099,21 +2109,6 @@ function updateAlarmStateExtended(data) {
     return;
   }
   
-  // Partial warning (smart mode: smoke/gas detected but no temp rise)
-  if (data.partialWarning && !data.alarm) {
-    if (alarmCard) {
-      alarmCard.classList.remove('alarm-active', 'fire-risk');
-      alarmCard.classList.add('warning-active');
-    }
-    const warningType = data.smokeWarningOnly && data.gasWarningOnly ? 'Smoke & Gas' :
-                        data.smokeWarningOnly ? 'Smoke' : 'Gas';
-    if (alarmIcon) alarmIcon.className = 'fas fa-triangle-exclamation';
-    if (alarmText) alarmText.textContent = `${warningType} WARNING`;
-    if (alarmSubtitle) alarmSubtitle.textContent = 'Detected but no temperature rise — monitor the area';
-    stopAlarmSound();
-    return;
-  }
-
   // Clear warning state if no longer active
   if (alarmCard) alarmCard.classList.remove('warning-active');
 
