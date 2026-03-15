@@ -5,6 +5,7 @@ const { jsPDF } = window.jspdf;
 let sirenEnabled = true;
 let currentThreshold = 40;
 let currentTempThreshold = 60;
+let smartAlarmModeEnabled = false; // tracks current smart alarm mode state
 let isConnected = false;
 let audioEnabled = false;
 let alarmAudio = null;
@@ -2067,14 +2068,19 @@ function updateAlarmStateExtended(data) {
   const alarmText = document.getElementById('alarmText');
   const alarmSubtitle = document.getElementById('alarmSubtitle');
 
-  // Partial warning — highest priority when no full alarm (smart mode)
-  if (data.partialWarning && !data.alarm && !data.fireRisk) {
+  // Partial warning — when smart mode is ON and smoke/gas detected but no full alarm
+  const smokeWarning = data.smokeStatus === 'danger' || data.smokeStatus === 'warning';
+  const gasWarning = data.gasStatus === 'danger' || data.gasStatus === 'warning';
+  const isPartialWarning = !data.alarm && !data.fireRisk && smartAlarmModeEnabled &&
+                           (data.partialWarning || smokeWarning || gasWarning);
+
+  if (isPartialWarning) {
     if (alarmCard) {
       alarmCard.classList.remove('alarm-active', 'fire-risk');
       alarmCard.classList.add('warning-active');
     }
-    const warningType = data.smokeWarningOnly && data.gasWarningOnly ? 'Smoke & Gas' :
-                        data.smokeWarningOnly ? 'Smoke' : 'Gas';
+    const warningType = (smokeWarning && gasWarning) ? 'Smoke & Gas' :
+                        smokeWarning ? 'Smoke' : 'Gas';
     if (alarmIcon) alarmIcon.className = 'fas fa-triangle-exclamation';
     if (alarmText) alarmText.textContent = `${warningType} WARNING`;
     if (alarmSubtitle) alarmSubtitle.textContent = 'Detected but no temperature rise — monitor the area';
@@ -3531,6 +3537,7 @@ function updateStatsLabels() {
 async function loadSmartAlarmMode() {
   try {
     const data = await api.getSmartAlarmMode();
+    smartAlarmModeEnabled = data.smartAlarmMode;
     const toggle = document.getElementById('smartAlarmModeToggle');
     if (toggle) {
       toggle.checked = data.smartAlarmMode;
@@ -3544,6 +3551,7 @@ async function loadSmartAlarmMode() {
 async function saveSmartAlarmMode(enabled) {
   try {
     await api.setSmartAlarmMode(enabled);
+    smartAlarmModeEnabled = enabled;
     updateSmartAlarmModeUI(enabled);
     showToast(enabled ? 'Smart Alarm Mode enabled' : 'Sensitive Mode enabled', 'success');
   } catch (error) {
