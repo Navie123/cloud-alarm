@@ -9497,3 +9497,22 @@ header {
   font-size: 0.8rem;
   color: var(--text-secondary, #666);
 }
+
+/* ============ WARNING STATE (Smart Alarm Mode) ============ */
+.alarm-banner.warning-active {
+  background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4) !important;
+}
+
+.alarm-banner.warning-active .alarm-icon-wrap i {
+  color: #d97706 !important;
+}
+
+.alarm-banner.warning-active .alarm-title {
+  color: #92400e !important;
+}
+
+.alarm-banner.warning-active .alarm-subtitle {
+  color: #b45309 !important;
+}

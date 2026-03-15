@@ -1082,8 +1082,8 @@ function updateUI(data, isRealtimeUpdate = false) {
     const gasHigh = data.gas && data.gas >= gasThreshold;
     const tempHigh = data.temperature && data.temperature >= tempThreshold;
     
-    // Treat partial warnings as alarms for sound purposes
-    const shouldPlayAlarm = data.alarm || data.partialWarning || smokeHigh || gasHigh || tempHigh;
+    // Only trigger full alarm sound for actual alarms, not partial warnings (smart mode)
+    const shouldPlayAlarm = data.alarm || gasHigh || tempHigh || (smokeHigh && !data.partialWarning);
     
     console.log('Alarm state check:', {
       deviceOnline: isDeviceOnline,
@@ -1214,7 +1214,7 @@ function updateAlarmState(isAlarm, tempWarning) {
       console.log('Visual alarm active but audio muted (siren off)');
     }
   } else {
-    if (alarmCard) alarmCard.classList.remove('alarm-active');
+    if (alarmCard) alarmCard.classList.remove('alarm-active', 'warning-active');
     if (alarmIcon) alarmIcon.className = 'fas fa-shield-check';
     if (alarmText) alarmText.textContent = 'System Normal';
     if (alarmSubtitle) alarmSubtitle.textContent = 'All sensors within safe range';
@@ -2029,11 +2029,12 @@ updateUI = function(data, isRealtimeUpdate = false) {
   // Device online status is determined in originalUpdateUI
   const isDeviceOnline = isConnected && hasReceivedRealtimeData;
   if (isDeviceOnline) {
-    // Create modified data object for alarm state - treat partial warnings as alarms for sound
+    // Only treat partial warning as alarm if smartAlarmMode is OFF
+    // When smartAlarmMode is ON, partial warning = yellow warning card, no alarm sound
     const alarmData = { ...data };
     if (data.partialWarning && !data.alarm) {
-      alarmData.alarm = true;  // Treat partial warning as alarm for sound purposes
-      console.log('Extended: Treating partial warning as alarm for sound');
+      // Don't escalate to full alarm — let updateAlarmStateExtended handle warning display
+      console.log('Extended: Partial warning detected - showing warning card (no alarm sound)');
     }
     updateAlarmStateExtended(alarmData);
   } else {
@@ -2082,6 +2083,24 @@ function updateAlarmStateExtended(data) {
     return;
   }
   
+  // Partial warning (smart mode: smoke/gas detected but no temp rise)
+  if (data.partialWarning && !data.alarm) {
+    if (alarmCard) {
+      alarmCard.classList.remove('alarm-active', 'fire-risk');
+      alarmCard.classList.add('warning-active');
+    }
+    const warningType = data.smokeWarningOnly && data.gasWarningOnly ? 'Smoke & Gas' :
+                        data.smokeWarningOnly ? 'Smoke' : 'Gas';
+    if (alarmIcon) alarmIcon.className = 'fas fa-triangle-exclamation';
+    if (alarmText) alarmText.textContent = `${warningType} WARNING`;
+    if (alarmSubtitle) alarmSubtitle.textContent = 'Detected but no temperature rise — monitor the area';
+    stopAlarmSound();
+    return;
+  }
+
+  // Clear warning state if no longer active
+  if (alarmCard) alarmCard.classList.remove('warning-active');
+
   // Remove fire-risk class if not active
   if (alarmCard) alarmCard.classList.remove('fire-risk');
 }
