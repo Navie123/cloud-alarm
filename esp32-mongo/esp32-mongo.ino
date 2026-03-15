@@ -46,6 +46,7 @@ int tempThreshold = DEFAULT_TEMP_THRESHOLD;
 bool alarmActive = false;
 bool sirenEnabled = true;
 bool silenceRequested = false;
+bool smartAlarmMode = false;  // When true: smoke alone = WARNING only, needs temp rise for full alarm
 String tempWarning = "normal";
 
 // Partial warning system variables
@@ -1176,9 +1177,17 @@ void updateAlarmState() {
   bool gasDetected = gasPercent >= gasThreshold;
   bool tempRiseDetected = tempBaselineReady && (temperature > baselineTemp + 5.0);  // Increased from 3°C to 5°C to be less sensitive
   
-  // Full alarm conditions (with significant temperature rise)
-  bool smokeAlarm = smokeDetected && tempRiseDetected;
-  bool gasAlarmWithTemp = gasDetected && tempRiseDetected;
+  // Full alarm conditions depend on smartAlarmMode setting
+  bool smokeAlarm, gasAlarmWithTemp;
+  if (smartAlarmMode) {
+    // SMART MODE: smoke/gas alone = warning only, needs temp rise for full alarm
+    smokeAlarm = smokeDetected && tempRiseDetected;
+    gasAlarmWithTemp = gasDetected && tempRiseDetected;
+  } else {
+    // SENSITIVE MODE (default): smoke/gas alone = full alarm immediately
+    smokeAlarm = smokeDetected;
+    gasAlarmWithTemp = gasDetected;
+  }
   
   // Partial warning conditions (smoke/gas detected regardless of small temp changes)
   bool smokeWarningOnly = smokeDetected && !tempAlarm;  // Changed: ignore small temp rise, only check temp threshold
@@ -1419,6 +1428,11 @@ void checkCommands() {
       if (doc.containsKey("smokeThreshold")) {
         smokeThreshold = doc["smokeThreshold"].as<int>();
         Serial.printf("Smoke threshold updated: %d%%\n", smokeThreshold);
+      }
+      
+      if (doc.containsKey("smartAlarmMode")) {
+        smartAlarmMode = doc["smartAlarmMode"].as<bool>();
+        Serial.printf("Smart alarm mode updated: %s\n", smartAlarmMode ? "ON (smart)" : "OFF (sensitive)");
       }
       
       if (doc.containsKey("sirenEnabled")) {

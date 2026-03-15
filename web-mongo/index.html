@@ -962,6 +962,22 @@
             <button class="btn btn-primary" onclick="saveSmokeThreshold()"><i class="fas fa-save"></i> Save Smoke Threshold</button>
           </div>
           
+          <!-- Smart Alarm Mode -->
+          <div class="card threshold-card">
+            <div class="card-title"><i class="fas fa-shield-halved"></i> Smart Alarm Mode</div>
+            <p class="card-subtitle">When enabled, smoke alone triggers a warning only. Full alarm requires smoke AND temperature rise. CO and gas alarms are always active.</p>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <span class="toggle-label" id="smartAlarmModeLabel">Sensitive Mode</span>
+                <span class="toggle-desc" id="smartAlarmModeDesc">Any sensor trigger = Full Alarm</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="smartAlarmModeToggle" onchange="saveSmartAlarmMode(this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
           <!-- Temperature Threshold -->
           <div class="card threshold-card">
             <div class="card-title"><i class="fas fa-temperature-high"></i> Temperature Threshold</div>

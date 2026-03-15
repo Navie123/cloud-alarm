@@ -1008,4 +1008,27 @@ router.post('/member-email/resend', verifyHouseholdSession, async (req, res) => 
   }
 });
 
+// ============ SMART ALARM MODE ============
+
+// Get smart alarm mode setting (admin only)
+router.get('/smart-alarm-mode', verifyAdminSession, (req, res) => {
+  res.json({ smartAlarmMode: req.household.smartAlarmMode || false });
+});
+
+// Toggle smart alarm mode (admin only)
+router.put('/smart-alarm-mode', verifyAdminSession, async (req, res) => {
+  try {
+    const { enabled } = req.body;
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'enabled must be a boolean' });
+    }
+    req.household.smartAlarmMode = enabled;
+    await req.household.save();
+    res.json({ success: true, smartAlarmMode: enabled });
+  } catch (error) {
+    console.error('Smart alarm mode error:', error);
+    res.status(500).json({ error: 'Failed to update smart alarm mode' });
+  }
+});
+
 module.exports = { router, verifyHouseholdSession, verifyAdminSession };

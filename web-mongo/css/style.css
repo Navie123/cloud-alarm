@@ -9471,3 +9471,29 @@ header {
     justify-content: center;
   }
 }
+
+/* ============ SMART ALARM MODE TOGGLE ============ */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toggle-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary, #1a1a2e);
+}
+
+.toggle-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #666);
+}

@@ -429,6 +429,9 @@ router.get('/:deviceId/commands', async (req, res) => {
       if (device.current.sirenEnabled !== undefined) response.sirenEnabled = device.current.sirenEnabled;
     }
     
+    // Include smartAlarmMode from household settings
+    response.smartAlarmMode = household.smartAlarmMode || false;
+    
     // Include CO thresholds from commands (they persist there)
     if (device.commands) {
       if (device.commands.coWarningThreshold !== undefined) response.coWarningThreshold = device.commands.coWarningThreshold;

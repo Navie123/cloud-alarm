@@ -134,5 +134,17 @@ const api = {
       method: 'PUT',
       body: JSON.stringify({ enabled })
     });
+  },
+
+  // Smart Alarm Mode (Admin Only)
+  async getSmartAlarmMode() {
+    return this.request('/api/household/smart-alarm-mode');
+  },
+
+  async setSmartAlarmMode(enabled) {
+    return this.request('/api/household/smart-alarm-mode', {
+      method: 'PUT',
+      body: JSON.stringify({ enabled })
+    });
   }
 };

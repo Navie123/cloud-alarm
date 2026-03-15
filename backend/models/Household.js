@@ -61,6 +61,11 @@ const householdSchema = new mongoose.Schema({
   // Admin email alert preference
   adminEmailAlerts: { type: Boolean, default: true },
 
+  // Smart Alarm Mode: when true, smoke alone triggers WARNING only (not full alarm)
+  // Full alarm requires smoke + temperature rise. CO and gas always trigger full alarm.
+  // When false (default = sensitive mode): any sensor exceeding threshold = full alarm
+  smartAlarmMode: { type: Boolean, default: false },
+
   // ============ DEVICES ============
   devices: [{
     deviceId: { type: String, required: true },

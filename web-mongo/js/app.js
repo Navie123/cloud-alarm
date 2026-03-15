@@ -130,6 +130,7 @@ function initializeApp() {
   startDeviceStatusChecker();
   setupAllThresholdSliders();
   loadCalibrationStatus();
+  loadSmartAlarmMode();
   
   // Add click listeners to auto-enable audio on user interaction
   document.addEventListener('click', autoEnableAudio, { once: true });
@@ -3493,4 +3494,42 @@ function updateStatsLabels() {
     if (period === 'week') tab.innerHTML = icon + ' ' + trans.statsWeek;
     if (period === 'month') tab.innerHTML = icon + ' ' + trans.statsMonth;
   });
+}
+
+// ============ SMART ALARM MODE ============
+
+async function loadSmartAlarmMode() {
+  try {
+    const data = await api.getSmartAlarmMode();
+    const toggle = document.getElementById('smartAlarmModeToggle');
+    if (toggle) {
+      toggle.checked = data.smartAlarmMode;
+      updateSmartAlarmModeUI(data.smartAlarmMode);
+    }
+  } catch (error) {
+    console.error('Failed to load smart alarm mode:', error);
+  }
+}
+
+async function saveSmartAlarmMode(enabled) {
+  try {
+    await api.setSmartAlarmMode(enabled);
+    updateSmartAlarmModeUI(enabled);
+    showToast(enabled ? 'Smart Alarm Mode enabled' : 'Sensitive Mode enabled', 'success');
+  } catch (error) {
+    console.error('Failed to save smart alarm mode:', error);
+    showToast('Failed to update Smart Alarm Mode', 'error');
+    // Revert toggle on failure
+    const toggle = document.getElementById('smartAlarmModeToggle');
+    if (toggle) toggle.checked = !enabled;
+  }
+}
+
+function updateSmartAlarmModeUI(enabled) {
+  const label = document.getElementById('smartAlarmModeLabel');
+  const desc = document.getElementById('smartAlarmModeDesc');
+  if (label) label.textContent = enabled ? 'Smart Mode' : 'Sensitive Mode';
+  if (desc) desc.textContent = enabled
+    ? 'Smoke alone = Warning only; needs temp rise for full alarm'
+    : 'Any sensor trigger = Full Alarm';
 }
