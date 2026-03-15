@@ -811,11 +811,11 @@ function updateGreeting(hours) {
     greetingKey = 'greetingMorning';
     iconClass = 'fa-sun';
     timeClass = 'morning';
-  } else if (hours >= 12 && hours < 17) {
+  } else if (hours >= 12 && hours < 18) {
     greetingKey = 'greetingAfternoon';
     iconClass = 'fa-cloud-sun';
     timeClass = 'afternoon';
-  } else if (hours >= 17 && hours < 21) {
+  } else if (hours >= 18 && hours < 21) {
     greetingKey = 'greetingEvening';
     iconClass = 'fa-cloud-moon';
     timeClass = 'evening';
