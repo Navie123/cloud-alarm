@@ -21,7 +21,6 @@
 // #define API_HOST "192.168.1.39"  // Your computer's IP
 // #define API_PORT 3000
 // #define USE_HTTPS false
-
 // For production on Render.com:
 #define API_HOST "cloud-alarm.onrender.com"
 #define API_PORT 443

@@ -79,10 +79,10 @@
           </div>
           
           <div class="form-group">
-            <label><i class="fas fa-key"></i> Household Passkey</label>
+            <label><i class="fas fa-key"></i> Home Password</label>
             <div class="input-with-action">
               <div class="input-wrapper">
-                <input type="text" id="setupHouseholdId" name="householdId" placeholder="Create your unique passkey" required minlength="6" pattern="[A-Za-z0-9@#$%^&*_-]+" autocomplete="off" spellcheck="false">
+                <input type="text" id="setupHouseholdId" name="householdId" placeholder="Create a password for your home" required minlength="6" pattern="[A-Za-z0-9@#$%^&*_-]+" autocomplete="off" spellcheck="false">
                 <button type="button" class="toggle-password" onclick="togglePasswordVisibility('setupHouseholdId')">
                   <i class="fas fa-eye"></i>
                 </button>
@@ -158,9 +158,9 @@
         <!-- Household Access Form -->
         <form id="householdForm" onsubmit="joinHousehold(); return false;">
           <div class="form-group">
-            <label><i class="fas fa-key"></i> Household Passkey</label>
+            <label><i class="fas fa-key"></i> Home Password</label>
             <div class="input-wrapper">
-              <input type="password" id="householdIdInput" placeholder="Enter your Household Passkey" required>
+              <input type="password" id="householdIdInput" placeholder="Enter your Home Password" required>
               <button type="button" class="toggle-password" onclick="togglePasswordVisibility('householdIdInput')">
                 <i class="fas fa-eye"></i>
               </button>
@@ -187,9 +187,9 @@
           <div id="adminStep1">
             <p class="setup-info" style="margin-bottom: 20px;">Admin login requires email verification for security.</p>
             <div class="form-group">
-              <label><i class="fas fa-key"></i> Household Passkey</label>
+              <label><i class="fas fa-key"></i> Home Password</label>
               <div class="input-wrapper">
-                <input type="password" id="adminHouseholdId" placeholder="Enter your Household Passkey" required>
+                <input type="password" id="adminHouseholdId" placeholder="Enter your Home Password" required>
                 <button type="button" class="toggle-password" onclick="togglePasswordVisibility('adminHouseholdId')">
                   <i class="fas fa-eye"></i>
                 </button>
@@ -464,7 +464,7 @@
           <!-- CO Sensor Card -->
           <div class="sensor-card co-card">
             <div class="sensor-header">
-              <i class="fas fa-skull-crossbones"></i><span>Carbon Monoxide</span>
+              <i class="fas fa-skull-crossbones"></i><span>Poisonous Gas (CO)</span>
               <span class="sensor-health-icon hidden" id="coHealthIcon" title="Sensor issue detected"><i class="fas fa-exclamation-triangle"></i></span>
             </div>
             <div class="sensor-gauge">
@@ -482,7 +482,7 @@
           <!-- AQI Sensor Card -->
           <div class="sensor-card aqi-card">
             <div class="sensor-header">
-              <i class="fas fa-wind"></i><span>Air Quality</span>
+              <i class="fas fa-wind"></i><span>Air Cleanliness</span>
               <span class="sensor-health-icon hidden" id="aqiHealthIcon" title="Sensor issue detected"><i class="fas fa-exclamation-triangle"></i></span>
             </div>
             <div class="sensor-gauge">
@@ -684,7 +684,7 @@
             <div class="stats-sensor-block co-stats">
               <div class="stats-sensor-header">
                 <i class="fas fa-skull-crossbones"></i>
-                <span>Carbon Monoxide</span>
+                <span>Poisonous Gas (CO)</span>
               </div>
               <div class="stats-values-row">
                 <div class="stats-item">
@@ -716,7 +716,7 @@
             <div class="stats-sensor-block aqi-stats">
               <div class="stats-sensor-header">
                 <i class="fas fa-wind"></i>
-                <span>Air Quality</span>
+                <span>Air Cleanliness</span>
               </div>
               <div class="stats-values-row">
                 <div class="stats-item">
@@ -798,7 +798,7 @@
             <div class="card-title"><i class="fas fa-triangle-exclamation"></i> Alarm History (<span id="historyCount">0</span>)</div>
           </div>
           <div class="history-actions">
-            <button class="btn btn-secondary" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> Export PDF</button>
+            <button class="btn btn-secondary" onclick="exportPDF()"><i class="fas fa-file-pdf"></i> Save Report</button>
             <button class="btn btn-secondary" onclick="refreshHistory()"><i class="fas fa-refresh"></i> Refresh</button>
             <button class="btn btn-danger admin-only" onclick="clearHistory()"><i class="fas fa-trash"></i> Clear All</button>
           </div>
@@ -827,8 +827,8 @@
               <i class="fas fa-mobile-screen-button"></i>
             </div>
             <div class="notif-card-content">
-              <h3>Push Notifications</h3>
-              <p>Instant browser alerts when alarm triggers</p>
+              <h3>Phone / Browser Alerts</h3>
+              <p>Get an instant alert on your phone or browser when the alarm goes off</p>
               <div class="notif-features">
                 <span><i class="fas fa-check"></i> Real-time alerts</span>
                 <span><i class="fas fa-check"></i> Works in background</span>
@@ -851,7 +851,7 @@
             </div>
             <div class="notif-card-content">
               <h3>Email Alerts</h3>
-              <p>Get notified via email even when offline</p>
+              <p>Receive an email even when you are away from home</p>
               <div class="notif-features">
                 <span><i class="fas fa-check"></i> Works 24/7</span>
                 <span><i class="fas fa-check"></i> No browser needed</span>
@@ -925,7 +925,7 @@
         <div class="admin-only">
           <div class="card threshold-card">
             <div class="card-title"><i class="fas fa-shield-halved"></i> Smart Alarm Mode</div>
-            <p class="card-subtitle">When enabled, smoke alone triggers a warning only. Full alarm requires smoke AND temperature rise. CO and gas alarms are always active.</p>
+            <p class="card-subtitle">When ON: smoke alone only shows a caution warning — the full alarm fires only if the temperature also rises. Poisonous gas (CO) and gas leaks always trigger the full alarm no matter what.</p>
             <div class="toggle-row">
               <div class="toggle-info">
                 <span class="toggle-label" id="smartAlarmModeLabel">Sensitive Mode</span>
@@ -969,8 +969,9 @@
         <div class="admin-only">
           <!-- Gas Threshold -->
           <div class="card threshold-card">
-            <div class="card-title"><i class="fas fa-fire-flame-simple"></i> Gas Threshold (MQ-7)</div>
-            <p class="card-subtitle">Trigger alarm when gas level exceeds this value</p>
+            <div class="card-title"><i class="fas fa-fire-flame-simple"></i> Gas Alert Level</div>
+            
+            <p class="card-subtitle">The alarm will go off when gas reaches this level</p>
             <div class="threshold-slider-group">
               <input type="range" class="slider gas-slider" id="thresholdSlider" min="5" max="95" value="40">
               <div class="threshold-value-display">
@@ -981,13 +982,13 @@
                 <span class="range-max"><i class="fas fa-triangle-exclamation"></i> 95%</span>
               </div>
             </div>
-            <button class="btn btn-primary" onclick="saveThreshold()"><i class="fas fa-save"></i> Save Gas Threshold</button>
+            <button class="btn btn-primary" onclick="saveThreshold()"><i class="fas fa-save"></i> Save Gas Alert Level</button>
           </div>
           
           <!-- Smoke Threshold -->
           <div class="card threshold-card">
-            <div class="card-title"><i class="fas fa-smog"></i> Smoke Threshold (MQ-2)</div>
-            <p class="card-subtitle">Trigger alarm when smoke level exceeds this value</p>
+            <div class="card-title"><i class="fas fa-smog"></i> Smoke Alert Level</div>
+            <p class="card-subtitle">The alarm will go off when smoke reaches this level</p>
             <div class="threshold-slider-group">
               <input type="range" class="slider smoke-slider" id="smokeThresholdSlider" min="4" max="95" value="40">
               <div class="threshold-value-display">
@@ -998,13 +999,13 @@
                 <span class="range-max"><i class="fas fa-triangle-exclamation"></i> 95%</span>
               </div>
             </div>
-            <button class="btn btn-primary" onclick="saveSmokeThreshold()"><i class="fas fa-save"></i> Save Smoke Threshold</button>
+            <button class="btn btn-primary" onclick="saveSmokeThreshold()"><i class="fas fa-save"></i> Save Smoke Alert Level</button>
           </div>
           
           <!-- Temperature Threshold -->
           <div class="card threshold-card">
-            <div class="card-title"><i class="fas fa-temperature-high"></i> Temperature Threshold</div>
-            <p class="card-subtitle">Trigger alarm when temperature exceeds this value</p>
+            <div class="card-title"><i class="fas fa-temperature-high"></i> Heat Alert Level</div>
+            <p class="card-subtitle">The alarm will go off when temperature reaches this level</p>
             <div class="threshold-slider-group">
               <input type="range" class="slider temp-slider" id="tempThresholdSlider" min="35" max="80" value="60">
               <div class="threshold-value-display">
@@ -1015,17 +1016,17 @@
                 <span class="range-max"><i class="fas fa-fire"></i> 80°C</span>
               </div>
             </div>
-            <button class="btn btn-primary" onclick="saveTempThreshold()"><i class="fas fa-save"></i> Save Temp Threshold</button>
+            <button class="btn btn-primary" onclick="saveTempThreshold()"><i class="fas fa-save"></i> Save Heat Alert Level</button>
           </div>
           
           <!-- CO Thresholds -->
           <div class="card threshold-card">
-            <div class="card-title"><i class="fas fa-skull-crossbones"></i> CO Thresholds (MQ-7 PPM)</div>
-            <p class="card-subtitle">Carbon monoxide warning levels in parts per million</p>
+            <div class="card-title"><i class="fas fa-skull-crossbones"></i> Poisonous Gas (CO) Alert Levels</div>
+            <p class="card-subtitle">Set how much CO gas triggers each level of warning</p>
             
             <div class="co-threshold-group">
               <div class="co-level-item">
-                <label><i class="fas fa-circle" style="color: #eab308;"></i> Warning Level</label>
+                <label><i class="fas fa-circle" style="color: #eab308;"></i> Caution Level</label>
                 <input type="range" class="slider co-warning-slider" id="coWarningSlider" min="10" max="50" value="35">
                 <span class="threshold-badge co-warning-badge" id="coWarningVal">35 PPM</span>
               </div>
@@ -1043,13 +1044,13 @@
               </div>
             </div>
             
-            <button class="btn btn-primary" onclick="saveCOThresholds()"><i class="fas fa-save"></i> Save CO Thresholds</button>
+            <button class="btn btn-primary" onclick="saveCOThresholds()"><i class="fas fa-save"></i> Save CO Alert Levels</button>
           </div>
           
           <!-- Reset Thresholds to Default -->
           <div class="card reset-thresholds-card">
-            <div class="card-title"><i class="fas fa-rotate-left"></i> Reset Thresholds</div>
-            <p class="card-subtitle">Restore all sensor thresholds to factory defaults</p>
+            <div class="card-title"><i class="fas fa-rotate-left"></i> Restore Default Levels</div>
+            <p class="card-subtitle">Put all alert levels back to the original settings</p>
             <div class="default-values-preview">
               <div class="default-item"><i class="fas fa-fire-flame-simple"></i> Gas: <strong>40%</strong></div>
               <div class="default-item"><i class="fas fa-smog"></i> Smoke: <strong>40%</strong></div>
@@ -1069,7 +1070,7 @@
           <div class="info-grid">
             <div class="info-item"><span class="info-label"><i class="fas fa-microchip"></i> Device ID</span><span class="info-value" id="deviceId">--</span></div>
             <div class="info-item"><span class="info-label"><i class="fas fa-clock"></i> Last Update</span><span class="info-value" id="lastUpdate">--</span></div>
-            <div class="info-item"><span class="info-label"><i class="fas fa-memory"></i> Free Heap</span><span class="info-value" id="freeHeap">--</span></div>
+            <div class="info-item"><span class="info-label"><i class="fas fa-memory"></i> Device Memory</span><span class="info-value" id="freeHeap">--</span></div>
             <div class="info-item"><span class="info-label"><i class="fas fa-wifi"></i> Status</span><span class="info-value" id="connectionStatus">--</span></div>
           </div>
         </div>
@@ -1077,10 +1078,10 @@
         <!-- Factory Reset (Admin Only) -->
         <div class="admin-only">
           <div class="card card-danger">
-            <div class="card-title"><i class="fas fa-triangle-exclamation"></i> Danger Zone</div>
-            <p class="card-subtitle">Irreversible actions that affect all users</p>
+            <div class="card-title"><i class="fas fa-triangle-exclamation"></i> Erase All Data</div>
+            <p class="card-subtitle">This cannot be undone — it will remove everything for all users</p>
             <button class="btn btn-danger" onclick="showFactoryResetModal()">
-              <i class="fas fa-trash-can"></i> Factory Reset
+              <i class="fas fa-trash-can"></i> Erase Everything & Start Over
             </button>
           </div>
         </div>
@@ -1745,17 +1746,17 @@
       <div class="modal-content" onclick="event.stopPropagation()">
         <div class="modal-header">
           <i class="fas fa-exclamation-triangle modal-icon-danger"></i>
-          <h3>Factory Reset</h3>
+          <h3>Erase Everything & Start Over</h3>
         </div>
         <div class="modal-body">
-          <p class="modal-warning">This will permanently delete:</p>
+          <p class="modal-warning">This will permanently delete everything:</p>
           <ul class="reset-list">
             <li><i class="fas fa-users"></i> All household members</li>
             <li><i class="fas fa-microchip"></i> All registered devices</li>
             <li><i class="fas fa-history"></i> All alarm history</li>
             <li><i class="fas fa-cog"></i> All settings and configurations</li>
           </ul>
-          <p class="modal-warning">Everyone will be logged out and you'll need to set up again.</p>
+          <p class="modal-warning">Everyone will be logged out and the system will need to be set up again from scratch.</p>
           
           <div class="form-group">
             <label><i class="fas fa-lock"></i> Enter Admin PIN</label>

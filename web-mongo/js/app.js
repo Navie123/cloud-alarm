@@ -1218,8 +1218,10 @@ function updateAlarmState(isAlarm, tempWarning, isPartialWarning = false) {
       alarmCard.classList.add('warning-active');
     }
     if (alarmIcon) alarmIcon.className = 'fas fa-triangle-exclamation';
-    if (alarmText) alarmText.textContent = 'SMOKE WARNING';
-    if (alarmSubtitle) alarmSubtitle.textContent = 'Smoke detected — no temperature rise. Monitor the area.';
+    if (alarmText) alarmText.textContent = t('alarmWarning');
+    if (alarmSubtitle) alarmSubtitle.textContent = getCurrentLanguage() === 'tl'
+      ? 'May usok — walang pagtaas ng init. Bantayan ang lugar.'
+      : 'Smoke detected — no temperature rise. Keep an eye on the area.';
     if (sirenOverlay) sirenOverlay.classList.remove('active');
     document.body.classList.remove('alarm-mode');
     stopAlarmSound();
@@ -1230,8 +1232,8 @@ function updateAlarmState(isAlarm, tempWarning, isPartialWarning = false) {
     // Always show visual alarm regardless of siren setting
     if (alarmCard) alarmCard.classList.add('alarm-active');
     if (alarmIcon) alarmIcon.className = 'fas fa-triangle-exclamation';
-    if (alarmText) alarmText.textContent = 'ALARM ACTIVE!';
-    if (alarmSubtitle) alarmSubtitle.textContent = 'Danger detected - take action now!';
+    if (alarmText) alarmText.textContent = t('alarmTriggered');
+    if (alarmSubtitle) alarmSubtitle.textContent = t('fireRiskDetected');
     if (sirenOverlay) sirenOverlay.classList.add('active');
     document.body.classList.add('alarm-mode');
     
