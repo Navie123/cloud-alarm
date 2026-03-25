@@ -31,6 +31,10 @@ async function checkSetupStatus() {
         accessType = info.accessType;
         householdName = info.name;
         
+        // Cache for offline/cold-start fallback
+        localStorage.setItem('accessType', info.accessType);
+        localStorage.setItem('householdName', info.name || 'FireWire');
+        
         // Set admin name for greeting if available
         if (info.accessType === 'admin' && info.adminName) {
           localStorage.setItem('memberName', info.adminName);
@@ -39,7 +43,26 @@ async function checkSetupStatus() {
         showMainApp();
         return;
       } catch (e) {
-        localStorage.removeItem('householdToken');
+        // Only clear token on explicit auth failures (401/403)
+        // Do NOT clear on network errors or server cold starts (503, timeout)
+        // so the session survives Render spin-downs and brief connectivity loss
+        const status = e?.status || e?.response?.status;
+        if (status === 401 || status === 403) {
+          localStorage.removeItem('householdToken');
+          localStorage.removeItem('memberId');
+          localStorage.removeItem('memberName');
+        } else {
+          // Network/server error — keep token and try to show app anyway
+          // The app will handle reconnection via WebSocket retry logic
+          const cachedAccessType = localStorage.getItem('accessType');
+          const cachedName = localStorage.getItem('householdName');
+          if (cachedAccessType) {
+            accessType = cachedAccessType;
+            householdName = cachedName || 'FireWire';
+            showMainApp();
+            return;
+          }
+        }
       }
     }
     
@@ -530,6 +553,9 @@ function logout() {
   householdName = null;
   localStorage.removeItem('householdName');
   localStorage.removeItem('memberName');
+  localStorage.removeItem('accessType');
+  localStorage.removeItem('householdToken');
+  localStorage.removeItem('memberId');
   
   if (window.ws) window.ws.close();
   
