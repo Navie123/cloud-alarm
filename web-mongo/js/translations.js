@@ -125,9 +125,9 @@ const translations = {
     notifSilenceAlarm: 'Stop the Alarm',
 
     settingsSmartAlarmTitle: 'Smart Alarm Mode',
-    settingsSmartAlarmDesc: 'When ON: smoke alone only shows a caution warning — the full alarm fires only if the temperature also rises. Poisonous gas (CO) and gas leaks always trigger the full alarm no matter what.',
+    settingsSmartAlarmDesc: 'When ON: if only smoke is detected, the alarm gives a soft warning instead of a full alarm. The full alarm only sounds if the heat also rises. Gas and CO leaks always trigger the full alarm.',
     settingsSmartModeOn: 'Smart Mode',
-    settingsSmartModeOnDesc: 'Smoke alone = Caution only; full alarm needs temperature rise too',
+    settingsSmartModeOnDesc: 'Smoke only = soft warning; full alarm needs heat rise too',
     settingsSensitiveMode: 'High Sensitivity Mode',
     settingsSensitiveModeDesc: 'Any sensor reading danger = Full alarm right away',
     settingsSmartEnabled: 'Smart Alarm Mode is now ON',
@@ -301,9 +301,9 @@ const translations = {
     notifSilenceAlarm: 'Itigil ang Alarma',
 
     settingsSmartAlarmTitle: 'Smart Alarm Mode',
-    settingsSmartAlarmDesc: 'Kapag BUKAS: ang usok lamang ay nagbibigay ng babala — ang buong alarma ay tutunog lamang kapag tumaas din ang init. Ang nakalalason na gas (CO) at gas leak ay palaging nagpapatunog ng buong alarma.',
+    settingsSmartAlarmDesc: 'Kapag BUKAS: kung usok lang ang natukoy, magbibigay ng mahinang babala — hindi pa buong alarma. Tutunog ang buong alarma kapag tumaas din ang init. Ang gas at CO ay palaging nagpapatunog ng buong alarma.',
     settingsSmartModeOn: 'Smart Mode',
-    settingsSmartModeOnDesc: 'Usok lamang = Babala lang; kailangan ding tumaas ang init para sa buong alarma',
+    settingsSmartModeOnDesc: 'Usok lang = mahinang babala; kailangan ding tumaas ang init para sa buong alarma',
     settingsSensitiveMode: 'Mataas na Sensitivity',
     settingsSensitiveModeDesc: 'Anumang sensor na nagbabala = Buong alarma agad',
     settingsSmartEnabled: 'Smart Alarm Mode ay nakabukas na',
