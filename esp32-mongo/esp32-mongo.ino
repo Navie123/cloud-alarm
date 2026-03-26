@@ -490,52 +490,63 @@ void connectWiFiManager() {
   // Set timeout for config portal
   wifiManager.setConfigPortalTimeout(WIFI_PORTAL_TIMEOUT);
 
-  // Show connecting status on LCD while trying to connect
-  wifiManager.setSaveParamsCallback([]() {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("====================");
-    lcd.setCursor(3, 0);
-    lcd.print("Connecting WiFi");
-    lcd.setCursor(0, 2);
-    lcd.print("  Please wait...    ");
-    lcd.setCursor(0, 3);
-    lcd.print("  Testing password  ");
-  });
+  // Give WiFi enough time to actually try connecting before giving up
+  wifiManager.setConnectTimeout(15);       // 15 seconds to attempt connection
+  wifiManager.setConnectRetries(2);        // Try twice before declaring failure
+  wifiManager.setBreakAfterConfig(true);   // Return control to us after user saves
 
-  // After save, try connecting and check result — re-open portal with error if failed
-  wifiManager.setBreakAfterConfig(true);  // Don't auto-restart, let us handle result
-
-  // Try to connect to saved WiFi or start config portal
   bool connected = wifiManager.autoConnect(WIFI_AP_NAME, WIFI_AP_PASSWORD);
 
   if (!connected) {
-    // Check if we have credentials saved but connection failed (wrong password/SSID)
     String savedSSID = WiFi.SSID();
     if (savedSSID.length() > 0) {
       // Had credentials but failed — wrong password or SSID not found
-      Serial.println("WiFi connection failed - wrong password or SSID not found");
+      Serial.printf("Connection failed for SSID: %s — wrong password or not found\n", savedSSID.c_str());
 
-      // Show error on LCD
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("====================");
-      lcd.setCursor(2, 0);
-      lcd.print("CONNECTION FAILED");
-      lcd.setCursor(0, 1);
-      lcd.print("Wrong password or   ");
-      lcd.setCursor(0, 2);
-      lcd.print("network not found.  ");
-      lcd.setCursor(0, 3);
-      lcd.print("Reconnect to setup..");
-      delay(3000);
-
-      // Clear wrong credentials so portal reopens cleanly
+      // Clear wrong credentials
       wifiManager.resetSettings();
 
-      // Restart portal so user can try again
+      // Reopen portal with error flag — inject error banner via custom head element
+      const char* errorCSS = "<style>"
+        "body { background:#f5f5f5; color:#1a1a1a; font-family:sans-serif; font-size:15px; }"
+        ".wrap { max-width:400px; margin:0 auto; padding:14px; }"
+        ".fw-err { background:#fff0f0; border:2px solid #e74c3c; border-radius:10px; padding:14px 16px; margin:12px 0 16px; text-align:center; }"
+        ".fw-err-icon { font-size:1.8em; display:block; margin-bottom:6px; }"
+        ".fw-err-title { color:#c0392b; font-weight:700; font-size:1em; margin-bottom:4px; }"
+        ".fw-err-msg { color:#555; font-size:0.85em; line-height:1.4; }"
+        ".card, form { background:#fff; border-radius:10px; padding:14px; margin:8px 0; border:1px solid #e0e0e0; }"
+        "h1 { font-size:1.2em; font-weight:700; text-align:center; color:#1a1a1a; margin-bottom:4px; }"
+        "h2, h3 { color:#555; text-align:center; font-weight:500; font-size:0.88em; margin-bottom:12px; }"
+        "input[type='submit'], button { background:#e85d20; border:none; color:#fff; padding:11px 18px; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.9em; width:100%; margin:5px 0 0; }"
+        "input[type='text'], input[type='password'] { width:100%; background:#fafafa; border:1.5px solid #ddd; color:#1a1a1a; border-radius:8px; padding:10px 12px; font-size:0.9em; margin:4px 0 10px; font-family:inherit; }"
+        "input[type='text']:focus, input[type='password']:focus { outline:none; border-color:#e85d20; }"
+        "label { display:block; color:#444; font-weight:500; margin-bottom:2px; font-size:0.84em; }"
+        ".q { background:#fff; border:1.5px solid #e0e0e0; border-radius:8px; margin:5px 0; padding:10px 12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; }"
+        ".l { color:#1a1a1a !important; font-weight:600; font-size:0.9em; flex:1; }"
+        ".s { color:#e85d20 !important; font-weight:600; font-size:0.75em; background:#fff3ee; padding:2px 7px; border-radius:10px; border:1px solid #f0a070; white-space:nowrap; margin-left:6px; }"
+        ".msg { background:#fff3ee; border:1px solid #f0a070; color:#e85d20; padding:9px 12px; border-radius:8px; margin:8px 0; font-weight:500; text-align:center; font-size:0.85em; }"
+        "hr { border:none; height:1px; background:#e0e0e0; margin:12px 0; }"
+        "</style>"
+        "<script>"
+        "document.addEventListener('DOMContentLoaded',function(){"
+          "var w=document.querySelector('.wrap');"
+          "if(w){"
+            "var err=document.createElement('div');"
+            "err.className='fw-err';"
+            "err.innerHTML='<span class=\"fw-err-icon\">&#10060;</span>"
+              "<div class=\"fw-err-title\">Connection Failed</div>"
+              "<div class=\"fw-err-msg\">Wrong password or network not found.<br>Please check and try again.</div>';"
+            "w.insertBefore(err,w.firstChild);"
+          "}"
+        "});"
+        "</script>";
+
+      wifiManager.setCustomHeadElement(errorCSS);
       wifiManager.setBreakAfterConfig(false);
+      wifiManager.setConnectTimeout(15);
+      wifiManager.setConnectRetries(2);
       wifiManager.setConfigPortalTimeout(WIFI_PORTAL_TIMEOUT);
+
       if (!wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD)) {
         Serial.println("Config portal timed out, restarting...");
         delay(3000);
