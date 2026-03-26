@@ -390,6 +390,7 @@
           <div class="tab" data-tab="settings"><i class="fas fa-sliders"></i> <span class="tab-text" data-i18n="tabSettings">Settings</span></div>
           <div class="tab admin-only" data-tab="device"><i class="fas fa-microchip"></i> <span class="tab-text" data-i18n="tabDevice">Device</span></div>
           <div class="tab admin-only" data-tab="members"><i class="fas fa-users-gear"></i> <span class="tab-text" data-i18n="tabMembers">Members</span></div>
+          <div class="tab" data-tab="help"><i class="fas fa-circle-question"></i> <span class="tab-text">Help</span></div>
         </div>
         <div class="header-actions">
           <button class="action-btn" onclick="toggleFullscreen()" title="Fullscreen"><i class="fas fa-expand" id="fullscreenIcon"></i></button>
@@ -1780,6 +1781,171 @@
       </div>
     </div>
     
+      <!-- Help Tab -->
+      <div class="tab-content" id="tab-help">
+        <div class="help-page">
+
+          <!-- Hero -->
+          <div class="help-hero">
+            <div class="help-hero-icon">🔥</div>
+            <h1 class="help-hero-title">FireWire User Guide</h1>
+            <p class="help-hero-sub">Everything you need to know — simple and easy to understand</p>
+          </div>
+
+          <!-- Section 1: What is FireWire -->
+          <div class="help-section">
+            <div class="help-section-header">
+              <span class="help-section-icon">🏠</span>
+              <h2>What is FireWire?</h2>
+            </div>
+            <p class="help-text">FireWire is a smart home safety device that watches your home 24 hours a day, 7 days a week. It detects smoke, gas leaks, poisonous gas (CO), and rising heat — then immediately sounds a buzzer and sends an alert to your phone.</p>
+            <p class="help-text">Even if you are away from home, FireWire will notify you through this app and by email so you can act fast.</p>
+          </div>
+
+          <!-- Section 2: The Device -->
+          <div class="help-section">
+            <div class="help-section-header">
+              <span class="help-section-icon">📦</span>
+              <h2>The FireWire Device</h2>
+            </div>
+            <div class="help-cards-grid">
+              <div class="help-card">
+                <div class="help-card-icon">🖥️</div>
+                <h3>LCD Screen</h3>
+                <p>Shows the current status of your home — whether it is safe, has a warning, or is in alarm. Also shows WiFi connection status and alarm mode.</p>
+              </div>
+              <div class="help-card">
+                <div class="help-card-icon">🔘</div>
+                <h3>5 Buttons</h3>
+                <p><strong>Press and hold each button for 2–3 seconds</strong> to see detailed sensor readings on the screen. Each button shows a different sensor.</p>
+              </div>
+              <div class="help-card">
+                <div class="help-card-icon">🔔</div>
+                <h3>Buzzer (Alarm Sound)</h3>
+                <p><strong>Continuous beeping</strong> = Full alarm, danger detected. <strong>3 short beeps</strong> = Caution, check your home. <strong>1 beep per second</strong> = Warning level.</p>
+              </div>
+              <div class="help-card">
+                <div class="help-card-icon">📡</div>
+                <h3>WiFi Connection</h3>
+                <p>FireWire connects to your home WiFi to send alerts. If WiFi is lost, the device still works as an alarm — it just cannot send phone notifications until reconnected.</p>
+              </div>
+            </div>
+
+            <div class="help-steps">
+              <h3 class="help-steps-title">Button Guide</h3>
+              <div class="help-step"><span class="help-step-num">1</span><div><strong>Button 1</strong> — Temperature &amp; Humidity</div></div>
+              <div class="help-step"><span class="help-step-num">2</span><div><strong>Button 2</strong> — Gas Level &amp; Air Quality</div></div>
+              <div class="help-step"><span class="help-step-num">3</span><div><strong>Button 3</strong> — Smoke Level</div></div>
+              <div class="help-step"><span class="help-step-num">4</span><div><strong>Button 4</strong> — Carbon Monoxide (CO)</div></div>
+              <div class="help-step"><span class="help-step-num">5</span><div><strong>Button 5</strong> — System &amp; WiFi Info</div></div>
+            </div>
+          </div>
+
+          <!-- Section 3: The App -->
+          <div class="help-section">
+            <div class="help-section-header">
+              <span class="help-section-icon">📱</span>
+              <h2>Using the App</h2>
+            </div>
+            <div class="help-tabs-guide">
+              <div class="help-tab-item">
+                <i class="fas fa-gauge"></i>
+                <div>
+                  <strong>Live Monitor</strong>
+                  <p>See all sensor readings in real time. Green = Safe, Yellow = Caution, Red = Danger.</p>
+                </div>
+              </div>
+              <div class="help-tab-item">
+                <i class="fas fa-clock-rotate-left"></i>
+                <div>
+                  <strong>History</strong>
+                  <p>View all past alarms. Tap any entry to see full details of what was detected.</p>
+                </div>
+              </div>
+              <div class="help-tab-item">
+                <i class="fas fa-bell"></i>
+                <div>
+                  <strong>Alerts</strong>
+                  <p>Turn on phone notifications and email alerts so you get notified even when the app is closed.</p>
+                </div>
+              </div>
+              <div class="help-tab-item">
+                <i class="fas fa-sliders"></i>
+                <div>
+                  <strong>Settings</strong>
+                  <p>Admin only. Change alarm sensitivity, alarm sound, and alert levels.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="help-tip">
+              <i class="fas fa-lightbulb"></i>
+              <div><strong>Tip:</strong> Install this app on your phone's home screen for quick access. Tap the share button in your browser and select "Add to Home Screen".</div>
+            </div>
+          </div>
+
+          <!-- Section 4: When Alarm Sounds -->
+          <div class="help-section">
+            <div class="help-section-header">
+              <span class="help-section-icon">🚨</span>
+              <h2>What to Do When the Alarm Sounds</h2>
+            </div>
+            <div class="help-steps">
+              <div class="help-step danger"><span class="help-step-num red">1</span><div><strong>Stay calm.</strong> Do not panic.</div></div>
+              <div class="help-step danger"><span class="help-step-num red">2</span><div><strong>Check the app.</strong> Open FireWire to see which sensor triggered the alarm.</div></div>
+              <div class="help-step danger"><span class="help-step-num red">3</span><div><strong>If smoke or fire</strong> — leave the house immediately. Do not stop to collect belongings.</div></div>
+              <div class="help-step danger"><span class="help-step-num red">4</span><div><strong>If gas leak</strong> — open windows, do not turn on lights or switches, leave the house and call for help.</div></div>
+              <div class="help-step danger"><span class="help-step-num red">5</span><div><strong>To silence the alarm</strong> — tap "Stop Alarm" in the app or in the Alerts tab once you are safe.</div></div>
+            </div>
+          </div>
+
+          <!-- Section 5: WiFi Setup -->
+          <div class="help-section">
+            <div class="help-section-header">
+              <span class="help-section-icon">📶</span>
+              <h2>Connecting to WiFi</h2>
+            </div>
+            <div class="help-steps">
+              <div class="help-step"><span class="help-step-num">1</span><div>On your phone, go to WiFi settings and connect to <strong>FireWire-Setup</strong>.</div></div>
+              <div class="help-step"><span class="help-step-num">2</span><div>A setup page will open automatically. If not, open your browser and go to <strong>192.168.4.1</strong>.</div></div>
+              <div class="help-step"><span class="help-step-num">3</span><div>Tap <strong>"Configure WiFi"</strong>, choose your home WiFi network, and enter the password.</div></div>
+              <div class="help-step"><span class="help-step-num">4</span><div>Tap <strong>Save</strong>. The device will restart and connect to your home WiFi automatically.</div></div>
+            </div>
+            <div class="help-tip">
+              <i class="fas fa-info-circle"></i>
+              <div><strong>Note:</strong> FireWire-Setup is always available when the device is not connected to WiFi. You can use it anytime to change the WiFi network.</div>
+            </div>
+          </div>
+
+          <!-- Section 6: Alarm Modes -->
+          <div class="help-section">
+            <div class="help-section-header">
+              <span class="help-section-icon">⚙️</span>
+              <h2>Alarm Modes</h2>
+            </div>
+            <div class="help-cards-grid">
+              <div class="help-card">
+                <div class="help-card-icon">🔴</div>
+                <h3>Full Alarm Mode</h3>
+                <p>The default mode. Any sensor that detects danger will immediately trigger the full alarm. Best for maximum safety.</p>
+              </div>
+              <div class="help-card">
+                <div class="help-card-icon">🧠</div>
+                <h3>Smart Alarm Mode</h3>
+                <p>If only smoke is detected, it gives a soft warning instead of a full alarm. The full alarm only sounds if heat also rises. Gas and CO always trigger the full alarm.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer note -->
+          <div class="help-footer-note">
+            <i class="fas fa-shield-halved"></i>
+            <p>FireWire is designed to help protect your home. For emergencies, always call your local emergency services.</p>
+          </div>
+
+        </div>
+      </div>
+
     <!-- Footer -->
     <footer class="app-footer">
       <div class="footer-content">
