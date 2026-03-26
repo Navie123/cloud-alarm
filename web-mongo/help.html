@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FireWire — User Guide</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --accent: #ff6b35;
+      --danger: #ef4444;
+      --bg: #0f1117;
+      --card: #161b27;
+      --bg2: #1a1f2e;
+      --border: #1e2a3a;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    .help-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .help-topbar-logo { font-size: 1.3rem; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+    .help-topbar-logo span { font-size: 1.4rem; }
+    .help-topbar-title { color: var(--muted); font-size: 0.85rem; }
+    .help-back-btn {
+      margin-left: auto;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .help-back-btn:hover { background: var(--border); }
+
+    /* ── Content ── */
+    .help-wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    /* Hero */
+    .help-hero {
+      text-align: center;
+      padding: 28px 16px 24px;
+    }
+    .help-hero-icon { font-size: 3rem; margin-bottom: 10px; }
+    .help-hero-title { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .help-hero-sub { color: var(--muted); font-size: 0.9rem; }
+
+    /* TOC */
+    .help-toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+    .help-toc-title { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .help-toc a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.88rem;
+      border-bottom: 1px solid var(--border);
+      transition: color 0.15s;
+    }
+    .help-toc a:last-child { border-bottom: none; }
+    .help-toc a:hover { color: var(--accent); }
+    .help-toc a i { color: var(--accent); width: 16px; text-align: center; }
+
+    /* Sections */
+    .help-section {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+      scroll-margin-top: 70px;
+    }
+    .help-section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .help-section-icon { font-size: 1.3rem; }
+    .help-section-header h2 { font-size: 1rem; font-weight: 700; color: var(--text); margin: 0; }
+
+    .help-text { color: var(--muted); font-size: 0.88rem; line-height: 1.65; margin-bottom: 10px; }
+    .help-text:last-child { margin-bottom: 0; }
+
+    /* Cards grid */
+    .help-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .help-card {
+      background: var(--bg2);
+      border-radius: 10px;
+      padding: 14px;
+      border: 1px solid var(--border);
+    }
+    .help-card-icon { font-size: 1.4rem; margin-bottom: 6px; }
+    .help-card h3 { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+    .help-card p { font-size: 0.78rem; color: var(--muted); line-height: 1.5; margin: 0; }
+
+    /* Steps */
+    .help-steps { display: flex; flex-direction: column; gap: 8px; }
+    .help-steps-title { font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .help-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--bg2);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .help-step strong { color: var(--text); }
+    .help-step-num {
+      min-width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .help-step-num.red { background: var(--danger); }
+
+    /* Tab guide */
+    .help-tabs-guide { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .help-tab-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg2);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .help-tab-item i { color: var(--accent); font-size: 1rem; margin-top: 2px; flex-shrink: 0; }
+    .help-tab-item strong { font-size: 0.88rem; color: var(--text); display: block; margin-bottom: 2px; }
+    .help-tab-item p { font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.4; }
+
+    /* Tip */
+    .help-tip {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(255,107,53,0.08);
+      border: 1px solid rgba(255,107,53,0.2);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 12px;
+    }
+    .help-tip i { color: var(--accent); flex-shrink: 0; margin-top: 2px; }
+    .help-tip strong { color: var(--accent); }
+
+    /* Footer note */
+    .help-footer-note {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--card);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      margin-top: 4px;
+    }
+    .help-footer-note i { color: var(--accent); font-size: 1.2rem; flex-shrink: 0; }
+    .help-footer-note p { font-size: 0.82rem; color: var(--muted); margin: 0; line-height: 1.5; }
+
+    @media (max-width: 480px) {
+      .help-cards-grid { grid-template-columns: 1fr; }
+      .help-hero-title { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="help-topbar">
+    <div class="help-topbar-logo"><span>🔥</span> FireWire</div>
+    <span class="help-topbar-title">User Guide</span>
+    <a href="index.html" class="help-back-btn"><i class="fas fa-arrow-left"></i> Back to App</a>
+  </div>
+
+  <div class="help-wrap">
+
+    <!-- Hero -->
+    <div class="help-hero">
+      <div class="help-hero-icon">📖</div>
+      <h1 class="help-hero-title">FireWire User Guide</h1>
+      <p class="help-hero-sub">Everything you need to know — simple and easy to understand</p>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="help-toc">
+      <div class="help-toc-title">Contents</div>
+      <a href="#what-is"><i class="fas fa-house"></i> What is FireWire?</a>
+      <a href="#device"><i class="fas fa-box"></i> The FireWire Device</a>
+      <a href="#app"><i class="fas fa-mobile-screen"></i> Using the App</a>
+      <a href="#alarm"><i class="fas fa-siren-on"></i> When the Alarm Sounds</a>
+      <a href="#wifi"><i class="fas fa-wifi"></i> Connecting to WiFi</a>
+      <a href="#modes"><i class="fas fa-sliders"></i> Alarm Modes</a>
+    </div>
+
+    <!-- Section 1 -->
+    <div class="help-section" id="what-is">
+      <div class="help-section-header">
+        <span class="help-section-icon">🏠</span>
+        <h2>What is FireWire?</h2>
+      </div>
+      <p class="help-text">FireWire is a smart home safety device that watches your home 24 hours a day, 7 days a week. It detects smoke, gas leaks, poisonous gas (CO), and rising heat — then immediately sounds a buzzer and sends an alert to your phone.</p>
+      <p class="help-text">Even if you are away from home, FireWire will notify you through this app and by email so you can act fast.</p>
+    </div>
+
+    <!-- Section 2 -->
+    <div class="help-section" id="device">
+      <div class="help-section-header">
+        <span class="help-section-icon">📦</span>
+        <h2>The FireWire Device</h2>
+      </div>
+      <div class="help-cards-grid">
+        <div class="help-card">
+          <div class="help-card-icon">🖥️</div>
+          <h3>LCD Screen</h3>
+          <p>Shows the current status of your home — whether it is safe, has a warning, or is in alarm. Also shows WiFi connection status and alarm mode.</p>
+        </div>
+        <div class="help-card">
+          <div class="help-card-icon">🔘</div>
+          <h3>5 Buttons</h3>
+          <p><strong>Press and hold each button for 2–3 seconds</strong> to see detailed sensor readings on the screen. Each button shows a different sensor.</p>
+        </div>
+        <div class="help-card">
+          <div class="help-card-icon">🔔</div>
+          <h3>Buzzer (Alarm Sound)</h3>
+          <p><strong>Continuous beeping</strong> = Full alarm, danger detected.<br><strong>3 short beeps</strong> = Caution, check your home.<br><strong>1 beep per second</strong> = Warning level.</p>
+        </div>
+        <div class="help-card">
+          <div class="help-card-icon">📡</div>
+          <h3>WiFi Connection</h3>
+          <p>FireWire connects to your home WiFi to send alerts. If WiFi is lost, the device still works as an alarm — it just cannot send phone notifications until reconnected.</p>
+        </div>
+      </div>
+      <div class="help-steps">
+        <div class="help-steps-title">Button Guide</div>
+        <div class="help-step"><span class="help-step-num">1</span><div><strong>Button 1</strong> — Temperature &amp; Humidity</div></div>
+        <div class="help-step"><span class="help-step-num">2</span><div><strong>Button 2</strong> — Gas Level &amp; Air Quality</div></div>
+        <div class="help-step"><span class="help-step-num">3</span><div><strong>Button 3</strong> — Smoke Level</div></div>
+        <div class="help-step"><span class="help-step-num">4</span><div><strong>Button 4</strong> — Carbon Monoxide (CO)</div></div>
+        <div class="help-step"><span class="help-step-num">5</span><div><strong>Button 5</strong> — System &amp; WiFi Info</div></div>
+      </div>
+    </div>
+
+    <!-- Section 3 -->
+    <div class="help-section" id="app">
+      <div class="help-section-header">
+        <span class="help-section-icon">📱</span>
+        <h2>Using the App</h2>
+      </div>
+      <div class="help-tabs-guide">
+        <div class="help-tab-item">
+          <i class="fas fa-gauge"></i>
+          <div><strong>Live Monitor</strong><p>See all sensor readings in real time. Green = Safe, Yellow = Caution, Red = Danger.</p></div>
+        </div>
+        <div class="help-tab-item">
+          <i class="fas fa-clock-rotate-left"></i>
+          <div><strong>History</strong><p>View all past alarms. Tap any entry to see full details of what was detected.</p></div>
+        </div>
+        <div class="help-tab-item">
+          <i class="fas fa-bell"></i>
+          <div><strong>Alerts</strong><p>Turn on phone notifications and email alerts so you get notified even when the app is closed.</p></div>
+        </div>
+        <div class="help-tab-item">
+          <i class="fas fa-sliders"></i>
+          <div><strong>Settings</strong><p>Admin only. Change alarm sensitivity, alarm sound, and alert levels.</p></div>
+        </div>
+      </div>
+      <div class="help-tip">
+        <i class="fas fa-lightbulb"></i>
+        <div><strong>Tip:</strong> Install this app on your phone's home screen for quick access. Tap the share button in your browser and select "Add to Home Screen".</div>
+      </div>
+    </div>
+
+    <!-- Section 4 -->
+    <div class="help-section" id="alarm">
+      <div class="help-section-header">
+        <span class="help-section-icon">🚨</span>
+        <h2>What to Do When the Alarm Sounds</h2>
+      </div>
+      <div class="help-steps">
+        <div class="help-step"><span class="help-step-num red">1</span><div><strong>Stay calm.</strong> Do not panic.</div></div>
+        <div class="help-step"><span class="help-step-num red">2</span><div><strong>Check the app.</strong> Open FireWire to see which sensor triggered the alarm.</div></div>
+        <div class="help-step"><span class="help-step-num red">3</span><div><strong>If smoke or fire</strong> — leave the house immediately. Do not stop to collect belongings.</div></div>
+        <div class="help-step"><span class="help-step-num red">4</span><div><strong>If gas leak</strong> — open windows, do not turn on lights or switches, leave the house and call for help.</div></div>
+        <div class="help-step"><span class="help-step-num red">5</span><div><strong>To silence the alarm</strong> — tap "Stop Alarm" in the app or in the Alerts tab once you are safe.</div></div>
+      </div>
+    </div>
+
+    <!-- Section 5 -->
+    <div class="help-section" id="wifi">
+      <div class="help-section-header">
+        <span class="help-section-icon">📶</span>
+        <h2>Connecting to WiFi</h2>
+      </div>
+      <div class="help-steps">
+        <div class="help-step"><span class="help-step-num">1</span><div>On your phone, go to WiFi settings and connect to <strong>FireWire-Setup</strong>.</div></div>
+        <div class="help-step"><span class="help-step-num">2</span><div>A setup page will open automatically. If not, open your browser and go to <strong>192.168.4.1</strong>.</div></div>
+        <div class="help-step"><span class="help-step-num">3</span><div>Tap <strong>"Configure WiFi"</strong>, choose your home WiFi network, and enter the password.</div></div>
+        <div class="help-step"><span class="help-step-num">4</span><div>Tap <strong>Save</strong>. The device will restart and connect to your home WiFi automatically.</div></div>
+      </div>
+      <div class="help-tip">
+        <i class="fas fa-info-circle"></i>
+        <div><strong>Note:</strong> FireWire-Setup is always available when the device is not connected to WiFi. You can use it anytime to change the WiFi network.</div>
+      </div>
+    </div>
+
+    <!-- Section 6 -->
+    <div class="help-section" id="modes">
+      <div class="help-section-header">
+        <span class="help-section-icon">⚙️</span>
+        <h2>Alarm Modes</h2>
+      </div>
+      <div class="help-cards-grid">
+        <div class="help-card">
+          <div class="help-card-icon">🔴</div>
+          <h3>Full Alarm Mode</h3>
+          <p>The default mode. Any sensor that detects danger will immediately trigger the full alarm. Best for maximum safety.</p>
+        </div>
+        <div class="help-card">
+          <div class="help-card-icon">🧠</div>
+          <h3>Smart Alarm Mode</h3>
+          <p>If only smoke is detected, it gives a soft warning instead of a full alarm. The full alarm only sounds if heat also rises. Gas and CO always trigger the full alarm.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer note -->
+    <div class="help-footer-note">
+      <i class="fas fa-shield-halved"></i>
+      <p>FireWire is designed to help protect your home. For emergencies, always call your local emergency services (911 / 117).</p>
+    </div>
+
+  </div>
+</body>
+</html>

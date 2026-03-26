@@ -10001,3 +10001,7 @@ body.warning-mode::after {
   .help-cards-grid { grid-template-columns: 1fr; }
   .help-hero-title { font-size: 1.2rem; }
 }
+
+/* Help button in header */
+.help-btn { color: var(--accent) !important; }
+.help-btn:hover { background: rgba(255,107,53,0.12) !important; }
