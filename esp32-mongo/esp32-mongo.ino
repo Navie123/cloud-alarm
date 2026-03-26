@@ -489,13 +489,64 @@ void connectWiFiManager() {
   
   // Set timeout for config portal
   wifiManager.setConfigPortalTimeout(WIFI_PORTAL_TIMEOUT);
-  
+
+  // Show connecting status on LCD while trying to connect
+  wifiManager.setSaveParamsCallback([]() {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("====================");
+    lcd.setCursor(3, 0);
+    lcd.print("Connecting WiFi");
+    lcd.setCursor(0, 2);
+    lcd.print("  Please wait...    ");
+    lcd.setCursor(0, 3);
+    lcd.print("  Testing password  ");
+  });
+
+  // After save, try connecting and check result — re-open portal with error if failed
+  wifiManager.setBreakAfterConfig(true);  // Don't auto-restart, let us handle result
+
   // Try to connect to saved WiFi or start config portal
-  if (!wifiManager.autoConnect(WIFI_AP_NAME, WIFI_AP_PASSWORD)) {
-    Serial.println("Failed to connect to WiFi and config portal timeout reached");
-    Serial.println("Restarting ESP32...");
-    delay(3000);
-    ESP.restart();
+  bool connected = wifiManager.autoConnect(WIFI_AP_NAME, WIFI_AP_PASSWORD);
+
+  if (!connected) {
+    // Check if we have credentials saved but connection failed (wrong password/SSID)
+    String savedSSID = WiFi.SSID();
+    if (savedSSID.length() > 0) {
+      // Had credentials but failed — wrong password or SSID not found
+      Serial.println("WiFi connection failed - wrong password or SSID not found");
+
+      // Show error on LCD
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("====================");
+      lcd.setCursor(2, 0);
+      lcd.print("CONNECTION FAILED");
+      lcd.setCursor(0, 1);
+      lcd.print("Wrong password or   ");
+      lcd.setCursor(0, 2);
+      lcd.print("network not found.  ");
+      lcd.setCursor(0, 3);
+      lcd.print("Reconnect to setup..");
+      delay(3000);
+
+      // Clear wrong credentials so portal reopens cleanly
+      wifiManager.resetSettings();
+
+      // Restart portal so user can try again
+      wifiManager.setBreakAfterConfig(false);
+      wifiManager.setConfigPortalTimeout(WIFI_PORTAL_TIMEOUT);
+      if (!wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD)) {
+        Serial.println("Config portal timed out, restarting...");
+        delay(3000);
+        ESP.restart();
+      }
+    } else {
+      // Portal timed out with no credentials entered
+      Serial.println("Config portal timed out, restarting...");
+      delay(3000);
+      ESP.restart();
+    }
   }
   
   // If we reach here, WiFi is connected
