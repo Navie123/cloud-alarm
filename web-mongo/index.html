@@ -392,7 +392,7 @@
           <div class="tab admin-only" data-tab="members"><i class="fas fa-users-gear"></i> <span class="tab-text" data-i18n="tabMembers">Members</span></div>
         </div>
         <div class="header-actions">
-          <button class="action-btn help-btn" onclick="window.open('help.html','_blank')" title="User Guide"><i class="fas fa-circle-question"></i></button>
+          <a href="help.html" target="_blank" class="action-btn help-btn help-desktop-only" title="User Guide"><i class="fas fa-circle-question"></i></a>
           <button class="action-btn" onclick="toggleFullscreen()" title="Fullscreen"><i class="fas fa-expand" id="fullscreenIcon"></i></button>
           <button class="action-btn settings-btn" onclick="toggleSidebar()" title="Settings"><i class="fas fa-cog"></i></button>
         </div>
@@ -1781,6 +1781,11 @@
       </div>
     </div>
     
+    <!-- Floating Help Button -->
+    <a href="help.html" target="_blank" class="fab-help" title="User Guide">
+      <i class="fas fa-circle-question"></i>
+    </a>
+
     <!-- Footer -->
     <footer class="app-footer">
       <div class="footer-content">

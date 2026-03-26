@@ -10005,3 +10005,38 @@ body.warning-mode::after {
 /* Help button in header */
 .help-btn { color: var(--accent) !important; }
 .help-btn:hover { background: rgba(255,107,53,0.12) !important; }
+
+/* Floating Help Button (FAB) */
+.fab-help {
+  position: fixed;
+  bottom: 24px;
+  right: 20px;
+  z-index: 900;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 16px rgba(255,107,53,0.4);
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.fab-help:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(255,107,53,0.5); }
+.fab-help:active { transform: scale(0.95); }
+
+/* On desktop, show help in header instead */
+@media (min-width: 768px) {
+  .fab-help { display: none; }
+}
+
+/* Help button desktop only in header */
+.help-desktop-only { display: none; }
+@media (min-width: 768px) {
+  .help-desktop-only { display: flex; }
+  .help-btn { color: var(--accent) !important; }
+  .help-btn:hover { background: rgba(255,107,53,0.12) !important; }
+}
