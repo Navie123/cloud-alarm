@@ -124,6 +124,7 @@ bool wifiResetRequested = false;  // Server can request WiFi reset
 bool wifiWasConnected = false;
 bool wifiJustDisconnected = false;
 unsigned long wifiDisconnectedTime = 0;
+bool portalRunning = false;  // true when background AP portal is active
 bool showingStartupScreen = false;
 
 // LCD Display Mode (controlled by buttons)
@@ -144,6 +145,8 @@ bool warningMode = false;  // True when showing warning screen
 void connectWiFiManager();
 void connectWiFiDirect();
 void connectWiFi();
+void startBackgroundPortal();
+void stopBackgroundPortal();
 void readSensors();
 void readGasSensors();
 void sendDataToServer();
@@ -293,15 +296,17 @@ void loop() {
   if (wifiWasConnected && !currentWiFiStatus) {
     wifiJustDisconnected = true;
     wifiDisconnectedTime = millis();
-    Serial.println("WiFi disconnected - showing disconnection screen");
-    displayMode = 0;  // Reset to default mode
+    Serial.println("WiFi disconnected — starting background portal");
+    displayMode = 0;
+    startBackgroundPortal();  // Start portal so user can reconfigure
   }
   
   // Detect WiFi reconnection
   if (!wifiWasConnected && currentWiFiStatus) {
-    Serial.println("WiFi reconnected - resuming normal operation");
+    Serial.println("WiFi reconnected — stopping background portal");
     wifiJustDisconnected = false;
     showingStartupScreen = false;
+    stopBackgroundPortal();  // Turn off AP now that we're connected
     
     // Show brief reconnection message
     lcd.clear();
@@ -316,10 +321,14 @@ void loop() {
   // Update WiFi status tracking
   wifiWasConnected = currentWiFiStatus;
   
-  // Handle WiFi reconnection attempts
+  // Handle WiFi reconnection attempts (non-blocking)
   if (!currentWiFiStatus) {
-    Serial.println("WiFi disconnected, reconnecting...");
     connectWiFi();
+  }
+
+  // Process background portal requests (non-blocking, must be called in loop)
+  if (portalRunning) {
+    wifiManager.process();
   }
   
   // Check buttons for display mode change
@@ -424,10 +433,12 @@ void loop() {
   delay(100);
 }
 
+void startBackgroundPortal();  // forward declaration 
+
 void connectWiFiManager() {
-  Serial.println("Starting WiFiManager auto-connect...");
-  
-  // WiFiManager portal - clean light theme (works with WM default rendering)
+  Serial.println("FireWire startup — checking WiFi...");
+
+  // Apply portal CSS (reused for both initial and background portal)
   const char* customCSS = "<style>"
     "* { margin:0; padding:0; box-sizing:border-box; }"
     "body { background:#f5f5f5; color:#1a1a1a; font-family:sans-serif; font-size:15px; }"
@@ -457,7 +468,6 @@ void connectWiFiManager() {
     ".msg { background:#fff3ee; border:1px solid #f0a070; color:#e85d20; padding:9px 12px; border-radius:8px; margin:8px 0; font-weight:500; text-align:center; font-size:0.85em; }"
     ".error { background:#fff0f0 !important; border-color:#f0a0a0 !important; color:#c0392b !important; }"
     ".success { background:#f0fff4 !important; border-color:#a0d0a0 !important; color:#27ae60 !important; }"
-    ".info { color:#888; font-size:0.78em; text-align:center; margin:5px 0; }"
     ".tip { background:#fff8f5; border-left:3px solid #e85d20; border-radius:0 7px 7px 0; padding:9px 11px; margin:10px 0 0; font-size:0.78em; color:#555; line-height:1.4; }"
     ".tip strong { color:#e85d20; }"
     "input[type='checkbox'] { margin-right:6px; accent-color:#e85d20; }"
@@ -485,112 +495,52 @@ void connectWiFiManager() {
       "}"
     "});"
     "</script>";
-  // Set custom head element with dark FireWire theme
+
   wifiManager.setCustomHeadElement(customCSS);
-  
-  // Set custom AP name and password for setup mode
   wifiManager.setAPStaticIPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1), IPAddress(255,255,255,0));
 
-  // Check if we have saved credentials
+  // Try saved credentials with 15s timeout — non-blocking for LCD
   String savedSSID = WiFi.SSID();
-  
-  if (savedSSID.length() == 0) {
-    // No saved credentials — must open portal for first-time setup
-    Serial.println("No saved WiFi — opening setup portal");
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("====================");
-    lcd.setCursor(0, 1);
-    lcd.print("  WiFi Setup Mode   ");
-    lcd.setCursor(0, 2);
-    lcd.print("Connect to:         ");
-    lcd.setCursor(0, 3);
-    lcd.print("  FireWire-Setup    ");
-
-    wifiManager.setConfigPortalTimeout(WIFI_PORTAL_TIMEOUT);
-    wifiManager.setConnectTimeout(15);
-    wifiManager.setConnectRetries(2);
-    wifiManager.setBreakAfterConfig(true);
-
-    bool connected = wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD);
-
-    if (!connected) {
-      // Wrong password entered — show error portal
-      String triedSSID = WiFi.SSID();
-      if (triedSSID.length() > 0) {
-        Serial.printf("Connection failed for SSID: %s\n", triedSSID.c_str());
-        wifiManager.resetSettings();
-
-        const char* errorCSS = "<style>"
-          "body{background:#f5f5f5;color:#1a1a1a;font-family:sans-serif;font-size:15px;}"
-          ".wrap{max-width:400px;margin:0 auto;padding:14px;}"
-          ".fw-err{background:#fff0f0;border:2px solid #e74c3c;border-radius:10px;padding:14px;margin:12px 0 16px;text-align:center;}"
-          ".fw-err-icon{font-size:1.8em;display:block;margin-bottom:6px;}"
-          ".fw-err-title{color:#c0392b;font-weight:700;font-size:1em;margin-bottom:4px;}"
-          ".fw-err-msg{color:#555;font-size:0.85em;line-height:1.4;}"
-          ".card,form{background:#fff;border-radius:10px;padding:14px;margin:8px 0;border:1px solid #e0e0e0;}"
-          "h1{font-size:1.2em;font-weight:700;text-align:center;color:#1a1a1a;}"
-          "h2,h3{color:#555;text-align:center;font-weight:500;font-size:0.88em;margin-bottom:12px;}"
-          "input[type='submit'],button{background:#e85d20;border:none;color:#fff;padding:11px 18px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.9em;width:100%;margin:5px 0 0;}"
-          "input[type='text'],input[type='password']{width:100%;background:#fafafa;border:1.5px solid #ddd;color:#1a1a1a;border-radius:8px;padding:10px 12px;font-size:0.9em;margin:4px 0 10px;font-family:inherit;}"
-          "input[type='text']:focus,input[type='password']:focus{outline:none;border-color:#e85d20;}"
-          "label{display:block;color:#444;font-weight:500;margin-bottom:2px;font-size:0.84em;}"
-          ".q{background:#fff;border:1.5px solid #e0e0e0;border-radius:8px;margin:5px 0;padding:10px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;}"
-          ".l{color:#1a1a1a !important;font-weight:600;font-size:0.9em;flex:1;}"
-          ".s{color:#e85d20 !important;font-weight:600;font-size:0.75em;background:#fff3ee;padding:2px 7px;border-radius:10px;border:1px solid #f0a070;white-space:nowrap;margin-left:6px;}"
-          "</style>"
-          "<script>document.addEventListener('DOMContentLoaded',function(){"
-            "var w=document.querySelector('.wrap');"
-            "if(w){var e=document.createElement('div');e.className='fw-err';"
-            "e.innerHTML='<span class=\"fw-err-icon\">&#10060;</span>"
-              "<div class=\"fw-err-title\">Connection Failed</div>"
-              "<div class=\"fw-err-msg\">Wrong password or network not found.<br>Please try again.</div>';"
-            "w.insertBefore(e,w.firstChild);}});</script>";
-
-        wifiManager.setCustomHeadElement(errorCSS);
-        wifiManager.setBreakAfterConfig(false);
-        wifiManager.setConnectTimeout(15);
-        wifiManager.setConnectRetries(2);
-        wifiManager.setConfigPortalTimeout(WIFI_PORTAL_TIMEOUT);
-        wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD);
-      }
-    }
-  } else {
-    // Have saved credentials — try connecting with SHORT timeout, then proceed regardless
-    Serial.printf("Trying saved WiFi: %s\n", savedSSID.c_str());
-    WiFi.begin();  // Use saved credentials
-    
+  if (savedSSID.length() > 0) {
+    Serial.printf("Trying saved WiFi: %s (15s timeout)\n", savedSSID.c_str());
+    WiFi.begin();
     unsigned long startAttempt = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 10000) {
+    while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 15000) {
       delay(200);
       Serial.print(".");
     }
-    
-    if (WiFi.status() == WL_CONNECTED) {
-      Serial.printf("\nWiFi connected! IP: %s\n", WiFi.localIP().toString().c_str());
-      digitalWrite(LED_PIN, HIGH);
-      delay(1000);
-      digitalWrite(LED_PIN, LOW);
-    } else {
-      // Not connected — that's OK, proceed to loop, LCD will show WiFi: Offline
-      Serial.println("\nWiFi not available — running in offline mode");
-    }
+    Serial.println();
   }
-  
-  // If we reach here, WiFi is connected
-  Serial.println("\nWiFi connected via WiFiManager!");
-  Serial.print("IP: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("SSID: ");
-  Serial.println(WiFi.SSID());
-  Serial.print("Signal: ");
-  Serial.print(WiFi.RSSI());
-  Serial.println(" dBm");
-  
-  // Success indication - solid LED for 2 seconds then off
-  digitalWrite(LED_PIN, HIGH);
-  delay(2000);
-  digitalWrite(LED_PIN, LOW);
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("WiFi connected! IP: %s\n", WiFi.localIP().toString().c_str());
+    digitalWrite(LED_PIN, HIGH);
+    delay(500);
+    digitalWrite(LED_PIN, LOW);
+    portalRunning = false;
+  } else {
+    // Not connected — start background portal (non-blocking, AP+STA dual mode)
+    Serial.println("WiFi not available — starting background portal (Option A)");
+    startBackgroundPortal();
+  }
+}
+
+// Start non-blocking background portal — LCD and sensors keep running
+void startBackgroundPortal() {
+  if (portalRunning) return;
+  Serial.println("Starting background WiFi portal on FireWire-Setup...");
+  wifiManager.setConfigPortalTimeout(0);  // No timeout — stays open until connected
+  wifiManager.startWebPortal();           // Non-blocking — returns immediately
+  portalRunning = true;
+  Serial.println("Background portal active at 192.168.4.1");
+}
+
+// Stop background portal when WiFi connects
+void stopBackgroundPortal() {
+  if (!portalRunning) return;
+  wifiManager.stopWebPortal();
+  portalRunning = false;
+  Serial.println("Background portal stopped — WiFi connected");
 }
 
 void connectWiFiDirect() {
