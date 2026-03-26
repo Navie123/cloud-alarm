@@ -229,9 +229,9 @@ void setup() {
   lcd.setCursor(0, 2);
   lcd.print(" Smart Fire Alarm   ");
   lcd.setCursor(0, 3);
-  lcd.print("    Starting...     ");
+  lcd.print("  Connecting WiFi.. ");
   Serial.println("LCD 20x4 initialized");
-  delay(1500);
+  delay(1000);
   
   // Try to get initial reading
   float testTemp = hdc1080.readTemperature();
@@ -256,6 +256,10 @@ void setup() {
   
   // Setup WiFiManager Connection (Auto-connect mode)
   connectWiFiManager();
+
+  // Immediately show status dashboard — LCD works regardless of WiFi
+  lcd.clear();
+  displayDefault();
   
   // Fetch thresholds from server on startup
   if (WiFi.status() == WL_CONNECTED) {
@@ -616,28 +620,20 @@ void connectWiFiDirect() {
 }
 
 void connectWiFi() {
-  // WiFiManager reconnection - try saved credentials first
+  // Non-blocking reconnection — just kick off reconnect and return immediately
+  // The loop() will check WiFi status on next iteration
   if (WiFi.status() == WL_CONNECTED) return;
-  
-  Serial.print("Reconnecting to saved WiFi");
+
+  static unsigned long lastReconnectAttempt = 0;
+  unsigned long now = millis();
+
+  // Only attempt reconnect every 10 seconds to avoid hammering
+  if (now - lastReconnectAttempt < 10000) return;
+  lastReconnectAttempt = now;
+
+  Serial.println("WiFi disconnected — attempting reconnect (non-blocking)");
   WiFi.reconnect();
-  
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-    delay(500);
-    Serial.print(".");
-    attempts++;
-  }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nWiFi reconnected!");
-    Serial.print("IP: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println("\nWiFi reconnection failed");
-    Serial.println("Note: Hold BOOT button during restart to reset WiFi settings");
-    // Don't auto-restart portal - user can manually reset if needed
-  }
+  // Don't block — loop() continues, LCD keeps updating
 }
 
 void resetWiFiSettings() {
