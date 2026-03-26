@@ -1420,19 +1420,77 @@ function renderHistory(history) {
   historyList.innerHTML = history.map((item, index) => {
     const timeAgo = formatTimeAgo(item.createdAt || item.timestamp);
     const fullTime = item.timestamp || new Date(item.createdAt).toLocaleString();
-    
+    const trigger = item.trigger?.toUpperCase() || 'ALARM';
+    const triggerClass = item.trigger || 'alarm';
+    const id = `hist-${index}`;
+
+    // Severity icon
+    const icon = triggerClass.includes('fire') || triggerClass.includes('alarm')
+      ? 'fa-fire' : triggerClass.includes('smoke') ? 'fa-smog'
+      : triggerClass.includes('co') ? 'fa-skull-crossbones'
+      : triggerClass.includes('gas') ? 'fa-fire-flame-simple' : 'fa-triangle-exclamation';
+
     return `
-    <div class="history-item" style="animation-delay: ${index * 0.05}s">
-      <div class="history-info">
-        <span class="history-time" title="${fullTime}"><i class="fas fa-clock"></i> ${timeAgo}</span>
-        <span class="history-trigger ${item.trigger}">${item.trigger?.toUpperCase() || 'ALARM'}</span>
+    <div class="history-card" style="animation-delay:${index * 0.04}s">
+      <button class="history-card-header" onclick="toggleHistoryItem('${id}')" aria-expanded="false" aria-controls="${id}">
+        <div class="history-card-left">
+          <span class="history-trigger-badge ${triggerClass}">
+            <i class="fas ${icon}"></i> ${trigger}
+          </span>
+          <span class="history-time-label"><i class="fas fa-clock"></i> ${timeAgo}</span>
+        </div>
+        <div class="history-card-right">
+          <span class="history-preview">
+            <i class="fas fa-fire"></i> ${item.gas?.toFixed(1) ?? '--'}%
+            <i class="fas fa-temperature-half"></i> ${item.temperature?.toFixed(1) ?? '--'}°C
+          </span>
+          <i class="fas fa-chevron-down history-chevron" id="chev-${id}"></i>
+        </div>
+      </button>
+      <div class="history-card-body hidden" id="${id}">
+        <div class="history-detail-grid">
+          <div class="history-detail-item">
+            <span class="hd-label"><i class="fas fa-fire-flame-simple"></i> Gas</span>
+            <span class="hd-value">${item.gas?.toFixed(1) ?? '--'}%</span>
+          </div>
+          <div class="history-detail-item">
+            <span class="hd-label"><i class="fas fa-smog"></i> Smoke</span>
+            <span class="hd-value">${item.smoke?.toFixed(1) ?? '--'}%</span>
+          </div>
+          <div class="history-detail-item">
+            <span class="hd-label"><i class="fas fa-temperature-half"></i> Temp</span>
+            <span class="hd-value">${item.temperature?.toFixed(1) ?? '--'}°C</span>
+          </div>
+          <div class="history-detail-item">
+            <span class="hd-label"><i class="fas fa-droplet"></i> Humidity</span>
+            <span class="hd-value">${item.humidity?.toFixed(1) ?? '--'}%</span>
+          </div>
+          <div class="history-detail-item">
+            <span class="hd-label"><i class="fas fa-skull-crossbones"></i> CO</span>
+            <span class="hd-value">${item.coPpm?.toFixed(1) ?? '--'} ppm</span>
+          </div>
+          <div class="history-detail-item">
+            <span class="hd-label"><i class="fas fa-wind"></i> Air</span>
+            <span class="hd-value">${item.aqi?.toFixed(0) ?? '--'}</span>
+          </div>
+        </div>
+        <div class="history-detail-footer">
+          <i class="fas fa-calendar-alt"></i> ${fullTime}
+        </div>
       </div>
-      <div class="history-values">
-        <span><i class="fas fa-fire"></i> ${item.gas?.toFixed(1) || '--'}%</span>
-        <span><i class="fas fa-temperature-half"></i> ${item.temperature?.toFixed(1) || '--'}°C</span>
-      </div>
-    </div>
-  `}).join('');
+    </div>`;
+  }).join('');
+}
+
+function toggleHistoryItem(id) {
+  const body = document.getElementById(id);
+  const chev = document.getElementById(`chev-${id}`);
+  const btn = body?.previousElementSibling;
+  if (!body) return;
+  const isOpen = !body.classList.contains('hidden');
+  body.classList.toggle('hidden', isOpen);
+  chev?.classList.toggle('rotated', !isOpen);
+  btn?.setAttribute('aria-expanded', String(!isOpen));
 }
 
 // ============ Control Functions (Admin PIN Required) ============
