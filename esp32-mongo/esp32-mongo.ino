@@ -1638,7 +1638,7 @@ void displayDefault() {
   if (smartAlarmMode) {
     lcd.print("Mode: Smart Alarm   ");
   } else {
-    lcd.print("Mode: High Sensitiv.");
+    lcd.print("Mode: Full Alarm    ");
   }
 
   // Row 3: WiFi status
