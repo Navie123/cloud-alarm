@@ -1495,40 +1495,25 @@ void updateLCD() {
     return;
   }
   
-  // Priority 2: Check WiFi status
-  if (WiFi.status() != WL_CONNECTED) {
-    if (wifiJustDisconnected) {
-      displayWiFiDisconnected();
-      return;
-    } else if (millis() < 30000) {  // Show startup screen for first 30 seconds
-      displayWiFiStartup();
-      return;
-    } else {
-      displayWiFiDisconnected();
-      return;
-    }
-  }
-  
-  // Priority 3: Critical alarm overrides everything when WiFi is connected
+  // Priority 2: Critical alarm — always show regardless of WiFi
   if (alarmActive) {
     displayAlarmScreen();
     return;
   }
-  
-  // Don't show warnings during the first 15 seconds after startup
-  // This allows sensors to stabilize and prevents false warnings
+
+  // Priority 3: Warning state — always show regardless of WiFi
   bool startupPeriod = millis() < 15000;
-  
-  // Check if we should show warning screen (but not during startup)
   bool shouldShowWarning = !startupPeriod && checkWarningState();
-  
-  // Handle warning mode transitions
   if (shouldShowWarning && !warningMode) {
     warningMode = true;
-    lcd.clear();  // Immediate display, no animation for warnings
+    lcd.clear();
   } else if (!shouldShowWarning && warningMode) {
     warningMode = false;
-    lcd.clear();  // Immediate display
+    lcd.clear();
+  }
+  if (warningMode && !startupPeriod) {
+    displayWarningScreen();
+    return;
   }
   
   // Show animation if active
@@ -1536,13 +1521,7 @@ void updateLCD() {
     updateAnimation();
     return;
   }
-  
-  // WARNING MODE - Show warning screen for high readings (but not during startup)
-  if (warningMode && !startupPeriod) {
-    displayWarningScreen();
-    return;
-  }
-  
+
   // Normal display modes
   switch (displayMode) {
     case 1:  // Temperature & Humidity
@@ -1594,37 +1573,50 @@ float getSmokePercentDisplay() {
   return (smokePercent < 3.0) ? 0.0 : smokePercent;
 }
 
-// Display Mode 0: Default Clean Display
+// Display Mode 0: Status Dashboard
 void displayDefault() {
   char buf[25];
-  
-  // Row 0: Clean FireWire header
+  bool wifiOk = (WiFi.status() == WL_CONNECTED);
+
+  // Row 0: Branding
   lcd.setCursor(0, 0);
   lcd.print("====================");
   lcd.setCursor(6, 0);
   lcd.print("FireWire");
-  
-  // Row 1: Temperature and Humidity with better spacing
+
+  // Row 1: Overall home status
   lcd.setCursor(0, 1);
-  snprintf(buf, 21, "Temp:%.1fC Hum:%.0f%%", temperature, humidity);
-  lcd.print(buf);
-  
-  // Row 2: Gas and Smoke levels with better formatting (using display value for smoke)
+  lcd.print("                    ");
+  lcd.setCursor(0, 1);
+  if (alarmActive) {
+    lcd.print("!! FIRE ALARM !!    ");
+  } else if (partialWarningActive || warningMode) {
+    lcd.print("!! CAUTION !!       ");
+  } else {
+    lcd.print("Status: HOME IS SAFE");
+  }
+
+  // Row 2: Alarm mode
   lcd.setCursor(0, 2);
-  lcd.print("                    ");  // Clear line first
+  lcd.print("                    ");
   lcd.setCursor(0, 2);
-  snprintf(buf, 21, "Gas:%.0f%% Smoke:%.0f%%", gasPercent, getSmokePercentDisplay());
-  lcd.print(buf);
-  
-  // Row 3: AQI with status (shortened to fit 20 chars)
+  if (smartAlarmMode) {
+    lcd.print("Mode: Smart Alarm   ");
+  } else {
+    lcd.print("Mode: High Sensitiv.");
+  }
+
+  // Row 3: WiFi status
   lcd.setCursor(0, 3);
-  lcd.print("                    ");  // Clear line first
+  lcd.print("                    ");
   lcd.setCursor(0, 3);
-  String aqiStatusText = "Good";
-  if (aqi > 50) aqiStatusText = "Mod";  // Shortened "Moderate" to "Mod"
-  if (aqi > 100) aqiStatusText = "Poor";
-  snprintf(buf, 21, "AQI:%.0f (%s)", aqi, aqiStatusText.c_str());  // Removed space after colon
-  lcd.print(buf);
+  if (wifiOk) {
+    lcd.print("WiFi: Online        ");
+  } else if (wifiJustDisconnected) {
+    lcd.print("WiFi: Reconnecting..");
+  } else {
+    lcd.print("WiFi: Offline       ");
+  }
 }
 
 // Display Mode 1: Temperature & Humidity Detail
