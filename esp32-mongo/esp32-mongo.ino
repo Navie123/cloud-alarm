@@ -528,17 +528,33 @@ void connectWiFiManager() {
 // Start non-blocking background portal — LCD and sensors keep running
 void startBackgroundPortal() {
   if (portalRunning) return;
-  Serial.println("Starting background WiFi portal on FireWire-Setup...");
-  wifiManager.setConfigPortalTimeout(0);  // No timeout — stays open until connected
-  wifiManager.startWebPortal();           // Non-blocking — returns immediately
+  Serial.println("Starting background WiFi portal (AP+STA dual mode)...");
+  
+  // Use WiFi dual mode: connect as STA to saved network AND broadcast AP
+  // WiFiManager's startConfigPortal with timeout=0 runs non-blocking when
+  // combined with process() in the loop
+  wifiManager.setConfigPortalTimeout(0);   // No timeout — stays open indefinitely
+  wifiManager.setConnectTimeout(5);        // Quick connect attempt
+  
+  // Start the portal — this sets up the AP and web server
+  // We use a separate task approach: start portal in non-blocking mode
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(WIFI_AP_NAME, WIFI_AP_PASSWORD);
+  WiFi.softAPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1), IPAddress(255,255,255,0));
+  
+  // Start WiFiManager web portal on the existing AP
+  wifiManager.startWebPortal();
+  
   portalRunning = true;
-  Serial.println("Background portal active at 192.168.4.1");
+  Serial.printf("Background AP active: %s at 192.168.4.1\n", WIFI_AP_NAME);
 }
 
 // Stop background portal when WiFi connects
 void stopBackgroundPortal() {
   if (!portalRunning) return;
   wifiManager.stopWebPortal();
+  WiFi.softAPdisconnect(true);
+  WiFi.mode(WIFI_STA);
   portalRunning = false;
   Serial.println("Background portal stopped — WiFi connected");
 }
@@ -575,10 +591,8 @@ void connectWiFiDirect() {
     delay(2000);
     digitalWrite(LED_PIN, LOW);
   } else {
-    Serial.println("\nWiFi connection failed!");
-    Serial.println("Restarting ESP32...");
-    delay(3000);
-    ESP.restart();
+    Serial.println("\nWiFi connection failed — continuing in offline mode");
+    // Don't restart — let the loop handle reconnection
   }
 }
 
