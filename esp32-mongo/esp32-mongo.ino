@@ -1119,12 +1119,41 @@ void updateAlarmState() {
   // Combined states
   bool wasAlarm = alarmActive;
   bool wasPartialWarning = partialWarningActive;
-  
-  // Full alarm: temp threshold OR (smoke/gas + significant temperature rise)
-  alarmActive = tempAlarm || smokeAlarm || gasAlarmWithTemp;
-  
-  // Partial warning: smoke or gas detected but no full alarm
-  partialWarningActive = (smokeWarningOnly || gasWarningOnly) && !alarmActive;
+
+  // Determine raw trigger conditions
+  bool rawAlarm = tempAlarm || smokeAlarm || gasAlarmWithTemp;
+  bool rawPartial = (smokeWarningOnly || gasWarningOnly) && !rawAlarm;
+
+  // CLEAR DELAY: once triggered, require 5 consecutive seconds of safe readings before clearing
+  // This prevents the alarm from flickering off/on as sensor recovers
+  static unsigned long alarmClearStart = 0;
+  static unsigned long partialClearStart = 0;
+
+  if (rawAlarm) {
+    alarmActive = true;
+    alarmClearStart = 0;  // Reset clear timer
+  } else if (alarmActive) {
+    // Was alarming, now readings are safe — start clear countdown
+    if (alarmClearStart == 0) alarmClearStart = millis();
+    if (millis() - alarmClearStart >= 5000) {
+      alarmActive = false;  // 5 seconds of safe readings — clear alarm
+      alarmClearStart = 0;
+    }
+    // else: keep alarm active while waiting for sustained safe readings
+  }
+
+  if (rawPartial && !alarmActive) {
+    partialWarningActive = true;
+    partialClearStart = 0;
+  } else if (partialWarningActive) {
+    if (partialClearStart == 0) partialClearStart = millis();
+    if (millis() - partialClearStart >= 3000) {
+      partialWarningActive = false;
+      partialClearStart = 0;
+    }
+  } else {
+    partialWarningActive = false;
+  }
   
   // Debug partial warning detection
   if (partialWarningActive != wasPartialWarning) {
