@@ -1588,8 +1588,8 @@ void checkButtons() {
   static unsigned long hotspotStartTime = 0;
 
   // Auto-timeout: if hotspot has been on for 5 minutes with no connection, stop it
-  if (hotspotActive && !portalRunning) {
-    // Portal task ended (user connected or something failed)
+  if (hotspotActive && !portalRunning && (now - hotspotStartTime > 3000)) {
+    // Portal task ended (user connected or something failed) — only check after 3s grace period
     hotspotActive = false;
     hotspotStartTime = 0;
     lcd.clear();
@@ -1821,7 +1821,10 @@ void updateLCD() {
       displaySystemWiFi();
       break;
     default:  // Default clean display (mode 0)
-      displayDefault();
+      // Don't overwrite hotspot screen while hotspot is active
+      if (!portalRunning) {
+        displayDefault();
+      }
       break;
   }
 }
