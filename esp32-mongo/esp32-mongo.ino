@@ -1049,6 +1049,15 @@ void performCalibration() {
 }
 
 void updateAlarmState() {
+  // STARTUP WARMUP — ignore all sensor readings for first 20 seconds
+  // MQ sensors output unstable high values on power-on before settling
+  if (millis() - bootTime < 20000) {
+    alarmActive = false;
+    partialWarningActive = false;
+    warningMode = false;
+    return;
+  }
+
   // LOW BATTERY PROTECTION - Disable alarms during low battery to prevent false triggers
   if (lowBatteryDetected) {
     alarmActive = false;
@@ -1612,6 +1621,7 @@ float getSmokePercentDisplay() {
 void displayDefault() {
   char buf[25];
   bool wifiOk = (WiFi.status() == WL_CONNECTED);
+  bool warming = (millis() - bootTime < 20000);
 
   // Row 0: Branding
   lcd.setCursor(0, 0);
@@ -1623,7 +1633,9 @@ void displayDefault() {
   lcd.setCursor(0, 1);
   lcd.print("                    ");
   lcd.setCursor(0, 1);
-  if (alarmActive) {
+  if (warming) {
+    lcd.print("Sensors warming up..");
+  } else if (alarmActive) {
     lcd.print("!! FIRE ALARM !!    ");
   } else if (partialWarningActive || warningMode) {
     lcd.print("!! CAUTION !!       ");
@@ -1635,7 +1647,11 @@ void displayDefault() {
   lcd.setCursor(0, 2);
   lcd.print("                    ");
   lcd.setCursor(0, 2);
-  if (smartAlarmMode) {
+  if (warming) {
+    unsigned long remaining = (20000 - (millis() - bootTime)) / 1000 + 1;
+    snprintf(buf, 21, "Ready in %lus...     ", remaining);
+    lcd.print(buf);
+  } else if (smartAlarmMode) {
     lcd.print("Mode: Smart Alarm   ");
   } else {
     lcd.print("Mode: Full Alarm    ");
