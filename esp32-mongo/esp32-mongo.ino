@@ -1577,59 +1577,93 @@ void checkButtons() {
     lastDebug = now;
   }
 
-  // Button 5 — WiFi toggle (long press 2s)
-  // Online: disconnects WiFi, goes offline
-  // Offline: tries to reconnect to saved WiFi
+  // Button 5 — WiFi hotspot toggle
+  // State machine:
+  //   ONLINE  + long press → disconnect, go offline
+  //   OFFLINE + long press → start FireWire-Setup hotspot (portal)
+  //   HOTSPOT + long press → stop hotspot, go offline
+  //   HOTSPOT + 5 min timeout → auto-stop, go offline
   static unsigned long btn5HoldStart = 0;
+  static bool hotspotActive = false;
+  static unsigned long hotspotStartTime = 0;
+
+  // Auto-timeout: if hotspot has been on for 5 minutes with no connection, stop it
+  if (hotspotActive && !portalRunning) {
+    // Portal task ended (user connected or something failed)
+    hotspotActive = false;
+    hotspotStartTime = 0;
+    lcd.clear();
+    lcdClearCache();
+    displayMode = 0;
+  }
+  if (hotspotActive && (now - hotspotStartTime >= 300000)) {
+    // 5 minutes passed — stop hotspot
+    Serial.println("BTN5: Hotspot 5min timeout → offline");
+    if (portalTaskHandle != NULL) { vTaskDelete(portalTaskHandle); portalTaskHandle = NULL; }
+    wifiManager.stopConfigPortal();
+    WiFi.softAPdisconnect(true);
+    portalRunning = false;
+    hotspotActive = false;
+    hotspotStartTime = 0;
+    lcd.clear();
+    lcdClearCache();
+    lcdWriteLine(0, "====  FireWire  ====");
+    lcdWriteLine(1, "Hotspot timed out   ");
+    lcdWriteLine(2, "Back to offline mode");
+    lcdWriteLine(3, "Press BTN5 to retry ");
+    delay(2500);
+    displayMode = 0;
+  }
+
   if (btn5) {
     if (btn5HoldStart == 0) btn5HoldStart = now;
     if (now - btn5HoldStart >= 2000) {
       btn5HoldStart = 0;
       lastButtonPress = now;
       bool wifiOk = (WiFi.status() == WL_CONNECTED);
+
       if (wifiOk) {
-        // Go offline
-        Serial.println("BTN5: Disconnecting WiFi → offline mode");
+        // Online → go offline
+        Serial.println("BTN5: Going offline");
         WiFi.disconnect();
-        if (portalRunning && portalTaskHandle != NULL) {
-          vTaskDelete(portalTaskHandle);
-          portalTaskHandle = NULL;
-          portalRunning = false;
-        }
-        lcd.clear();
-        lcdClearCache();
+        if (portalTaskHandle != NULL) { vTaskDelete(portalTaskHandle); portalTaskHandle = NULL; portalRunning = false; }
+        hotspotActive = false;
+        lcd.clear(); lcdClearCache();
         lcdWriteLine(0, "====  FireWire  ====");
         lcdWriteLine(1, "WiFi turned off     ");
         lcdWriteLine(2, "Alarm still works!  ");
-        lcdWriteLine(3, "Hold BTN5 to rejoin ");
+        lcdWriteLine(3, "Press BTN5 for WiFi ");
         delay(2000);
         displayMode = 0;
-      } else {
-        // Try to reconnect
-        Serial.println("BTN5: Attempting WiFi reconnect...");
-        lcd.clear();
-        lcdClearCache();
+
+      } else if (hotspotActive) {
+        // Hotspot on → stop it
+        Serial.println("BTN5: Stopping hotspot → offline");
+        if (portalTaskHandle != NULL) { vTaskDelete(portalTaskHandle); portalTaskHandle = NULL; }
+        wifiManager.stopConfigPortal();
+        WiFi.softAPdisconnect(true);
+        portalRunning = false;
+        hotspotActive = false;
+        hotspotStartTime = 0;
+        lcd.clear(); lcdClearCache();
         lcdWriteLine(0, "====  FireWire  ====");
-        lcdWriteLine(1, "Connecting WiFi...  ");
-        lcdWriteLine(2, "Please wait...      ");
-        lcdWriteLine(3, "                    ");
-        WiFi.begin();
-        unsigned long start = millis();
-        while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
-          delay(300);
-        }
-        if (WiFi.status() == WL_CONNECTED) {
-          lcdWriteLine(1, "WiFi Connected!     ");
-          lcdWriteLine(2, WiFi.SSID().c_str());
-          delay(2000);
-        } else {
-          lcdWriteLine(1, "Could not connect   ");
-          lcdWriteLine(2, "Still offline       ");
-          delay(2000);
-        }
-        lcd.clear();
-        lcdClearCache();
+        lcdWriteLine(1, "Hotspot stopped     ");
+        lcdWriteLine(2, "Back to offline mode");
+        lcdWriteLine(3, "Press BTN5 for WiFi ");
+        delay(2000);
         displayMode = 0;
+
+      } else {
+        // Offline → start hotspot
+        Serial.println("BTN5: Starting FireWire-Setup hotspot");
+        hotspotActive = true;
+        hotspotStartTime = now;
+        lcd.clear(); lcdClearCache();
+        lcdWriteLine(0, "====  FireWire  ====");
+        lcdWriteLine(1, "Hotspot is ON       ");
+        lcdWriteLine(2, "Connect: FireWire-  ");
+        lcdWriteLine(3, "Setup  | BTN5=Stop  ");
+        startBackgroundPortal();
       }
       return;
     }
