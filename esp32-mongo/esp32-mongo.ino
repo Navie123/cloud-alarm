@@ -570,18 +570,56 @@ void connectWiFiManager() {
     delay(500);
     digitalWrite(LED_PIN, LOW);
   } else if (savedSSID.length() == 0) {
-    // No saved credentials — must open portal (first time setup)
-    // This is blocking but only happens on first setup
-    Serial.println("No saved WiFi — opening setup portal (blocking)");
+    // No saved credentials — open portal but allow BTN5 to skip to offline
+    Serial.println("No saved WiFi — opening setup portal (BTN5 to skip)");
     lcd.clear();
     lcdClearCache();
     lcdWriteLine(0, "====  FireWire  ====");
     lcdWriteLine(1, "WiFi Setup Required ");
-    lcdWriteLine(2, "Connect to:         ");
-    lcdWriteLine(3, "  FireWire-Setup    ");
-    bool connected = wifiManager.autoConnect(WIFI_AP_NAME, WIFI_AP_PASSWORD);
-    if (connected) {
-      Serial.printf("WiFi configured! IP: %s\n", WiFi.localIP().toString().c_str());
+    lcdWriteLine(2, "Connect: FireWire-  ");
+    lcdWriteLine(3, "Setup | BTN5=Skip   ");
+
+    // Run portal in background task so BTN5 can still be checked
+    portalRunning = true;
+    xTaskCreatePinnedToCore(
+      [](void* param) {
+        wifiManager.setConnectTimeout(15);
+        wifiManager.setConfigPortalTimeout(0);
+        bool ok = wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD);
+        Serial.printf("[Portal] %s\n", ok ? "Connected!" : "Closed");
+        portalRunning = false;
+        vTaskDelete(NULL);
+      },
+      "SetupPortal", 8192, NULL, 1, &portalTaskHandle, 0
+    );
+
+    // Wait here but check BTN5 — long press skips to offline
+    unsigned long btn5Hold = 0;
+    while (portalRunning) {
+      if (digitalRead(BTN5_PIN) == LOW) {
+        if (btn5Hold == 0) btn5Hold = millis();
+        if (millis() - btn5Hold >= 2000) {
+          Serial.println("BTN5: Skipping WiFi setup → offline mode");
+          if (portalTaskHandle != NULL) {
+            vTaskDelete(portalTaskHandle);
+            portalTaskHandle = NULL;
+          }
+          wifiManager.stopConfigPortal();
+          WiFi.softAPdisconnect(true);
+          portalRunning = false;
+          lcd.clear();
+          lcdClearCache();
+          lcdWriteLine(0, "====  FireWire  ====");
+          lcdWriteLine(1, "Offline Mode        ");
+          lcdWriteLine(2, "WiFi setup skipped  ");
+          lcdWriteLine(3, "Hold BTN5 to retry  ");
+          delay(2000);
+          return;
+        }
+      } else {
+        btn5Hold = 0;
+      }
+      delay(100);
     }
     portalRunning = false;
   } else {
