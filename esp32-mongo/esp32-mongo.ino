@@ -503,33 +503,92 @@ void connectWiFiManager() {
 
   wifiManager.setCustomHeadElement(customCSS);
   wifiManager.setAPStaticIPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1), IPAddress(255,255,255,0));
+  wifiManager.setConnectTimeout(15);
+  wifiManager.setConfigPortalTimeout(0);
 
-  // Key settings:
-  // - setConnectTimeout: how long to try connecting to saved WiFi before giving up
-  // - setConfigPortalTimeout(0): portal stays open indefinitely (no auto-close)
-  // - autoConnect: tries saved credentials first, opens portal only if no credentials or connection fails
-  wifiManager.setConnectTimeout(15);      // 15s to connect to saved WiFi
-  wifiManager.setConfigPortalTimeout(0);  // Portal stays open until user saves credentials
+  // Check if we have saved credentials
+  WiFi.mode(WIFI_STA);
+  delay(100);
+  String savedSSID = WiFi.SSID();
+  Serial.printf("Saved SSID: '%s'\n", savedSSID.c_str());
 
-  // autoConnect does everything:
-  // 1. If saved credentials exist → tries to connect (15s timeout)
-  // 2. If connected → returns true, continues
-  // 3. If not connected → opens portal (FireWire-Setup hotspot)
-  // 4. User enters credentials → saves to flash → connects → returns true
-  // 5. Credentials are ALWAYS saved to flash by WiFiManager automatically
-  bool connected = wifiManager.autoConnect(WIFI_AP_NAME, WIFI_AP_PASSWORD);
+  if (savedSSID.length() > 0) {
+    // Try saved credentials — but check Button 5 during wait so user can skip to offline
+    Serial.printf("Trying saved WiFi: %s\n", savedSSID.c_str());
+    WiFi.begin();
 
-  if (connected) {
+    lcd.clear();
+    lcdClearCache();
+    lcdWriteLine(0, "====  FireWire  ====");
+    lcdWriteLine(1, "Connecting to WiFi..");
+    lcdWriteLine(2, "Hold BTN5 to skip   ");
+    lcdWriteLine(3, "                    ");
+
+    unsigned long startAttempt = millis();
+    bool skipped = false;
+    unsigned long btn5HoldStart = 0;
+
+    while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 15000) {
+      // Update countdown on LCD
+      unsigned long remaining = (15000 - (millis() - startAttempt)) / 1000;
+      char buf[21];
+      snprintf(buf, 21, "Timeout in %lus...   ", remaining);
+      lcdWriteLine(3, buf);
+
+      // Check Button 5 for skip (long press 2s)
+      if (digitalRead(BTN5_PIN) == LOW) {
+        if (btn5HoldStart == 0) btn5HoldStart = millis();
+        if (millis() - btn5HoldStart >= 2000) {
+          skipped = true;
+          Serial.println("BTN5 held — skipping to offline mode");
+          break;
+        }
+      } else {
+        btn5HoldStart = 0;
+      }
+      delay(200);
+    }
+
+    if (skipped) {
+      WiFi.disconnect();
+      lcd.clear();
+      lcdClearCache();
+      lcdWriteLine(0, "====  FireWire  ====");
+      lcdWriteLine(1, "Offline Mode        ");
+      lcdWriteLine(2, "WiFi skipped by user");
+      lcdWriteLine(3, "Sensors active      ");
+      delay(2000);
+      portalRunning = false;
+      return;
+    }
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
     Serial.printf("WiFi connected! SSID: %s IP: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
     portalRunning = false;
     digitalWrite(LED_PIN, HIGH);
     delay(500);
     digitalWrite(LED_PIN, LOW);
-  } else {
-    // autoConnect with timeout=0 should never return false unless portal times out
-    // This path means something unexpected happened
-    Serial.println("WiFi setup incomplete — running offline");
+  } else if (savedSSID.length() == 0) {
+    // No saved credentials — must open portal (first time setup)
+    // This is blocking but only happens on first setup
+    Serial.println("No saved WiFi — opening setup portal (blocking)");
+    lcd.clear();
+    lcdClearCache();
+    lcdWriteLine(0, "====  FireWire  ====");
+    lcdWriteLine(1, "WiFi Setup Required ");
+    lcdWriteLine(2, "Connect to:         ");
+    lcdWriteLine(3, "  FireWire-Setup    ");
+    bool connected = wifiManager.autoConnect(WIFI_AP_NAME, WIFI_AP_PASSWORD);
+    if (connected) {
+      Serial.printf("WiFi configured! IP: %s\n", WiFi.localIP().toString().c_str());
+    }
     portalRunning = false;
+  } else {
+    // Had credentials but couldn't connect — go offline, start background portal
+    Serial.println("WiFi unavailable — offline mode + background portal");
+    portalRunning = false;
+    startBackgroundPortal();
   }
 }
 
@@ -1468,20 +1527,80 @@ void checkButtons() {
   bool btn2 = (digitalRead(BTN2_PIN) == LOW);  // Gas Level/Air Quality
   bool btn3 = (digitalRead(BTN3_PIN) == LOW);  // Smoke Level
   bool btn4 = (digitalRead(BTN4_PIN) == LOW);  // Carbon Monoxide Info
-  bool btn5 = (digitalRead(BTN5_PIN) == LOW);  // System/WiFi Info
-  
+  bool btn5 = (digitalRead(BTN5_PIN) == LOW);  // WiFi Toggle
+
   // Debug button states
   static unsigned long lastDebug = 0;
-  if (now - lastDebug > 1000) {  // Debug every second
+  if (now - lastDebug > 1000) {
     if (btn1 || btn2 || btn3 || btn4 || btn5) {
-      Serial.printf("Button states: BTN1=%d BTN2=%d BTN3=%d BTN4=%d BTN5=%d\n", 
+      Serial.printf("Button states: BTN1=%d BTN2=%d BTN3=%d BTN4=%d BTN5=%d\n",
                     btn1, btn2, btn3, btn4, btn5);
     }
     lastDebug = now;
   }
-  
+
+  // Button 5 — WiFi toggle (long press 2s)
+  // Online: disconnects WiFi, goes offline
+  // Offline: tries to reconnect to saved WiFi
+  static unsigned long btn5HoldStart = 0;
+  if (btn5) {
+    if (btn5HoldStart == 0) btn5HoldStart = now;
+    if (now - btn5HoldStart >= 2000) {
+      btn5HoldStart = 0;
+      lastButtonPress = now;
+      bool wifiOk = (WiFi.status() == WL_CONNECTED);
+      if (wifiOk) {
+        // Go offline
+        Serial.println("BTN5: Disconnecting WiFi → offline mode");
+        WiFi.disconnect();
+        if (portalRunning && portalTaskHandle != NULL) {
+          vTaskDelete(portalTaskHandle);
+          portalTaskHandle = NULL;
+          portalRunning = false;
+        }
+        lcd.clear();
+        lcdClearCache();
+        lcdWriteLine(0, "====  FireWire  ====");
+        lcdWriteLine(1, "WiFi Disconnected   ");
+        lcdWriteLine(2, "Running offline...  ");
+        lcdWriteLine(3, "Hold BTN5 to rejoin ");
+        delay(2000);
+        displayMode = 0;
+      } else {
+        // Try to reconnect
+        Serial.println("BTN5: Attempting WiFi reconnect...");
+        lcd.clear();
+        lcdClearCache();
+        lcdWriteLine(0, "====  FireWire  ====");
+        lcdWriteLine(1, "Reconnecting WiFi...");
+        lcdWriteLine(2, "Please wait...      ");
+        lcdWriteLine(3, "                    ");
+        WiFi.begin();
+        unsigned long start = millis();
+        while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
+          delay(300);
+        }
+        if (WiFi.status() == WL_CONNECTED) {
+          lcdWriteLine(1, "WiFi Connected!     ");
+          lcdWriteLine(2, WiFi.SSID().c_str());
+          delay(2000);
+        } else {
+          lcdWriteLine(1, "Could not connect   ");
+          lcdWriteLine(2, "Still offline       ");
+          delay(2000);
+        }
+        lcd.clear();
+        lcdClearCache();
+        displayMode = 0;
+      }
+      return;
+    }
+  } else {
+    btn5HoldStart = 0;
+  }
+
   int newMode = displayMode;
-  
+
   // Button 1 - Temperature/Humidity view
   if (btn1) {
     newMode = 1;
@@ -1501,11 +1620,6 @@ void checkButtons() {
   else if (btn4) {
     newMode = 4;
     Serial.println("BTN4 pressed - Carbon Monoxide mode");
-  }
-  // Button 5 - System/WiFi Info
-  else if (btn5) {
-    newMode = 5;
-    Serial.println("BTN5 pressed - System/WiFi mode");
   }
   
   // If mode changed, start slide animation
