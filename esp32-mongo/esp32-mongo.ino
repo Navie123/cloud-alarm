@@ -520,7 +520,7 @@ void connectWiFiManager() {
     lcd.clear();
     lcdClearCache();
     lcdWriteLine(0, "====  FireWire  ====");
-    lcdWriteLine(1, "Connecting to WiFi..");
+    lcdWriteLine(1, "Looking for WiFi... ");
     lcdWriteLine(2, "Hold BTN5 to skip   ");
     lcdWriteLine(3, "                    ");
 
@@ -554,9 +554,9 @@ void connectWiFiManager() {
       lcd.clear();
       lcdClearCache();
       lcdWriteLine(0, "====  FireWire  ====");
-      lcdWriteLine(1, "Offline Mode        ");
-      lcdWriteLine(2, "WiFi skipped by user");
-      lcdWriteLine(3, "Sensors active      ");
+      lcdWriteLine(1, "No WiFi - Offline   ");
+      lcdWriteLine(2, "Alarm still works!  ");
+      lcdWriteLine(3, "Hold BTN5 to retry  ");
       delay(2000);
       portalRunning = false;
       return;
@@ -575,9 +575,9 @@ void connectWiFiManager() {
     lcd.clear();
     lcdClearCache();
     lcdWriteLine(0, "====  FireWire  ====");
-    lcdWriteLine(1, "WiFi Setup Required ");
-    lcdWriteLine(2, "Connect: FireWire-  ");
-    lcdWriteLine(3, "Setup | BTN5=Skip   ");
+    lcdWriteLine(1, "No WiFi saved yet   ");
+    lcdWriteLine(2, "Use phone: connect  ");
+    lcdWriteLine(3, "FireWire-Setup WiFi ");
 
     // Run portal in background task so BTN5 can still be checked
     portalRunning = true;
@@ -610,8 +610,8 @@ void connectWiFiManager() {
           lcd.clear();
           lcdClearCache();
           lcdWriteLine(0, "====  FireWire  ====");
-          lcdWriteLine(1, "Offline Mode        ");
-          lcdWriteLine(2, "WiFi setup skipped  ");
+          lcdWriteLine(1, "No WiFi - Offline   ");
+          lcdWriteLine(2, "Alarm still works!  ");
           lcdWriteLine(3, "Hold BTN5 to retry  ");
           delay(2000);
           return;
@@ -1599,8 +1599,8 @@ void checkButtons() {
         lcd.clear();
         lcdClearCache();
         lcdWriteLine(0, "====  FireWire  ====");
-        lcdWriteLine(1, "WiFi Disconnected   ");
-        lcdWriteLine(2, "Running offline...  ");
+        lcdWriteLine(1, "WiFi turned off     ");
+        lcdWriteLine(2, "Alarm still works!  ");
         lcdWriteLine(3, "Hold BTN5 to rejoin ");
         delay(2000);
         displayMode = 0;
@@ -1610,7 +1610,7 @@ void checkButtons() {
         lcd.clear();
         lcdClearCache();
         lcdWriteLine(0, "====  FireWire  ====");
-        lcdWriteLine(1, "Reconnecting WiFi...");
+        lcdWriteLine(1, "Connecting WiFi...  ");
         lcdWriteLine(2, "Please wait...      ");
         lcdWriteLine(3, "                    ");
         WiFi.begin();
@@ -1808,11 +1808,11 @@ void displaySilenceNotification() {
   
   // Row 2: Status message
   lcd.setCursor(0, 2);
-  lcd.print("  Alarm Acknowledged");
+  lcd.print("  Alarm silenced    ");
   
   // Row 3: Instruction
   lcd.setCursor(0, 3);
-  lcd.print("  Check Environment");
+  lcd.print("  Check your home  ");
 }
 
 // Helper function to get display-normalized smoke percentage
@@ -1851,7 +1851,7 @@ void displayDefault() {
 
   // Row 1: Overall home status
   if (warming) {
-    lcdWriteLine(1, "Sensors warming up..");
+    lcdWriteLine(1, "Starting up...      ");
   } else if (alarmActive) {
     lcdWriteLine(1, "!! FIRE ALARM !!    ");
   } else if (partialWarningActive || warningMode) {
@@ -2109,14 +2109,14 @@ void displayLowBattery() {
   // Row 2: Status message
   lcd.setCursor(0, 2);
   if (batteryVoltage < CRITICAL_BATTERY_VOLTAGE) {
-    lcd.print("CRITICAL - CHARGE NOW");
+    lcd.print("Charge now! Critical");
   } else {
-    lcd.print("LOW - Please Charge ");
+    lcd.print("Battery low - charge");
   }
   
   // Row 3: Alarm status
   lcd.setCursor(0, 3);
-  lcd.print("Alarms Disabled     ");
+  lcd.print("Alarm off (low bat) ");
 }
 
 // WiFi Disconnected Screen
@@ -2141,7 +2141,7 @@ void displayWiFiDisconnected() {
   
   // Row 1: Connection status
   lcd.setCursor(0, 1);
-  lcd.print("  NO WIFI CONNECTION");
+  lcd.print("  No WiFi signal    ");
   
   // Row 2: Attempting to reconnect
   lcd.setCursor(0, 2);
@@ -2151,7 +2151,7 @@ void displayWiFiDisconnected() {
   
   // Row 3: Instruction
   lcd.setCursor(0, 3);
-  lcd.print("Check WiFi Settings ");
+  lcd.print("Hold BTN5 to retry  ");
 }
 
 // WiFi Startup/Connecting Screen
@@ -2205,13 +2205,13 @@ void displayAlarmScreen() {
 
   // Row 0: Blinking alarm header (exactly 20 chars)
   if (blink) {
-    lcdWriteLine(0, "** FIRE ALARM!!! **");
+    lcdWriteLine(0, "!!! FIRE ALARM !!!  ");
   } else {
     lcdWriteLine(0, "====================");
   }
 
   // Row 1: Evacuation message (exactly 20 chars)
-  lcdWriteLine(1, ">> EVACUATE NOW! << ");
+  lcdWriteLine(1, "LEAVE THE HOUSE NOW!");
 
   // Row 2: Which sensor triggered (exactly 20 chars)
   if (smokePercent >= smokeThreshold) {
@@ -2227,7 +2227,7 @@ void displayAlarmScreen() {
   if (buf[0] != '\0') lcdWriteLine(2, buf);
 
   // Row 3: Action (exactly 20 chars)
-  lcdWriteLine(3, "  EVACUATE AREA!    ");
+  lcdWriteLine(3, "Call for help!      ");
 }
 
 // Warning Screen for elevated readings
@@ -2270,5 +2270,6 @@ void displayWarningScreen() {
   lcdWriteLine(2, "Check your home now ");
 
   // Row 3: Silence instruction
-  lcdWriteLine(3, "App: Stop the Alarm ");
+  lcdWriteLine(3, "Open app to silence ");
 }
+
