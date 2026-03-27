@@ -325,11 +325,6 @@ void loop() {
   if (!currentWiFiStatus) {
     connectWiFi();
   }
-
-  // Process background portal requests (non-blocking, must be called in loop)
-  if (portalRunning) {
-    wifiManager.process();
-  }
   
   // Check buttons for display mode change
   checkButtons();
@@ -531,36 +526,58 @@ void connectWiFiManager() {
   }
 }
 
-// Start non-blocking background portal — LCD and sensors keep running
-void startBackgroundPortal() {
-  if (portalRunning) return;
-  Serial.println("Starting background WiFi portal (AP+STA dual mode)...");
-  
-  // Use WiFi dual mode: connect as STA to saved network AND broadcast AP
-  // WiFiManager's startConfigPortal with timeout=0 runs non-blocking when
-  // combined with process() in the loop
-  wifiManager.setConfigPortalTimeout(0);   // No timeout — stays open indefinitely
-  wifiManager.setConnectTimeout(5);        // Quick connect attempt
-  
-  // Start the portal — this sets up the AP and web server
-  // We use a separate task approach: start portal in non-blocking mode
-  WiFi.mode(WIFI_AP_STA);
-  WiFi.softAP(WIFI_AP_NAME, WIFI_AP_PASSWORD);
-  WiFi.softAPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1), IPAddress(255,255,255,0));
-  
-  // Start WiFiManager web portal on the existing AP
-  wifiManager.startWebPortal();
-  
-  portalRunning = true;
-  Serial.printf("Background AP active: %s at 192.168.4.1\n", WIFI_AP_NAME);
+// Portal task handle for FreeRTOS
+TaskHandle_t portalTaskHandle = NULL;
+
+// Portal task — runs on Core 0, handles HTTP requests while main loop runs on Core 1
+void portalTask(void* param) {
+  Serial.println("[Portal Task] Starting config portal on Core 0...");
+  wifiManager.setConfigPortalTimeout(0);  // No timeout
+  wifiManager.setConnectTimeout(15);
+  wifiManager.setConnectRetries(2);
+  wifiManager.setBreakAfterConfig(true);
+
+  bool connected = wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD);
+
+  if (connected) {
+    Serial.println("[Portal Task] WiFi configured successfully!");
+  } else {
+    Serial.println("[Portal Task] Portal closed without connecting");
+  }
+
+  portalRunning = false;
+  portalTaskHandle = NULL;
+  vTaskDelete(NULL);  // Delete this task when done
 }
 
-// Stop background portal when WiFi connects
+// Start background portal on Core 0 (non-blocking for main loop on Core 1)
+void startBackgroundPortal() {
+  if (portalRunning) return;
+  Serial.println("Starting background WiFi portal on Core 0...");
+
+  portalRunning = true;
+  xTaskCreatePinnedToCore(
+    portalTask,        // Task function
+    "PortalTask",      // Task name
+    8192,              // Stack size
+    NULL,              // Parameters
+    1,                 // Priority
+    &portalTaskHandle, // Task handle
+    0                  // Run on Core 0 (main loop runs on Core 1)
+  );
+
+  Serial.printf("Background portal started: %s\n", WIFI_AP_NAME);
+}
+
+// Stop background portal
 void stopBackgroundPortal() {
   if (!portalRunning) return;
-  wifiManager.stopWebPortal();
+  if (portalTaskHandle != NULL) {
+    vTaskDelete(portalTaskHandle);
+    portalTaskHandle = NULL;
+  }
+  wifiManager.stopConfigPortal();
   WiFi.softAPdisconnect(true);
-  WiFi.mode(WIFI_STA);
   portalRunning = false;
   Serial.println("Background portal stopped — WiFi connected");
 }
