@@ -1501,8 +1501,7 @@ void startSlideAnimation() {
   animationStart = millis();
   animationStep = 0;
   lcd.clear();
-  
-  // Debug output
+  lcdClearCache();
   Serial.printf("Starting animation at time: %lu\n", millis());
 }
 
@@ -1574,9 +1573,11 @@ void updateLCD() {
   if (shouldShowWarning && !warningMode) {
     warningMode = true;
     lcd.clear();
+    lcdClearCache();
   } else if (!shouldShowWarning && warningMode) {
     warningMode = false;
     lcd.clear();
+    lcdClearCache();
   }
   if (warningMode && !startupPeriod) {
     displayWarningScreen();
@@ -1640,56 +1641,64 @@ float getSmokePercentDisplay() {
   return (smokePercent < 3.0) ? 0.0 : smokePercent;
 }
 
+// LCD line cache — only write when content changes to prevent flicker
+static char lcdCache[4][21] = {"","","",""};
+
+void lcdWriteLine(int row, const char* text) {
+  // Pad to exactly 20 chars
+  char padded[21];
+  snprintf(padded, 21, "%-20s", text);
+  padded[20] = '\0';
+  // Only write if changed
+  if (strncmp(lcdCache[row], padded, 20) != 0) {
+    lcd.setCursor(0, row);
+    lcd.print(padded);
+    strncpy(lcdCache[row], padded, 20);
+  }
+}
+
+void lcdClearCache() {
+  for (int i = 0; i < 4; i++) lcdCache[i][0] = '\0';
+}
+
 // Display Mode 0: Status Dashboard
 void displayDefault() {
-  char buf[25];
+  char buf[21];
   bool wifiOk = (WiFi.status() == WL_CONNECTED);
   bool warming = (millis() - bootTime < 20000);
 
-  // Row 0: Branding
-  lcd.setCursor(0, 0);
-  lcd.print("====================");
-  lcd.setCursor(6, 0);
-  lcd.print("FireWire");
+  // Row 0: Branding (static — only writes once)
+  lcdWriteLine(0, "====  FireWire  ====");
 
   // Row 1: Overall home status
-  lcd.setCursor(0, 1);
-  lcd.print("                    ");
-  lcd.setCursor(0, 1);
   if (warming) {
-    lcd.print("Sensors warming up..");
+    lcdWriteLine(1, "Sensors warming up..");
   } else if (alarmActive) {
-    lcd.print("!! FIRE ALARM !!    ");
+    lcdWriteLine(1, "!! FIRE ALARM !!    ");
   } else if (partialWarningActive || warningMode) {
-    lcd.print("!! CAUTION !!       ");
+    lcdWriteLine(1, "!! CAUTION !!       ");
   } else {
-    lcd.print("Status: HOME IS SAFE");
+    lcdWriteLine(1, "Status: HOME IS SAFE");
   }
 
-  // Row 2: Alarm mode
-  lcd.setCursor(0, 2);
-  lcd.print("                    ");
-  lcd.setCursor(0, 2);
+  // Row 2: Alarm mode / countdown
   if (warming) {
     unsigned long remaining = (20000 - (millis() - bootTime)) / 1000 + 1;
     snprintf(buf, 21, "Ready in %lus...     ", remaining);
-    lcd.print(buf);
+    lcdWriteLine(2, buf);
   } else if (smartAlarmMode) {
-    lcd.print("Mode: Smart Alarm   ");
+    lcdWriteLine(2, "Mode: Smart Alarm   ");
   } else {
-    lcd.print("Mode: Full Alarm    ");
+    lcdWriteLine(2, "Mode: Full Alarm    ");
   }
 
   // Row 3: WiFi status
-  lcd.setCursor(0, 3);
-  lcd.print("                    ");
-  lcd.setCursor(0, 3);
   if (wifiOk) {
-    lcd.print("WiFi: Online        ");
+    lcdWriteLine(3, "WiFi: Online        ");
   } else if (wifiJustDisconnected) {
-    lcd.print("WiFi: Reconnecting..");
+    lcdWriteLine(3, "WiFi: Reconnecting..");
   } else {
-    lcd.print("WiFi: Offline       ");
+    lcdWriteLine(3, "WiFi: Offline       ");
   }
 }
 
