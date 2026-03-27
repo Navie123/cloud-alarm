@@ -260,8 +260,11 @@ void setup() {
   // Setup WiFiManager Connection (Auto-connect mode)
   connectWiFiManager();
 
-  // Immediately show status dashboard — LCD works regardless of WiFi
+  // Clear LCD cache after WiFi setup so default screen renders fresh
   lcd.clear();
+  lcdClearCache();
+
+  // Immediately show status dashboard — LCD works regardless of WiFi
   displayDefault();
   
   // Fetch thresholds from server on startup
@@ -500,8 +503,14 @@ void connectWiFiManager() {
   wifiManager.setCustomHeadElement(customCSS);
   wifiManager.setAPStaticIPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1), IPAddress(255,255,255,0));
 
-  // Try saved credentials with 15s timeout — non-blocking for LCD
+  // Must set STA mode first so WiFi.SSID() can read saved credentials from flash
+  WiFi.mode(WIFI_STA);
+  delay(100);
+
+  // Try saved credentials with 15s timeout
   String savedSSID = WiFi.SSID();
+  Serial.printf("Saved SSID: '%s'\n", savedSSID.c_str());
+
   if (savedSSID.length() > 0) {
     Serial.printf("Trying saved WiFi: %s (15s timeout)\n", savedSSID.c_str());
     WiFi.begin();
@@ -535,7 +544,7 @@ void portalTask(void* param) {
   wifiManager.setConfigPortalTimeout(0);  // No timeout
   wifiManager.setConnectTimeout(15);
   wifiManager.setConnectRetries(2);
-  wifiManager.setBreakAfterConfig(true);
+  wifiManager.setBreakAfterConfig(false);  // Let WiFiManager handle connection after save
 
   bool connected = wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD);
 
