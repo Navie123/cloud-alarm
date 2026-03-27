@@ -48,6 +48,133 @@
     .back-btn:hover { background: var(--border); }
 
     /* Wrap */
+    .page-layout {
+      display: flex;
+      min-height: calc(100vh - 52px);
+    }
+
+    /* Sidebar nav */
+    .sidenav {
+      width: 72px;
+      position: sticky;
+      top: 52px;
+      height: calc(100vh - 52px);
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 4px;
+      flex-shrink: 0;
+      overflow-y: auto;
+      transition: width 0.3s ease;
+    }
+    .sidenav.expanded {
+      width: 240px;
+      align-items: stretch;
+      padding: 16px 12px;
+    }
+    .sidenav-toggle {
+      width: 60px;
+      height: 36px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--muted);
+      margin-bottom: 8px;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .sidenav-toggle:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+    .sidenav.expanded .sidenav-toggle {
+      width: 100%;
+      justify-content: space-between;
+      padding: 0 12px;
+    }
+    .sidenav-toggle-text {
+      display: none;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .sidenav.expanded .sidenav-toggle-text {
+      display: block;
+    }
+    .sidenav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 6px;
+      border-radius: 10px;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.6rem;
+      text-align: center;
+      width: 60px;
+      transition: all 0.15s;
+      line-height: 1.2;
+      flex-shrink: 0;
+    }
+    .sidenav.expanded a {
+      flex-direction: row;
+      justify-content: flex-start;
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 0.86rem;
+      text-align: left;
+      gap: 10px;
+    }
+    .sidenav a i { 
+      font-size: 1rem;
+      transition: font-size 0.15s;
+    }
+    .sidenav.expanded a i {
+      font-size: 1.1rem;
+      width: 20px;
+      text-align: center;
+    }
+    .sidenav a:hover { background: var(--bg2); color: var(--text); }
+    .sidenav a.active { background: rgba(255,107,53,0.12); color: var(--accent); }
+    .sidenav a.active i { color: var(--accent); }
+
+    /* Hide sidebar on mobile, show bottom bar instead */
+    @media (max-width: 600px) {
+      .sidenav { display: none; }
+      .page-layout { flex-direction: column; }
+      /* Mobile bottom nav */
+      .mobile-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        background: var(--card);
+        border-top: 1px solid var(--border);
+        z-index: 200;
+        overflow-x: auto;
+        padding: 6px 4px;
+        gap: 2px;
+      }
+      .mobile-nav a {
+        display: flex; flex-direction: column; align-items: center;
+        gap: 2px; padding: 6px 8px; border-radius: 8px;
+        text-decoration: none; color: var(--muted);
+        font-size: 0.55rem; white-space: nowrap; flex-shrink: 0;
+        transition: color 0.15s;
+      }
+      .mobile-nav a i { font-size: 0.9rem; }
+      .mobile-nav a.active { color: var(--accent); }
+      .wrap { padding-bottom: 72px; }
+    }
+    @media (min-width: 601px) {
+      .mobile-nav { display: none; }
+    }
     .wrap { max-width: 680px; margin: 0 auto; padding: 20px 16px 48px; }
 
     /* Hero */
@@ -178,12 +305,41 @@
   <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to App</a>
 </div>
 
+<!-- Mobile bottom nav -->
+<nav class="mobile-nav">
+  <a href="#what" class="nav-link"><i class="fas fa-house"></i>What</a>
+  <a href="#device" class="nav-link"><i class="fas fa-box"></i>Device</a>
+  <a href="#lcd" class="nav-link"><i class="fas fa-display"></i>Screen</a>
+  <a href="#wifi" class="nav-link"><i class="fas fa-wifi"></i>WiFi</a>
+  <a href="#app" class="nav-link"><i class="fas fa-mobile-screen"></i>App</a>
+  <a href="#alarm" class="nav-link"><i class="fas fa-bell"></i>Alarm</a>
+  <a href="#modes" class="nav-link"><i class="fas fa-sliders"></i>Modes</a>
+  <a href="#offline" class="nav-link"><i class="fas fa-plug-circle-xmark"></i>Offline</a>
+</nav>
+
+<div class="page-layout">
+
+  <!-- Desktop sidebar nav -->
+  <nav class="sidenav" id="sidenav">
+    <div class="sidenav-toggle" id="sidenavToggle">
+      <span class="sidenav-toggle-text">Navigation</span>
+      <i class="fas fa-bars"></i>
+    </div>
+    <a href="#what" class="nav-link"><i class="fas fa-house"></i><span>What is it</span></a>
+    <a href="#device" class="nav-link"><i class="fas fa-box"></i><span>Device</span></a>
+    <a href="#lcd" class="nav-link"><i class="fas fa-display"></i><span>Screen</span></a>
+    <a href="#wifi" class="nav-link"><i class="fas fa-wifi"></i><span>WiFi</span></a>
+    <a href="#app" class="nav-link"><i class="fas fa-mobile-screen"></i><span>App</span></a>
+    <a href="#alarm" class="nav-link"><i class="fas fa-bell"></i><span>Alarm</span></a>
+    <a href="#modes" class="nav-link"><i class="fas fa-sliders"></i><span>Modes</span></a>
+    <a href="#offline" class="nav-link"><i class="fas fa-plug-circle-xmark"></i><span>Offline</span></a>
+  </nav>
+
 <div class="wrap">
 
   <div class="hero">
     <div class="hero-icon">📖</div>
     <h1 class="hero-title">FireWire User Guide</h1>
-    <p class="hero-sub">Simple guide for everyone — no tech knowledge needed</p>
   </div>
 
   <!-- TOC -->
@@ -205,9 +361,9 @@
       <span class="section-icon">🏠</span>
       <h2>What is FireWire?</h2>
     </div>
-    <p class="note">FireWire is a smart home safety device that watches your home 24 hours a day. It detects smoke, gas leaks, poisonous gas (CO), and rising heat — then immediately sounds a buzzer and sends an alert to your phone.</p>
-    <p class="note">Even if you are away from home, FireWire will notify you through the app and by email so you can act fast.</p>
-    <p class="note"><strong>Important:</strong> FireWire works even without internet. The buzzer and sensors always work — WiFi is only needed for phone alerts and the app dashboard.</p>
+    <p class="note">FireWire is a home safety device that monitors your home around the clock. It detects smoke, gas leaks, carbon monoxide (CO), and high heat — then sounds a buzzer and sends an alert to your phone.</p>
+    <p class="note">If you are away from home, FireWire will notify you through the app and by email.</p>
+    <p class="note"><strong>Note:</strong> FireWire works even without internet. The buzzer and sensors always run — WiFi is only needed for phone alerts and the app dashboard.</p>
   </div>
 
   <!-- 2. Device & Buttons -->
@@ -257,7 +413,7 @@
       <span class="section-icon">🖥️</span>
       <h2>Reading the Screen</h2>
     </div>
-    <p class="note">The main screen shows 4 lines of information at all times:</p>
+    <p class="note">The main screen shows 4 lines at all times:</p>
 
     <div class="lcd-preview">
       <div>====  FireWire  ====</div>
@@ -301,7 +457,7 @@
       <div>Ready in 15s...     </div>
       <div>WiFi: Online        </div>
     </div>
-    <p class="note" style="margin-top:8px;">The device needs 20 seconds to warm up its sensors. The alarm will not trigger during this time to prevent false alarms.</p>
+    <p class="note" style="margin-top:8px;">The device needs 20 seconds to warm up its sensors on startup. The alarm will not trigger during this time.</p>
   </div>
 
   <!-- 4. WiFi Setup -->
@@ -448,5 +604,45 @@
   </div>
 
 </div>
+
+<script>
+// Sidebar toggle functionality
+const sidenav = document.getElementById('sidenav');
+const sidenavToggle = document.getElementById('sidenavToggle');
+
+sidenavToggle.addEventListener('click', () => {
+  sidenav.classList.toggle('expanded');
+  localStorage.setItem('sidenavExpanded', sidenav.classList.contains('expanded'));
+});
+
+// Restore sidebar state from localStorage
+if (localStorage.getItem('sidenavExpanded') === 'true') {
+  sidenav.classList.add('expanded');
+}
+
+// Highlight active section on scroll
+const navLinks = document.querySelectorAll('.nav-link');
+const sections = document.querySelectorAll('.section');
+
+function highlightNav() {
+  let current = '';
+  sections.forEach(section => {
+    const sectionTop = section.offsetTop - 100;
+    if (window.scrollY >= sectionTop) {
+      current = section.getAttribute('id');
+    }
+  });
+
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === '#' + current) {
+      link.classList.add('active');
+    }
+  });
+}
+
+window.addEventListener('scroll', highlightNav);
+highlightNav(); // Initial highlight
+</script>
 </body>
 </html>
