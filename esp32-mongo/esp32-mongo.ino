@@ -1658,11 +1658,9 @@ void checkButtons() {
         Serial.println("BTN5: Starting FireWire-Setup hotspot");
         hotspotActive = true;
         hotspotStartTime = now;
-        lcd.clear(); lcdClearCache();
-        lcdWriteLine(0, "====  FireWire  ====");
-        lcdWriteLine(1, "Hotspot is ON       ");
-        lcdWriteLine(2, "Connect: FireWire-  ");
-        lcdWriteLine(3, "Setup  | BTN5=Stop  ");
+        displayMode = 6;  // Hotspot display mode — stays until BTN5 pressed again or timeout
+        lcd.clear();
+        lcdClearCache();
         startBackgroundPortal();
       }
       return;
