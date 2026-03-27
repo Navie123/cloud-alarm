@@ -125,6 +125,7 @@ bool wifiWasConnected = false;
 bool wifiJustDisconnected = false;
 unsigned long wifiDisconnectedTime = 0;
 bool portalRunning = false;  // true when background AP portal is active
+TaskHandle_t portalTaskHandle = NULL;
 bool showingStartupScreen = false;
 
 // LCD Display Mode (controlled by buttons)
@@ -437,12 +438,12 @@ void loop() {
   delay(100);
 }
 
-void startBackgroundPortal();  // forward declaration 
+void startBackgroundPortal();
+void stopBackgroundPortal();
 
 void connectWiFiManager() {
-  Serial.println("FireWire startup — checking WiFi...");
+  Serial.println("FireWire startup — WiFi init...");
 
-  // Apply portal CSS (reused for both initial and background portal)
   const char* customCSS = "<style>"
     "* { margin:0; padding:0; box-sizing:border-box; }"
     "body { background:#f5f5f5; color:#1a1a1a; font-family:sans-serif; font-size:15px; }"
@@ -503,79 +504,54 @@ void connectWiFiManager() {
   wifiManager.setCustomHeadElement(customCSS);
   wifiManager.setAPStaticIPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1), IPAddress(255,255,255,0));
 
-  // Must set STA mode first so WiFi.SSID() can read saved credentials from flash
-  WiFi.mode(WIFI_STA);
-  delay(100);
+  // Key settings:
+  // - setConnectTimeout: how long to try connecting to saved WiFi before giving up
+  // - setConfigPortalTimeout(0): portal stays open indefinitely (no auto-close)
+  // - autoConnect: tries saved credentials first, opens portal only if no credentials or connection fails
+  wifiManager.setConnectTimeout(15);      // 15s to connect to saved WiFi
+  wifiManager.setConfigPortalTimeout(0);  // Portal stays open until user saves credentials
 
-  // Try saved credentials with 15s timeout
-  String savedSSID = WiFi.SSID();
-  Serial.printf("Saved SSID: '%s'\n", savedSSID.c_str());
+  // autoConnect does everything:
+  // 1. If saved credentials exist → tries to connect (15s timeout)
+  // 2. If connected → returns true, continues
+  // 3. If not connected → opens portal (FireWire-Setup hotspot)
+  // 4. User enters credentials → saves to flash → connects → returns true
+  // 5. Credentials are ALWAYS saved to flash by WiFiManager automatically
+  bool connected = wifiManager.autoConnect(WIFI_AP_NAME, WIFI_AP_PASSWORD);
 
-  if (savedSSID.length() > 0) {
-    Serial.printf("Trying saved WiFi: %s (15s timeout)\n", savedSSID.c_str());
-    WiFi.begin();
-    unsigned long startAttempt = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 15000) {
-      delay(200);
-      Serial.print(".");
-    }
-    Serial.println();
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("WiFi connected! IP: %s\n", WiFi.localIP().toString().c_str());
+  if (connected) {
+    Serial.printf("WiFi connected! SSID: %s IP: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+    portalRunning = false;
     digitalWrite(LED_PIN, HIGH);
     delay(500);
     digitalWrite(LED_PIN, LOW);
+  } else {
+    // autoConnect with timeout=0 should never return false unless portal times out
+    // This path means something unexpected happened
+    Serial.println("WiFi setup incomplete — running offline");
     portalRunning = false;
-  } else {
-    // Not connected — start background portal (non-blocking, AP+STA dual mode)
-    Serial.println("WiFi not available — starting background portal (Option A)");
-    startBackgroundPortal();
   }
 }
 
-// Portal task handle for FreeRTOS
-TaskHandle_t portalTaskHandle = NULL;
-
-// Portal task — runs on Core 0, handles HTTP requests while main loop runs on Core 1
-void portalTask(void* param) {
-  Serial.println("[Portal Task] Starting config portal on Core 0...");
-  wifiManager.setConfigPortalTimeout(0);  // No timeout
-  wifiManager.setConnectTimeout(15);
-  wifiManager.setConnectRetries(2);
-  wifiManager.setBreakAfterConfig(false);  // Let WiFiManager handle connection after save
-
-  bool connected = wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD);
-
-  if (connected) {
-    Serial.println("[Portal Task] WiFi configured successfully!");
-  } else {
-    Serial.println("[Portal Task] Portal closed without connecting");
-  }
-
-  portalRunning = false;
-  portalTaskHandle = NULL;
-  vTaskDelete(NULL);  // Delete this task when done
-}
-
-// Start background portal on Core 0 (non-blocking for main loop on Core 1)
+// Background portal — opens FireWire-Setup hotspot for WiFi reconfiguration
+// Called when WiFi disconnects mid-operation
 void startBackgroundPortal() {
   if (portalRunning) return;
-  Serial.println("Starting background WiFi portal on Core 0...");
+  Serial.println("Starting background WiFi portal...");
 
+  // Run portal in a FreeRTOS task on Core 0 so main loop keeps running
   portalRunning = true;
   xTaskCreatePinnedToCore(
-    portalTask,        // Task function
-    "PortalTask",      // Task name
-    8192,              // Stack size
-    NULL,              // Parameters
-    1,                 // Priority
-    &portalTaskHandle, // Task handle
-    0                  // Run on Core 0 (main loop runs on Core 1)
+    [](void* param) {
+      wifiManager.setConnectTimeout(15);
+      wifiManager.setConfigPortalTimeout(0);
+      bool ok = wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD);
+      Serial.printf("[Portal] %s\n", ok ? "Connected!" : "Closed without connecting");
+      portalRunning = false;
+      vTaskDelete(NULL);
+    },
+    "PortalTask", 8192, NULL, 1, &portalTaskHandle, 0
   );
-
-  Serial.printf("Background portal started: %s\n", WIFI_AP_NAME);
 }
 
 // Stop background portal
@@ -588,7 +564,7 @@ void stopBackgroundPortal() {
   wifiManager.stopConfigPortal();
   WiFi.softAPdisconnect(true);
   portalRunning = false;
-  Serial.println("Background portal stopped — WiFi connected");
+  Serial.println("Background portal stopped");
 }
 
 void connectWiFiDirect() {
