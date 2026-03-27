@@ -1208,6 +1208,19 @@ void updateAlarmState() {
     tempWarning = "normal";
   }
   
+  // AUTO-SILENCE: if alarm has been active for 30 seconds with no user acknowledgement,
+  // silence the buzzer automatically (alarm state stays active on LCD)
+  static unsigned long alarmStartTime = 0;
+  if (alarmActive && !silenceRequested) {
+    if (alarmStartTime == 0) alarmStartTime = millis();
+    if (millis() - alarmStartTime > 30000) {
+      silenceRequested = true;
+      Serial.println("AUTO-SILENCE: Alarm active 30s with no acknowledgement");
+    }
+  } else if (!alarmActive) {
+    alarmStartTime = 0;
+  }
+
   // Reset silence when all alarms clear
   if (!alarmActive && !partialWarningActive && !warningMode) {
     silenceRequested = false;
@@ -1882,9 +1895,9 @@ void displaySystemWiFi() {
   lcd.print("                    ");  // Clear line
   lcd.setCursor(0, 3);
   if (smartAlarmMode) {
-    snprintf(buf, 21, "Mode: SMART (ON)");
+    snprintf(buf, 21, "Mode: Smart Alarm");
   } else {
-    snprintf(buf, 21, "Mode: SENSITIVE");
+    snprintf(buf, 21, "Mode: Full Alarm");
   }
   lcd.print(buf);
 }
@@ -2043,87 +2056,82 @@ void displayWiFiStartup() {
 
 // Critical Alarm Screen
 void displayAlarmScreen() {
-  char buf[25];
   static bool blink = false;
   static unsigned long lastBlink = 0;
-  
+  char buf[21];
+
   if (millis() - lastBlink > 500) {
     blink = !blink;
     lastBlink = millis();
+    lcdClearCache();  // Force redraw on blink
   }
-  
-  // Row 0: Blinking alarm header
-  lcd.setCursor(0, 0);
+
+  // Row 0: Blinking alarm header (exactly 20 chars)
   if (blink) {
-    lcd.print("*** FIRE ALARM! ***");
+    lcdWriteLine(0, "** FIRE ALARM!!! **");
   } else {
-    lcd.print("                    ");
+    lcdWriteLine(0, "====================");
   }
-  
-  // Row 1: Evacuation message
-  lcd.setCursor(0, 1);
-  lcd.print(">> EVACUATE NOW! <<");
-  
-  // Row 2: Critical readings (using display values for user-facing messages)
-  lcd.setCursor(0, 2);
+
+  // Row 1: Evacuation message (exactly 20 chars)
+  lcdWriteLine(1, ">> EVACUATE NOW! << ");
+
+  // Row 2: Which sensor triggered (exactly 20 chars)
   if (smokePercent >= smokeThreshold) {
-    snprintf(buf, 21, "SMOKE: %.1f%% HIGH!", getSmokePercentDisplay());
+    snprintf(buf, 21, "SMOKE:%.1f%% DANGER! ", getSmokePercentDisplay());
   } else if (gasPercent >= gasThreshold) {
-    snprintf(buf, 21, "GAS: %.1f%% HIGH!", gasPercent);
+    snprintf(buf, 21, "GAS:%.1f%% DANGER!   ", gasPercent);
   } else if (temperature >= tempThreshold) {
-    snprintf(buf, 21, "TEMP: %.1fC HIGH!", temperature);
+    snprintf(buf, 21, "TEMP:%.1fC DANGER!  ", temperature);
   } else {
-    snprintf(buf, 21, "MULTIPLE SENSORS!");
+    lcdWriteLine(2, "MULTIPLE SENSORS!   ");
+    buf[0] = '\0';
   }
-  lcd.print(buf);
-  
-  // Row 3: Action instruction (shortened to fit 20 chars)
-  lcd.setCursor(0, 3);
-  lcd.print("   EVACUATE AREA!    ");  // Remove BTN5 silence instruction
+  if (buf[0] != '\0') lcdWriteLine(2, buf);
+
+  // Row 3: Action (exactly 20 chars)
+  lcdWriteLine(3, "  EVACUATE AREA!    ");
 }
 
 // Warning Screen for elevated readings
 void displayWarningScreen() {
-  char buf[25];
+  char buf[21];
   static bool blink = false;
   static unsigned long lastBlink = 0;
-  
-  if (millis() - lastBlink > 500) {  // Faster blinking (was 1000ms)
+
+  if (millis() - lastBlink > 600) {
     blink = !blink;
     lastBlink = millis();
+    lcdClearCache();
   }
-  
-  // Row 0: Warning header
-  lcd.setCursor(0, 0);
+
+  // Row 0: Warning header (exactly 20 chars)
   if (blink) {
-    lcd.print("!!! WARNING !!!");
+    lcdWriteLine(0, "!!!!  WARNING  !!!!");
   } else {
-    lcd.print(">>> DANGER <<<");  // More urgent text
+    lcdWriteLine(0, "====================");
   }
-  
-  // Row 1: Show which sensor is elevated (using display values for user messages)
-  lcd.setCursor(0, 1);
+
+  // Row 1: Which sensor is elevated (exactly 20 chars)
   if (smokePercent >= smokeThreshold * 0.9) {
-    snprintf(buf, 21, "SMOKE HIGH: %.1f%%", getSmokePercentDisplay());
+    snprintf(buf, 21, "SMOKE HIGH:%.1f%%    ", getSmokePercentDisplay());
   } else if (gasPercent >= gasThreshold * 0.9) {
-    snprintf(buf, 21, "GAS HIGH: %.1f%%", gasPercent);
+    snprintf(buf, 21, "GAS HIGH:%.1f%%      ", gasPercent);
   } else if (temperature >= tempThreshold) {
-    snprintf(buf, 21, "TEMP HIGH: %.1fC", temperature);
+    snprintf(buf, 21, "TEMP HIGH:%.1fC     ", temperature);
   } else if (coPpm >= coWarningThreshold * 0.9) {
-    snprintf(buf, 21, "CO DETECTED: %.0f PPM", coPpm);
+    snprintf(buf, 21, "CO DETECTED:%.0fPPM ", coPpm);
   } else if (aqi > 100) {
-    snprintf(buf, 21, "POOR AIR: %.0f AQI", aqi);
+    snprintf(buf, 21, "POOR AIR:%.0f AQI   ", aqi);
   } else {
-    snprintf(buf, 21, "MULTIPLE SENSORS");
+    lcdWriteLine(1, "MULTIPLE SENSORS!   ");
+    buf[0] = '\0';
   }
-  lcd.print(buf);
-  
-  // Row 2: Urgent action message
-  lcd.setCursor(0, 2);
-  snprintf(buf, 21, "EVACUATE AREA NOW!");
-  lcd.print(buf);
-  
-  // Row 3: Instruction
-  lcd.setCursor(0, 3);
-  lcd.print("   EVACUATE AREA!    ");
+  if (buf[0] != '\0') lcdWriteLine(1, buf);
+
+  // Row 2: Action
+  lcdWriteLine(2, "Check your home now ");
+
+  // Row 3: Silence instruction
+  lcdWriteLine(3, "App: Stop the Alarm ");
 }
