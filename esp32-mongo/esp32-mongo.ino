@@ -366,7 +366,13 @@ void loop() {
   }
   
   // Handle buzzer logic
-  if (alarmActive && sirenEnabled && !silenceRequested) {
+  // Never sound buzzer during low battery or startup warmup
+  if (lowBatteryDetected || (millis() - bootTime < 20000)) {
+    activateBuzzer(false);
+    partialBeepState = false;
+    partialBeepCount = 0;
+    warningBeepState = false;
+  } else if (alarmActive && sirenEnabled && !silenceRequested) {
     // Full alarm - continuous buzzer
     activateBuzzer(true);
     partialBeepCount = 0;  // Reset partial beep counter
