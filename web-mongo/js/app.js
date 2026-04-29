@@ -1982,6 +1982,20 @@ function updateGasSensorUI(data) {
       coStatus.className = 'status-value co-' + status.replace('_', '-');
     }
   }
+
+  // CO hint: dynamic range context
+  const coHint = document.getElementById('coHintText');
+  if (coHint) {
+    if (!deviceOnline || data.sensorWarmup) {
+      coHint.textContent = 'Safe: 0–35 PPM  •  Danger: 100+ PPM';
+    } else {
+      const ppm = data.coPpm || 0;
+      if (ppm < 35)        coHint.textContent = `${ppm.toFixed(0)} PPM — Safe (normal is below 35)`;
+      else if (ppm < 100)  coHint.textContent = `${ppm.toFixed(0)} PPM — Caution! Open windows now`;
+      else if (ppm < 400)  coHint.textContent = `${ppm.toFixed(0)} PPM — DANGER! Leave the area`;
+      else                 coHint.textContent = `${ppm.toFixed(0)} PPM — CRITICAL! Evacuate immediately`;
+    }
+  }
   
   // Update CO gauge (max 500 PPM for display)
   if (coGauge) {
@@ -2023,6 +2037,20 @@ function updateGasSensorUI(data) {
       const status = data.sensorWarmup ? 'warmup' : (data.aqiStatus || 'good');
       aqiStatus.textContent = formatStatus(status);
       aqiStatus.className = 'status-value aqi-' + status.replace('_', '-');
+    }
+  }
+
+  // AQI hint: dynamic range context
+  const aqiHint = document.getElementById('aqiHintText');
+  if (aqiHint) {
+    if (!deviceOnline || data.sensorWarmup) {
+      aqiHint.textContent = '0–50 Good  •  51–100 Moderate  •  101+ Poor';
+    } else {
+      const aqi = Math.round(data.aqi || 0);
+      if (aqi <= 50)       aqiHint.textContent = `${aqi} AQI — Good (0–50 is clean air)`;
+      else if (aqi <= 100) aqiHint.textContent = `${aqi} AQI — Moderate (51–100, acceptable)`;
+      else if (aqi <= 150) aqiHint.textContent = `${aqi} AQI — Poor for sensitive people (101–150)`;
+      else                 aqiHint.textContent = `${aqi} AQI — Unhealthy air (151+), ventilate`;
     }
   }
   
