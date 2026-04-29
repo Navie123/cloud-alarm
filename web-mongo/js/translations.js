@@ -91,6 +91,9 @@ const translations = {
 
     warmupMessage: 'Sensors are starting up — readings coming soon.',
 
+    hintCO: 'Invisible gas — from fire or engines',
+    hintAQI: 'Lower number = cleaner air',
+
     statsTitle: 'Sensor Readings Summary',
     statsToday: 'Today',
     statsWeek: 'This Week',
@@ -267,6 +270,9 @@ const translations = {
     createPasskey: 'Gumawa ng password para sa inyong bahay',
 
     warmupMessage: 'Nagsisimula ang mga sensor — sandali lang, darating na ang mga reading.',
+
+    hintCO: 'Di-nakikitang gas — mula sa sunog o makina',
+    hintAQI: 'Mas mababa = mas malinis na hangin',
 
     statsTitle: 'Buod ng mga Sensor',
     statsToday: 'Ngayon',
@@ -462,6 +468,8 @@ function updateSensorTranslations(trans) {
     'temp-card': trans.sensorTemp,
     'humidity-card': trans.sensorHumidity,
   };
+
+  Object.entries(sensorMap).forEach(([cls, label]) => {
     const card = document.querySelector(`.${cls}`);
     if (card) {
       const header = card.querySelector('.sensor-header span');
@@ -480,7 +488,6 @@ function updateSensorTranslations(trans) {
     }
   });
 
-  // Warmup banner
   const warmup = document.querySelector('.warmup-banner span');
   if (warmup) warmup.textContent = trans.warmupMessage;
 }

@@ -474,11 +474,13 @@
                   <circle class="gauge-bg" cx="50" cy="50" r="42"/>
                   <circle class="gauge-fill co-gauge" id="coGauge" cx="50" cy="50" r="42"/>
                 </svg>
-                <div class="gauge-value"><span class="gauge-number" id="coVal">--</span><span class="gauge-unit co-unit-label">PPM</span></div>
+                <div class="gauge-value"><span class="gauge-number" id="coVal">--</span><span class="gauge-unit">PPM</span></div>
               </div>
             </div>
-            <div class="sensor-unit-hint">parts per million — invisible gas from fire/engines</div>
-            <div class="sensor-status"><span class="status-label">Status:</span><span class="status-value" id="coStatus">--</span></div>
+            <div class="sensor-status sensor-status-stacked">
+              <span class="status-value" id="coStatus">--</span>
+              <span class="sensor-hint-text" data-i18n="hintCO">Invisible gas — from fire or engines</span>
+            </div>
           </div>
           
           <!-- AQI Sensor Card -->
@@ -493,11 +495,13 @@
                   <circle class="gauge-bg" cx="50" cy="50" r="42"/>
                   <circle class="gauge-fill aqi-gauge" id="aqiGauge" cx="50" cy="50" r="42"/>
                 </svg>
-                <div class="gauge-value"><span class="gauge-number" id="aqiVal">--</span><span class="gauge-unit aqi-unit-label">AQI</span></div>
+                <div class="gauge-value"><span class="gauge-number" id="aqiVal">--</span><span class="gauge-unit">AQI</span></div>
               </div>
             </div>
-            <div class="sensor-unit-hint">air quality index — lower is cleaner air</div>
-            <div class="sensor-status"><span class="status-label">Air:</span><span class="status-value" id="aqiStatus">--</span></div>
+            <div class="sensor-status sensor-status-stacked">
+              <span class="status-value" id="aqiStatus">--</span>
+              <span class="sensor-hint-text" data-i18n="hintAQI">Lower number = cleaner air</span>
+            </div>
           </div>
           
           <div class="sensor-card temp-card">

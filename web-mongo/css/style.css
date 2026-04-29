@@ -5340,6 +5340,9 @@ header {
   transform-style: preserve-3d;
   perspective: 1000px;
   box-shadow: 0 0 15px rgba(255, 140, 0, 0.15);
+  /* Equal height for all cards */
+  display: flex;
+  flex-direction: column;
 }
 
 .sensor-card:hover {
@@ -5372,6 +5375,8 @@ header {
   display: flex;
   justify-content: center;
   margin-bottom: 16px;
+  flex: 1; /* push status bar to bottom */
+  align-items: center;
 }
 
 .gauge-ring {
@@ -5436,15 +5441,28 @@ header {
   border-radius: 10px;
 }
 
-/* Plain-language hint shown under CO and AQI gauges */
-.sensor-unit-hint {
-  font-size: 0.68rem;
+/* Stacked status bar: status word on top, hint below */
+.sensor-status-stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.sensor-status-stacked .status-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Readable hint text inside the status bar */
+.sensor-hint-text {
+  font-size: 0.72rem;
   color: var(--muted);
-  text-align: center;
-  padding: 2px 8px 4px;
-  opacity: 0.75;
+  font-style: normal;
+  font-weight: 400;
+  opacity: 0.9;
   line-height: 1.3;
-  font-style: italic;
 }
 
 .status-value {
