@@ -432,7 +432,7 @@
 
         <div class="sensor-panel">
           <div class="sensor-card gas-card">
-            <div class="sensor-header"><i class="fas fa-fire-flame-simple"></i><span>Gas Level</span></div>
+            <div class="sensor-header"><i class="fas fa-fire-flame-simple"></i><span>Gas / LPG Leak</span></div>
             <div class="sensor-gauge">
               <div class="gauge-ring">
                 <svg viewBox="0 0 100 100">
@@ -442,13 +442,13 @@
                 <div class="gauge-value"><span class="gauge-number" id="gasVal">--</span><span class="gauge-unit">%</span></div>
               </div>
             </div>
-            <div class="sensor-status"><span class="status-label">Threshold:</span><span class="status-value" id="threshVal">40</span>%</div>
+            <div class="sensor-status"><span class="status-label">Alarm at:</span><span class="status-value" id="threshVal">40</span>%</div>
           </div>
           
           <!-- Smoke Sensor Card (MQ-2) -->
           <div class="sensor-card smoke-card">
             <div class="sensor-header">
-              <i class="fas fa-smog"></i><span>Smoke Level</span>
+              <i class="fas fa-smog"></i><span>Smoke Detected</span>
             </div>
             <div class="sensor-gauge">
               <div class="gauge-ring">
@@ -459,13 +459,13 @@
                 <div class="gauge-value"><span class="gauge-number" id="smokeVal">--</span><span class="gauge-unit">%</span></div>
               </div>
             </div>
-            <div class="sensor-status"><span class="status-label">Status:</span><span class="status-value" id="smokeStatus">--</span></div>
+            <div class="sensor-status"><span class="status-label">Smoke:</span><span class="status-value" id="smokeStatus">--</span></div>
           </div>
           
           <!-- CO Sensor Card -->
           <div class="sensor-card co-card">
             <div class="sensor-header">
-              <i class="fas fa-skull-crossbones"></i><span>Poisonous Gas (CO)</span>
+              <i class="fas fa-cloud"></i><span>Carbon Monoxide (CO)</span>
               <span class="sensor-health-icon hidden" id="coHealthIcon" title="Sensor issue detected"><i class="fas fa-exclamation-triangle"></i></span>
             </div>
             <div class="sensor-gauge">
@@ -474,16 +474,17 @@
                   <circle class="gauge-bg" cx="50" cy="50" r="42"/>
                   <circle class="gauge-fill co-gauge" id="coGauge" cx="50" cy="50" r="42"/>
                 </svg>
-                <div class="gauge-value"><span class="gauge-number" id="coVal">--</span><span class="gauge-unit">PPM</span></div>
+                <div class="gauge-value"><span class="gauge-number" id="coVal">--</span><span class="gauge-unit co-unit-label">PPM</span></div>
               </div>
             </div>
+            <div class="sensor-unit-hint">parts per million — invisible gas from fire/engines</div>
             <div class="sensor-status"><span class="status-label">Status:</span><span class="status-value" id="coStatus">--</span></div>
           </div>
           
           <!-- AQI Sensor Card -->
           <div class="sensor-card aqi-card">
             <div class="sensor-header">
-              <i class="fas fa-wind"></i><span>Air Cleanliness</span>
+              <i class="fas fa-wind"></i><span>Air Quality</span>
               <span class="sensor-health-icon hidden" id="aqiHealthIcon" title="Sensor issue detected"><i class="fas fa-exclamation-triangle"></i></span>
             </div>
             <div class="sensor-gauge">
@@ -492,14 +493,15 @@
                   <circle class="gauge-bg" cx="50" cy="50" r="42"/>
                   <circle class="gauge-fill aqi-gauge" id="aqiGauge" cx="50" cy="50" r="42"/>
                 </svg>
-                <div class="gauge-value"><span class="gauge-number" id="aqiVal">--</span><span class="gauge-unit">AQI</span></div>
+                <div class="gauge-value"><span class="gauge-number" id="aqiVal">--</span><span class="gauge-unit aqi-unit-label">AQI</span></div>
               </div>
             </div>
-            <div class="sensor-status"><span class="status-label">Level:</span><span class="status-value" id="aqiStatus">--</span></div>
+            <div class="sensor-unit-hint">air quality index — lower is cleaner air</div>
+            <div class="sensor-status"><span class="status-label">Air:</span><span class="status-value" id="aqiStatus">--</span></div>
           </div>
           
           <div class="sensor-card temp-card">
-            <div class="sensor-header"><i class="fas fa-temperature-half"></i><span>Temperature</span></div>
+            <div class="sensor-header"><i class="fas fa-temperature-half"></i><span>Room Temperature</span></div>
             <div class="sensor-gauge">
               <div class="gauge-ring">
                 <svg viewBox="0 0 100 100">
@@ -509,7 +511,7 @@
                 <div class="gauge-value"><span class="gauge-number" id="tempVal">--</span><span class="gauge-unit">°C</span></div>
               </div>
             </div>
-            <div class="sensor-status"><span class="status-label">Threshold:</span><span class="status-value" id="tempThreshVal">60</span>°C</div>
+            <div class="sensor-status"><span class="status-label">Alarm at:</span><span class="status-value" id="tempThreshVal">60</span>°C</div>
           </div>
           
           <div class="sensor-card humidity-card">
@@ -530,15 +532,15 @@
         <div class="quick-stats">
           <div class="quick-stat">
             <div class="stat-icon voltage"><i class="fas fa-bolt"></i></div>
-            <div class="stat-info"><span class="stat-value"><span id="voltVal">--</span><small>V</small></span><span class="stat-label">Voltage</span></div>
+            <div class="stat-info"><span class="stat-value"><span id="voltVal">--</span><small>V</small></span><span class="stat-label">Power Level</span></div>
           </div>
           <div class="quick-stat">
             <div class="stat-icon alarms"><i class="fas fa-triangle-exclamation"></i></div>
-            <div class="stat-info"><span class="stat-value" id="alarmCount">0</span><span class="stat-label">Total Alarms</span></div>
+            <div class="stat-info"><span class="stat-value" id="alarmCount">0</span><span class="stat-label">Times Alarm Fired</span></div>
           </div>
           <div class="quick-stat">
             <div class="stat-icon device"><i class="fas fa-satellite-dish"></i></div>
-            <div class="stat-info"><span class="stat-value device-status" id="deviceStatus">Offline</span><span class="stat-label">Device Status</span></div>
+            <div class="stat-info"><span class="stat-value device-status" id="deviceStatus">Offline</span><span class="stat-label">Sensor Status</span></div>
           </div>
           <div class="quick-stat">
             <div class="stat-icon uptime"><i class="fas fa-clock"></i></div>

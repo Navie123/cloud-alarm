@@ -966,9 +966,9 @@ function updateUI(data, isRealtimeUpdate = false) {
     // Humidity level text
     const humLevel = document.getElementById('humLevel');
     if (humLevel) {
-      if (humidity < 30) humLevel.textContent = 'Low';
+      if (humidity < 30) humLevel.textContent = 'Dry';
       else if (humidity < 60) humLevel.textContent = 'Normal';
-      else humLevel.textContent = 'High';
+      else humLevel.textContent = 'Humid';
     }
     
     // Voltage
@@ -2093,15 +2093,15 @@ function updateGasSensorUI(data) {
 // Format status text for display
 function formatStatus(status) {
   const statusMap = {
-    'normal': 'Normal',
-    'warning': 'Warning',
-    'danger': 'Danger',
-    'critical': 'CRITICAL',
-    'good': 'Good',
+    'normal': 'Safe',
+    'warning': 'Warning!',
+    'danger': 'Danger!',
+    'critical': 'CRITICAL!',
+    'good': 'Clean',
     'moderate': 'Moderate',
-    'unhealthy_sensitive': 'Unhealthy (Sensitive)',
+    'unhealthy_sensitive': 'Poor',
     'unhealthy': 'Unhealthy',
-    'warmup': 'Warming Up...'
+    'warmup': 'Starting up...'
   };
   return statusMap[status] || status;
 }
@@ -2178,11 +2178,11 @@ function updateAlarmStateExtended(data) {
   if (!data.sensorWarmup && (data.coStatus === 'critical' || data.coStatus === 'danger')) {
     if (alarmCard) alarmCard.classList.add('alarm-active');
     if (alarmIcon) alarmIcon.className = 'fas fa-skull-crossbones';
-    if (alarmText) alarmText.textContent = data.coStatus === 'critical' ? 'CO CRITICAL!' : 'CO DANGER!';
+    if (alarmText) alarmText.textContent = data.coStatus === 'critical' ? 'CO GAS CRITICAL!' : 'CO GAS DANGER!';
     if (alarmSubtitle) {
       alarmSubtitle.textContent = data.coStatus === 'critical' 
-        ? 'EVACUATE IMMEDIATELY! CO at ' + (data.coPpm || 0).toFixed(0) + ' PPM'
-        : 'Ventilate area! CO at ' + (data.coPpm || 0).toFixed(0) + ' PPM';
+        ? 'EVACUATE IMMEDIATELY! Carbon monoxide at ' + (data.coPpm || 0).toFixed(0) + ' PPM'
+        : 'Open windows now! Carbon monoxide at ' + (data.coPpm || 0).toFixed(0) + ' PPM';
     }
     playAlarmSound();
     return;

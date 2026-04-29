@@ -25,25 +25,25 @@ const translations = {
     fireRiskDetected: 'FIRE RISK — Act Now!',
     multipleTriggered: 'Multiple danger signs detected',
 
-    sensorGas: 'Gas Level',
-    sensorSmoke: 'Smoke Level',
-    sensorCO: 'Poisonous Gas (CO)',
-    sensorAQI: 'Air Cleanliness',
-    sensorTemp: 'Temperature',
+    sensorGas: 'Gas / LPG Leak',
+    sensorSmoke: 'Smoke Detected',
+    sensorCO: 'Carbon Monoxide (CO)',
+    sensorAQI: 'Air Quality',
+    sensorTemp: 'Room Temperature',
     sensorHumidity: 'Humidity',
 
-    statusThreshold: 'Alert Level',
+    statusThreshold: 'Alarm at',
     statusStatus: 'Status',
-    statusLevel: 'Level',
-    statusNormal: 'Normal',
+    statusLevel: 'Air',
+    statusNormal: 'Safe',
     statusHigh: 'HIGH',
     statusDetected: 'DETECTED',
-    statusGood: 'Good',
+    statusGood: 'Clean',
     statusModerate: 'Moderate',
-    statusUnhealthy: 'Unhealthy',
-    statusDanger: 'Danger',
-    statusCritical: 'Critical',
-    statusWarning: 'Warning',
+    statusUnhealthy: 'Poor',
+    statusDanger: 'Danger!',
+    statusCritical: 'Critical!',
+    statusWarning: 'Warning!',
 
     statVoltage: 'Power Level',
     statAlarms: 'Times Alarm Fired',
@@ -143,7 +143,7 @@ const translations = {
     settingsSmokeThreshDesc: 'The alarm will go off when smoke reaches this level',
     settingsTempThreshTitle: 'Heat Alert Level',
     settingsTempThreshDesc: 'The alarm will go off when temperature reaches this level',
-    settingsCOThreshTitle: 'Poisonous Gas (CO) Alert Levels',
+    settingsCOThreshTitle: 'Carbon Monoxide (CO) Alert Levels',
     settingsCOThreshDesc: 'Set how much CO gas triggers each level of warning',
     settingsCOWarning: 'Caution Level',
     settingsCODanger: 'Danger Level',
@@ -202,25 +202,25 @@ const translations = {
     fireRiskDetected: 'PANGANIB NG SUNOG!',
     multipleTriggered: 'Maraming sensor ang nagbabala',
 
-    sensorGas: 'Antas ng Gas',
-    sensorSmoke: 'Antas ng Usok',
-    sensorCO: 'Nakalalason na Gas (CO)',
-    sensorAQI: 'Kalinis ng Hangin',
-    sensorTemp: 'Init ng Hangin',
+    sensorGas: 'Gas / LPG Leak',
+    sensorSmoke: 'Natukoy na Usok',
+    sensorCO: 'Carbon Monoxide (CO)',
+    sensorAQI: 'Kalidad ng Hangin',
+    sensorTemp: 'Init ng Silid',
     sensorHumidity: 'Halumigmig',
 
-    statusThreshold: 'Babala-Antas',
+    statusThreshold: 'Alarma sa',
     statusStatus: 'Kalagayan',
-    statusLevel: 'Antas',
-    statusNormal: 'Normal',
+    statusLevel: 'Hangin',
+    statusNormal: 'Ligtas',
     statusHigh: 'MATAAS',
     statusDetected: 'NATUKOY',
-    statusGood: 'Maayos',
+    statusGood: 'Malinis',
     statusModerate: 'Katamtaman',
-    statusUnhealthy: 'Mapanganib',
-    statusDanger: 'Delikado',
-    statusCritical: 'Kritikal',
-    statusWarning: 'Babala',
+    statusUnhealthy: 'Masamang Hangin',
+    statusDanger: 'Delikado!',
+    statusCritical: 'Kritikal!',
+    statusWarning: 'Babala!',
 
     statVoltage: 'Lakas ng Kuryente',
     statAlarms: 'Bilang ng Alarma',
@@ -313,13 +313,13 @@ const translations = {
     settingsAlarmSoundDesc: 'Piliin kung anong tunog ang maririnig kapag may alarma',
     settingsSaveSound: 'I-save ang Tunog',
 
-    settingsGasThreshTitle: 'Babala-Antas ng Gas',
+    settingsGasThreshTitle: 'Antas ng Alarma para sa Gas',
     settingsGasThreshDesc: 'Tutunog ang alarma kapag umabot ang gas sa antas na ito',
-    settingsSmokeThreshTitle: 'Babala-Antas ng Usok',
+    settingsSmokeThreshTitle: 'Antas ng Alarma para sa Usok',
     settingsSmokeThreshDesc: 'Tutunog ang alarma kapag umabot ang usok sa antas na ito',
-    settingsTempThreshTitle: 'Babala-Antas ng Init',
+    settingsTempThreshTitle: 'Antas ng Alarma para sa Init',
     settingsTempThreshDesc: 'Tutunog ang alarma kapag umabot ang init sa antas na ito',
-    settingsCOThreshTitle: 'Babala-Antas ng Nakalalason na Gas (CO)',
+    settingsCOThreshTitle: 'Carbon Monoxide (CO) Alert Levels',
     settingsCOThreshDesc: 'Itakda kung gaano karaming CO ang magpapatunog ng bawat antas ng babala',
     settingsCOWarning: 'Antas ng Babala',
     settingsCODanger: 'Antas ng Panganib',
@@ -462,8 +462,6 @@ function updateSensorTranslations(trans) {
     'temp-card': trans.sensorTemp,
     'humidity-card': trans.sensorHumidity,
   };
-
-  Object.entries(sensorMap).forEach(([cls, label]) => {
     const card = document.querySelector(`.${cls}`);
     if (card) {
       const header = card.querySelector('.sensor-header span');
@@ -473,11 +471,11 @@ function updateSensorTranslations(trans) {
 
   document.querySelectorAll('.status-label').forEach(label => {
     const text = label.textContent.replace(':', '').trim();
-    if (text === 'Threshold' || text === 'Limitasyon' || text === 'Alert Level' || text === 'Babala-Antas') {
+    if (text === 'Threshold' || text === 'Limitasyon' || text === 'Alert Level' || text === 'Babala-Antas' || text === 'Alarm at' || text === 'Alarma sa') {
       label.textContent = trans.statusThreshold + ':';
-    } else if (text === 'Status' || text === 'Kalagayan') {
+    } else if (text === 'Status' || text === 'Kalagayan' || text === 'Smoke' || text === 'Usok') {
       label.textContent = trans.statusStatus + ':';
-    } else if (text === 'Level' || text === 'Antas') {
+    } else if (text === 'Level' || text === 'Antas' || text === 'Air' || text === 'Hangin') {
       label.textContent = trans.statusLevel + ':';
     }
   });
