@@ -963,12 +963,23 @@ function updateUI(data, isRealtimeUpdate = false) {
     if (humVal) humVal.textContent = humidity.toFixed(1);
     updateGauge('humGauge', humidity, 100);
     
-    // Humidity level text
+    // Humidity level text - Philippine nominal ranges (81-88%)
     const humLevel = document.getElementById('humLevel');
     if (humLevel) {
-      if (humidity < 30) humLevel.textContent = 'Dry';
-      else if (humidity < 60) humLevel.textContent = 'Normal';
-      else humLevel.textContent = 'Humid';
+      if (humidity < 30) {
+        humLevel.textContent = 'Dry';
+        humLevel.className = 'status-value humidity-dry';
+      } else if (humidity >= 81 && humidity <= 88) {
+        // Normal range for Philippines
+        humLevel.textContent = 'Normal';
+        humLevel.className = 'status-value humidity-normal';
+      } else if (humidity < 81) {
+        humLevel.textContent = 'Low';
+        humLevel.className = 'status-value humidity-low';
+      } else {
+        humLevel.textContent = 'Humid';
+        humLevel.className = 'status-value humidity-humid';
+      }
     }
     
     // Voltage
@@ -1990,7 +2001,8 @@ function updateGasSensorUI(data) {
       coHint.textContent = 'Safe below 35 PPM';
     } else {
       const ppm = data.coPpm || 0;
-      if (ppm < 35)        coHint.textContent = 'Safe';
+      // Don't show hint when status is already "Safe" to avoid duplication
+      if (ppm < 35)        coHint.textContent = '';  // Empty when safe
       else if (ppm < 100)  coHint.textContent = 'Caution — open windows';
       else if (ppm < 400)  coHint.textContent = 'Danger — leave the area';
       else                 coHint.textContent = 'Critical — evacuate now';

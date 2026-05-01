@@ -6328,6 +6328,17 @@ header {
 .status-value.aqi-unhealthy { color: var(--danger); }
 .status-value.aqi-warmup { color: var(--muted); }
 
+/* Smoke Status Colors */
+.status-value.smoke-normal { color: var(--success); }
+.status-value.smoke-warning { color: var(--warn); }
+.status-value.smoke-danger { color: #f97316; }
+.status-value.smoke-critical { color: var(--danger); font-weight: 700; }
+
+/* Humidity Status Colors */
+.status-value.humidity-normal { color: var(--success); }
+.status-value.humidity-low { color: var(--warn); }
+.status-value.humidity-dry { color: #f97316; }
+.status-value.humidity-humid { color: #60a5fa; }
 /* Calibration Card Styles */
 .calibration-info {
   background: var(--bg2);
