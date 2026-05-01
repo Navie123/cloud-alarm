@@ -955,7 +955,29 @@ function updateUI(data, isRealtimeUpdate = false) {
     const temp = data.temperature || 0;
     const tempVal = document.getElementById('tempVal');
     if (tempVal) tempVal.textContent = temp.toFixed(1);
-    updateGauge('tempGauge', temp, 80);
+    // Cap display at 50°C for gauge (but show real value in number)
+    updateGauge('tempGauge', Math.min(temp, 50), 50);
+    
+    // Temperature status based on Philippine climate (avg high 31-33°C)
+    const tempStatus = document.getElementById('tempStatus');
+    if (tempStatus) {
+      if (temp < 26) {
+        tempStatus.textContent = 'Cool';
+        tempStatus.className = 'status-value temp-cool';
+      } else if (temp >= 26 && temp <= 33) {
+        tempStatus.textContent = 'Normal';
+        tempStatus.className = 'status-value temp-normal';
+      } else if (temp > 33 && temp <= 36) {
+        tempStatus.textContent = 'Warm';
+        tempStatus.className = 'status-value temp-warm';
+      } else if (temp > 36 && temp <= 40) {
+        tempStatus.textContent = 'Hot';
+        tempStatus.className = 'status-value temp-hot';
+      } else {
+        tempStatus.textContent = 'Very Hot!';
+        tempStatus.className = 'status-value temp-very-hot';
+      }
+    }
     
     // Humidity gauge update
     const humidity = Math.min(data.humidity || 0, 100);
@@ -993,6 +1015,7 @@ function updateUI(data, isRealtimeUpdate = false) {
     const humVal = document.getElementById('humVal');
     const voltVal = document.getElementById('voltVal');
     const humLevel = document.getElementById('humLevel');
+    const tempStatus = document.getElementById('tempStatus');
     
     if (gasVal) gasVal.textContent = '--';
     if (smokeVal) smokeVal.textContent = '--';
@@ -1000,6 +1023,10 @@ function updateUI(data, isRealtimeUpdate = false) {
     if (humVal) humVal.textContent = '--';
     if (voltVal) voltVal.textContent = '--';
     if (humLevel) humLevel.textContent = '--';
+    if (tempStatus) {
+      tempStatus.textContent = '--';
+      tempStatus.className = 'status-value';
+    }
     
     // Reset gauges to 0
     updateGauge('gasGauge', 0, 100);

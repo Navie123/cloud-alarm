@@ -6339,6 +6339,13 @@ header {
 .status-value.humidity-low { color: var(--warn); }
 .status-value.humidity-dry { color: #f97316; }
 .status-value.humidity-humid { color: #60a5fa; }
+
+/* Temperature Status Colors */
+.status-value.temp-cool { color: #60a5fa; }
+.status-value.temp-normal { color: var(--success); }
+.status-value.temp-warm { color: var(--warn); }
+.status-value.temp-hot { color: #f97316; }
+.status-value.temp-very-hot { color: var(--danger); font-weight: 700; }
 /* Calibration Card Styles */
 .calibration-info {
   background: var(--bg2);
