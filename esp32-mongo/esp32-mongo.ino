@@ -258,6 +258,12 @@ void setup() {
     aqiReadings[i] = 0;
   }
   
+  // CRITICAL: Enable WiFi credential persistence BEFORE any WiFi operations
+  WiFi.persistent(true);  // Save credentials to flash
+  WiFi.setAutoReconnect(true);  // Auto-reconnect on connection loss
+  WiFi.mode(WIFI_STA);  // Station mode
+  Serial.println("WiFi persistence enabled");
+  
   // Setup WiFiManager Connection (Auto-connect mode)
   connectWiFiManager();
 
@@ -505,17 +511,37 @@ void connectWiFiManager() {
   wifiManager.setAPStaticIPConfig(IPAddress(192,168,4,1), IPAddress(192,168,4,1), IPAddress(255,255,255,0));
   wifiManager.setConnectTimeout(15);
   wifiManager.setConfigPortalTimeout(0);
+  wifiManager.setSaveConfigCallback([]() {
+    Serial.println("✓ WiFiManager: Credentials saved to flash!");
+  });
 
-  // Check if we have saved credentials
+  // Check if we have saved credentials (try WiFi first, then Preferences backup)
   WiFi.mode(WIFI_STA);
   delay(100);
   String savedSSID = WiFi.SSID();
-  Serial.printf("Saved SSID: '%s'\n", savedSSID.c_str());
+  String savedPassword = "";
+  
+  Serial.printf("Checking WiFi flash... SSID: '%s'\n", savedSSID.c_str());
+  
+  // If WiFi flash is empty, try loading from Preferences backup
+  if (savedSSID.length() == 0) {
+    Serial.println("WiFi flash empty, checking Preferences backup...");
+    if (loadWiFiCredentials(savedSSID, savedPassword)) {
+      Serial.printf("✓ Found backup credentials: %s\n", savedSSID.c_str());
+      // Restore to WiFi
+      WiFi.begin(savedSSID.c_str(), savedPassword.c_str());
+      delay(500); // Give it time to save
+    } else {
+      Serial.println("No backup credentials found");
+    }
+  }
 
   if (savedSSID.length() > 0) {
     // Try saved credentials — but check Button 5 during wait so user can skip to offline
     Serial.printf("Trying saved WiFi: %s\n", savedSSID.c_str());
-    WiFi.begin();
+    if (savedPassword.length() == 0) {
+      WiFi.begin(); // Use WiFi's saved credentials
+    }
 
     lcd.clear();
     lcdClearCache();
@@ -550,7 +576,7 @@ void connectWiFiManager() {
     }
 
     if (skipped) {
-      WiFi.disconnect();
+      WiFi.disconnect(false, false);  // Keep credentials saved
       lcd.clear();
       lcdClearCache();
       lcdWriteLine(0, "====  FireWire  ====");
@@ -564,7 +590,17 @@ void connectWiFiManager() {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("WiFi connected! SSID: %s IP: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+    Serial.printf("✓ WiFi connected! SSID: %s IP: %s\n", WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+    Serial.printf("Auto-reconnect: %s\n", WiFi.getAutoReconnect() ? "YES" : "NO");
+    
+    // BACKUP: Manually save credentials to Preferences
+    String connectedSSID = WiFi.SSID();
+    String connectedPSK = WiFi.psk();
+    if (connectedSSID.length() > 0) {
+      saveWiFiCredentials(connectedSSID, connectedPSK);
+      Serial.printf("✓ Credentials backed up to Preferences: %s\n", connectedSSID.c_str());
+    }
+    
     portalRunning = false;
     digitalWrite(LED_PIN, HIGH);
     delay(500);
@@ -587,6 +623,22 @@ void connectWiFiManager() {
         wifiManager.setConfigPortalTimeout(0);
         bool ok = wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD);
         Serial.printf("[Portal] %s\n", ok ? "Connected!" : "Closed");
+        
+        if (ok && WiFi.status() == WL_CONNECTED) {
+          // BACKUP: Manually save credentials to Preferences
+          delay(200);
+          String portalSSID = WiFi.SSID();
+          String portalPSK = WiFi.psk();
+          Serial.printf("[Portal] Connected to: %s\n", portalSSID.c_str());
+          
+          if (portalSSID.length() > 0) {
+            saveWiFiCredentials(portalSSID, portalPSK);
+            Serial.println("[Portal] ✓ Credentials saved to Preferences backup");
+          } else {
+            Serial.println("[Portal] ⚠ WARNING: Could not retrieve credentials!");
+          }
+        }
+        
         portalRunning = false;
         vTaskDelete(NULL);
       },
@@ -645,6 +697,12 @@ void startBackgroundPortal() {
       bool ok = wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD);
       Serial.printf("[Portal] %s\n", ok ? "Connected!" : "Closed without connecting");
       portalRunning = false;
+      
+      // Reset display mode when portal closes
+      displayMode = 0;
+      lcd.clear();
+      lcdClearCache();
+      
       vTaskDelete(NULL);
     },
     "PortalTask", 8192, NULL, 1, &portalTaskHandle, 0
@@ -721,6 +779,8 @@ void connectWiFi() {
 void resetWiFiSettings() {
   Serial.println("Erasing WiFi credentials...");
   wifiManager.resetSettings();
+  WiFi.disconnect(true, true); // Erase WiFi credentials
+  clearWiFiCredentials(); // Clear Preferences backup
   
   // Visual feedback - rapid blink
   for (int i = 0; i < 10; i++) {
@@ -1115,6 +1175,36 @@ void saveCalibration() {
   
   lastCalibration = millis();
   Serial.println("Calibration saved to flash");
+}
+
+// Manual WiFi credential save/load as backup to WiFiManager
+void saveWiFiCredentials(String ssid, String password) {
+  preferences.begin("wifi", false); // Read-write
+  preferences.putString("ssid", ssid);
+  preferences.putString("password", password);
+  preferences.putBool("saved", true);
+  preferences.end();
+  Serial.printf("✓ WiFi credentials manually saved: %s\n", ssid.c_str());
+}
+
+bool loadWiFiCredentials(String &ssid, String &password) {
+  preferences.begin("wifi", true); // Read-only
+  bool hasSaved = preferences.getBool("saved", false);
+  if (hasSaved) {
+    ssid = preferences.getString("ssid", "");
+    password = preferences.getString("password", "");
+    preferences.end();
+    return (ssid.length() > 0);
+  }
+  preferences.end();
+  return false;
+}
+
+void clearWiFiCredentials() {
+  preferences.begin("wifi", false);
+  preferences.clear();
+  preferences.end();
+  Serial.println("WiFi credentials cleared from Preferences");
 }
 
 void performCalibration() {
@@ -1592,9 +1682,9 @@ void checkButtons() {
     // Portal task ended (user connected or something failed) — only check after 3s grace period
     hotspotActive = false;
     hotspotStartTime = 0;
+    displayMode = 0;  // Reset to default display
     lcd.clear();
     lcdClearCache();
-    displayMode = 0;
   }
   if (hotspotActive && (now - hotspotStartTime >= 300000)) {
     // 5 minutes passed — stop hotspot
@@ -1605,6 +1695,7 @@ void checkButtons() {
     portalRunning = false;
     hotspotActive = false;
     hotspotStartTime = 0;
+    displayMode = 0;  // Reset to default display
     lcd.clear();
     lcdClearCache();
     lcdWriteLine(0, "====  FireWire  ====");
@@ -1612,7 +1703,6 @@ void checkButtons() {
     lcdWriteLine(2, "Back to offline mode");
     lcdWriteLine(3, "Press BTN5 to retry ");
     delay(2500);
-    displayMode = 0;
   }
 
   if (btn5) {
@@ -1623,18 +1713,25 @@ void checkButtons() {
       bool wifiOk = (WiFi.status() == WL_CONNECTED);
 
       if (wifiOk) {
-        // Online → go offline
-        Serial.println("BTN5: Going offline");
-        WiFi.disconnect();
+        // Online → go offline (but keep credentials saved)
+        Serial.println("BTN5: Going offline (keeping credentials)");
+        WiFi.disconnect(false, false);  // disconnect(wifi_off, erase_ap) - false = keep credentials
         if (portalTaskHandle != NULL) { vTaskDelete(portalTaskHandle); portalTaskHandle = NULL; portalRunning = false; }
         hotspotActive = false;
-        lcd.clear(); lcdClearCache();
+        lcd.clear(); 
+        lcdClearCache();
         lcdWriteLine(0, "====  FireWire  ====");
         lcdWriteLine(1, "WiFi turned off     ");
         lcdWriteLine(2, "Alarm still works!  ");
         lcdWriteLine(3, "Press BTN5 for WiFi ");
         delay(2000);
+        
+        // Force full LCD refresh after going offline
+        lcd.clear();
+        lcdClearCache();
         displayMode = 0;
+        displayDefault();  // Immediately show default screen
+        return;
 
       } else if (hotspotActive) {
         // Hotspot on → stop it
@@ -1645,16 +1742,91 @@ void checkButtons() {
         portalRunning = false;
         hotspotActive = false;
         hotspotStartTime = 0;
-        lcd.clear(); lcdClearCache();
+        lcd.clear(); 
+        lcdClearCache();
         lcdWriteLine(0, "====  FireWire  ====");
         lcdWriteLine(1, "Hotspot stopped     ");
         lcdWriteLine(2, "Back to offline mode");
         lcdWriteLine(3, "Press BTN5 for WiFi ");
         delay(2000);
+        
+        // Force full LCD refresh
+        lcd.clear();
+        lcdClearCache();
         displayMode = 0;
+        displayDefault();  // Immediately show default screen
+        return;
 
       } else {
-        // Offline → start hotspot
+        // Offline → try to reconnect to saved WiFi first, if that fails, start hotspot
+        Serial.println("BTN5: Attempting to reconnect to saved WiFi...");
+        String savedSSID = WiFi.SSID();
+        String savedPassword = "";
+        
+        // If WiFi.SSID() is empty, try loading from Preferences backup
+        if (savedSSID.length() == 0) {
+          Serial.println("WiFi.SSID() empty, checking Preferences backup...");
+          if (loadWiFiCredentials(savedSSID, savedPassword)) {
+            Serial.printf("✓ Loaded from backup: %s\n", savedSSID.c_str());
+          }
+        }
+        
+        if (savedSSID.length() > 0) {
+          // Try saved credentials first
+          lcd.clear(); lcdClearCache();
+          lcdWriteLine(0, "====  FireWire  ====");
+          lcdWriteLine(1, "Reconnecting to:    ");
+          lcdWriteLine(2, savedSSID.c_str());
+          lcdWriteLine(3, "Please wait...      ");
+          
+          // Use explicit credentials if we loaded from Preferences, otherwise use WiFi.begin()
+          if (savedPassword.length() > 0) {
+            WiFi.begin(savedSSID.c_str(), savedPassword.c_str());
+          } else {
+            WiFi.begin();  // Use WiFi's saved credentials
+          }
+          
+          unsigned long startAttempt = millis();
+          while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 10000) {
+            delay(200);
+          }
+          
+          if (WiFi.status() == WL_CONNECTED) {
+            Serial.printf("✓ Reconnected to %s\n", savedSSID.c_str());
+            lcd.clear(); 
+            lcdClearCache();
+            lcdWriteLine(0, "====  FireWire  ====");
+            lcdWriteLine(1, "WiFi Connected!     ");
+            lcdWriteLine(2, savedSSID.c_str());
+            lcdWriteLine(3, "Back online         ");
+            delay(2000);
+            
+            // Force full LCD refresh after reconnection
+            lcd.clear();
+            lcdClearCache();
+            displayMode = 0;
+            displayDefault();  // Immediately show default screen
+            return;
+          } else {
+            Serial.println("⚠ Reconnection failed, starting hotspot...");
+            lcd.clear(); lcdClearCache();
+            lcdWriteLine(0, "====  FireWire  ====");
+            lcdWriteLine(1, "Can't reconnect     ");
+            lcdWriteLine(2, "Opening hotspot...  ");
+            lcdWriteLine(3, "                    ");
+            delay(2000);
+          }
+        } else {
+          Serial.println("No saved credentials found");
+          lcd.clear(); lcdClearCache();
+          lcdWriteLine(0, "====  FireWire  ====");
+          lcdWriteLine(1, "No WiFi saved       ");
+          lcdWriteLine(2, "Opening hotspot...  ");
+          lcdWriteLine(3, "                    ");
+          delay(2000);
+        }
+        
+        // If no saved WiFi or reconnection failed, start hotspot
         Serial.println("BTN5: Starting FireWire-Setup hotspot");
         hotspotActive = true;
         hotspotStartTime = now;
@@ -1745,9 +1917,9 @@ void updateAnimation() {
 
 // Check if any sensor is in warning/danger state
 bool checkWarningState() {
-  // Don't show warnings during the first 15 seconds after startup
+  // Don't show warnings during the first 20 seconds after startup
   // This allows sensors to stabilize and prevents false warnings
-  if (millis() < 15000) {
+  if (millis() - bootTime < 20000) {
     return false;
   }
   
@@ -1818,11 +1990,11 @@ void updateLCD() {
     case 5:  // System/WiFi Info
       displaySystemWiFi();
       break;
+    case 6:  // Hotspot mode — show AP info
+      displayHotspotInfo();
+      break;
     default:  // Default clean display (mode 0)
-      // Don't overwrite hotspot screen while hotspot is active
-      if (!portalRunning) {
-        displayDefault();
-      }
+      displayDefault();
       break;
   }
 }
@@ -2072,6 +2244,42 @@ void displaySystemWiFi() {
     snprintf(buf, 21, "Mode: Full Alarm");
   }
   lcd.print(buf);
+}
+
+// Display Mode 6: Hotspot/AP Info
+void displayHotspotInfo() {
+  char buf[25];
+  
+  // Row 0: Header
+  lcd.setCursor(0, 0);
+  lcd.print("====  FireWire  ====");
+  
+  // Row 1: Hotspot status
+  lcd.setCursor(0, 1);
+  lcd.print("                    ");  // Clear line
+  lcd.setCursor(0, 1);
+  if (portalRunning) {
+    lcd.print("Hotspot: ACTIVE     ");
+  } else {
+    lcd.print("Hotspot: Starting...");
+  }
+  
+  // Row 2: Network name
+  lcd.setCursor(0, 2);
+  lcd.print("                    ");  // Clear line
+  lcd.setCursor(0, 2);
+  snprintf(buf, 21, "WiFi: %s", WIFI_AP_NAME);
+  lcd.print(buf);
+  
+  // Row 3: Instructions
+  lcd.setCursor(0, 3);
+  lcd.print("                    ");  // Clear line
+  lcd.setCursor(0, 3);
+  if (portalRunning) {
+    lcd.print("Connect to setup    ");
+  } else {
+    lcd.print("Please wait...      ");
+  }
 }
 
 // Display Mode 5: Carbon Monoxide Detail
