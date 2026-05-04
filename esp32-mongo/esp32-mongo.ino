@@ -264,8 +264,8 @@ void setup() {
   WiFi.mode(WIFI_STA);  // Station mode
   Serial.println("WiFi persistence enabled");
   
-  // Setup WiFiManager Connection (Auto-connect mode)
-  connectWiFiManager();
+  // Setup WiFi Connection - Using hardcoded credentials for now
+  connectWiFiDirect();  // Changed from connectWiFiManager() to use hardcoded SSID/password
 
   // Clear LCD cache after WiFi setup so default screen renders fresh
   lcd.clear();
@@ -553,18 +553,25 @@ void connectWiFiManager() {
     unsigned long startAttempt = millis();
     bool skipped = false;
     unsigned long btn5HoldStart = 0;
+    unsigned long lastCountdownUpdate = 0;
+    int lastDisplayedSeconds = -1;
 
     while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 15000) {
-      // Update countdown on LCD
-      unsigned long remaining = (15000 - (millis() - startAttempt)) / 1000;
-      char buf[21];
-      snprintf(buf, 21, "Timeout in %lus...   ", remaining);
-      lcdWriteLine(3, buf);
+      unsigned long now = millis();
+      
+      // Update countdown on LCD only once per second to prevent glitches
+      unsigned long remaining = (15000 - (now - startAttempt)) / 1000;
+      if (remaining != lastDisplayedSeconds) {
+        lastDisplayedSeconds = remaining;
+        char buf[21];
+        snprintf(buf, 21, "Timeout in %lus...   ", remaining);
+        lcdWriteLine(3, buf);
+      }
 
       // Check Button 5 for skip (long press 2s)
       if (digitalRead(BTN5_PIN) == LOW) {
-        if (btn5HoldStart == 0) btn5HoldStart = millis();
-        if (millis() - btn5HoldStart >= 2000) {
+        if (btn5HoldStart == 0) btn5HoldStart = now;
+        if (now - btn5HoldStart >= 2000) {
           skipped = true;
           Serial.println("BTN5 held — skipping to offline mode");
           break;
@@ -572,7 +579,7 @@ void connectWiFiManager() {
       } else {
         btn5HoldStart = 0;
       }
-      delay(200);
+      delay(100);  // Reduced delay for more responsive button check
     }
 
     if (skipped) {
@@ -1677,9 +1684,11 @@ void checkButtons() {
   static bool hotspotActive = false;
   static unsigned long hotspotStartTime = 0;
 
-  // Auto-timeout: if hotspot has been on for 5 minutes with no connection, stop it
-  if (hotspotActive && !portalRunning && (now - hotspotStartTime > 3000)) {
-    // Portal task ended (user connected or something failed) — only check after 3s grace period
+  // Auto-timeout: if portal task ended (user connected or failed), reset after grace period
+  // BUT: Don't reset during initial startup (give it at least 10 seconds to start)
+  if (hotspotActive && !portalRunning && (now - hotspotStartTime > 10000)) {
+    // Portal task ended after running for a while (user connected or something failed)
+    Serial.println("BTN5: Portal task ended, resetting to offline mode");
     hotspotActive = false;
     hotspotStartTime = 0;
     displayMode = 0;  // Reset to default display
@@ -1809,6 +1818,10 @@ void checkButtons() {
             return;
           } else {
             Serial.println("⚠ Reconnection failed, starting hotspot...");
+            // CRITICAL: Disconnect WiFi completely before starting hotspot
+            WiFi.disconnect(true, false);  // disconnect(wifi_off=true, erase_ap=false) - stop WiFi but keep credentials
+            delay(500);  // Give WiFi time to fully disconnect
+            
             lcd.clear(); lcdClearCache();
             lcdWriteLine(0, "====  FireWire  ====");
             lcdWriteLine(1, "Can't reconnect     ");
@@ -1818,6 +1831,10 @@ void checkButtons() {
           }
         } else {
           Serial.println("No saved credentials found");
+          // CRITICAL: Disconnect WiFi completely before starting hotspot
+          WiFi.disconnect(true, false);  // disconnect(wifi_off=true, erase_ap=false) - stop WiFi but keep credentials
+          delay(500);  // Give WiFi time to fully disconnect
+          
           lcd.clear(); lcdClearCache();
           lcdWriteLine(0, "====  FireWire  ====");
           lcdWriteLine(1, "No WiFi saved       ");
@@ -1864,17 +1881,24 @@ void checkButtons() {
     Serial.println("BTN4 pressed - Carbon Monoxide mode");
   }
   
-  // If mode changed, start slide animation
+  // If mode changed, immediately clear LCD and update display
   if (newMode != displayMode && (btn1 || btn2 || btn3 || btn4 || btn5)) {
     displayMode = newMode;
     lastModeChange = now;
     lastButtonPress = now;
     
-    // Debug output
-    Serial.printf("Display mode changed to: %d, starting animation\n", displayMode);
-    Serial.printf("Animation start time: %lu\n", millis());
+    // Immediate LCD response - clear and show new screen right away
+    lcd.clear();
+    lcdClearCache();
     
-    startSlideAnimation();
+    // Debug output
+    Serial.printf("Display mode changed to: %d\n", displayMode);
+    
+    // Skip animation for faster response - directly show the new screen
+    isAnimating = false;
+    
+    // Force immediate display update
+    updateLCD();
   }
 }
 
@@ -2090,102 +2114,96 @@ void displayDefault() {
 
 // Display Mode 1: Temperature & Humidity Detail
 void displayTempHumidity() {
-  char buf[25];
-  
   // Row 0: Header
-  lcd.setCursor(0, 0);
-  lcd.print("====================");
-  lcd.setCursor(4, 0);
-  lcd.print("TEMP & HUMIDITY");
+  lcdWriteLine(0, "====  FireWire  ====");
   
-  // Row 1: Temperature with large display
-  lcd.setCursor(0, 1);
-  snprintf(buf, 21, "Temperature: %.1f C", temperature);
-  lcd.print(buf);
-  
-  // Row 2: Humidity with large display
-  lcd.setCursor(0, 2);
-  snprintf(buf, 21, "Humidity: %.1f%%", humidity);
-  lcd.print(buf);
-  
-  // Row 3: Status and threshold info
-  lcd.setCursor(0, 3);
+  // Row 1: Temperature status (simple, non-technical)
+  char buf[21];
   String tempStatus = "Normal";
-  if (temperature >= tempThreshold) tempStatus = "High";
-  if (temperature >= tempThreshold) tempStatus = "CRITICAL";
-  snprintf(buf, 21, "Status: %s", tempStatus.c_str());
-  lcd.print(buf);
+  if (temperature < 26) tempStatus = "Cool";
+  else if (temperature > 33 && temperature <= 36) tempStatus = "Warm";
+  else if (temperature > 36 && temperature <= 40) tempStatus = "Hot";
+  else if (temperature > 40) tempStatus = "Very Hot!";
+  snprintf(buf, 21, "Temperature: %s", tempStatus.c_str());
+  lcdWriteLine(1, buf);
+  
+  // Row 2: Humidity status (simple, non-technical)
+  String humStatus = "Normal";
+  if (humidity < 30) humStatus = "Dry";
+  else if (humidity < 81) humStatus = "Low";
+  else if (humidity > 88) humStatus = "Humid";
+  snprintf(buf, 21, "Humidity: %s", humStatus.c_str());
+  lcdWriteLine(2, buf);
+  
+  // Row 3: Simple overall status
+  if (temperature > 40 || humidity < 30 || humidity > 88) {
+    lcdWriteLine(3, "Check conditions    ");
+  } else {
+    lcdWriteLine(3, "Everything OK       ");
+  }
 }
 
 // Display Mode 2: Gas Level & Air Quality
 void displayGasAQI() {
-  char buf[25];
-  
   // Row 0: Header
-  lcd.setCursor(0, 0);
-  lcd.print("====================");
-  lcd.setCursor(3, 0);
-  lcd.print("GAS & AIR QUALITY");
+  lcdWriteLine(0, "====  FireWire  ====");
   
-  // Row 1: Gas level with CO PPM
-  lcd.setCursor(0, 1);
-  snprintf(buf, 21, "Gas: %.1f%% CO:%.0fPPM", gasPercent, coPpm);
-  lcd.print(buf);
+  // Row 1: Gas/LPG status (simple, non-technical)
+  char buf[21];
+  String gasStatus = "Safe";
+  if (gasPercent >= gasThreshold * 0.5) gasStatus = "Caution";
+  if (gasPercent >= gasThreshold * 0.8) gasStatus = "Warning!";
+  if (gasPercent >= gasThreshold) gasStatus = "DANGER!";
+  snprintf(buf, 21, "Gas/LPG: %s", gasStatus.c_str());
+  lcdWriteLine(1, buf);
   
-  // Row 2: Air Quality Index
-  lcd.setCursor(0, 2);
-  snprintf(buf, 21, "Air Quality: %.0f AQI", aqi);
-  lcd.print(buf);
-  
-  // Row 3: Status (shortened to fit 20 chars)
-  lcd.setCursor(0, 3);
-  lcd.print("                    ");  // Clear line first
-  lcd.setCursor(0, 3);
-  String gasStatus = "OK";  // Shortened from "Normal"
-  if (gasPercent >= gasThreshold * 0.8) gasStatus = "High";
-  if (gasPercent >= gasThreshold) gasStatus = "DANGER";
-  
-  String aqiStatus = "Good";
-  if (aqi > 50) aqiStatus = "Mod";  // Shortened "Moderate" to "Mod"
+  // Row 2: Air Quality status (simple, non-technical)
+  String aqiStatus = "Clean";
+  if (aqi > 50) aqiStatus = "Moderate";
   if (aqi > 100) aqiStatus = "Poor";
+  if (aqi > 150) aqiStatus = "Unhealthy";
+  snprintf(buf, 21, "Air Quality: %s", aqiStatus.c_str());
+  lcdWriteLine(2, buf);
   
-  snprintf(buf, 21, "Gas:%s AQI:%s", gasStatus.c_str(), aqiStatus.c_str());
-  lcd.print(buf);
+  // Row 3: Simple overall status
+  if (gasPercent >= gasThreshold * 0.8 || aqi > 100) {
+    lcdWriteLine(3, "Open windows!       ");
+  } else {
+    lcdWriteLine(3, "Air is good         ");
+  }
 }
 
 // Display Mode 3: Smoke Level Detail
 void displaySmokeLevel() {
-  char buf[25];
-  
   // Row 0: Header
-  lcd.setCursor(0, 0);
-  lcd.print("====================");
-  lcd.setCursor(6, 0);
-  lcd.print("SMOKE LEVEL");
+  lcdWriteLine(0, "====  FireWire  ====");
   
-  // Row 1: Large smoke percentage (using display value)
-  lcd.setCursor(0, 1);
-  snprintf(buf, 21, "Smoke Level: %.1f %%", getSmokePercentDisplay());
-  lcd.print(buf);
-  
-  // Row 2: Threshold comparison
-  lcd.setCursor(0, 2);
-  snprintf(buf, 21, "Threshold:   %d %%", smokeThreshold);
-  lcd.print(buf);
-  
-  // Row 3: Status and safety margin (using real value for calculations)
-  lcd.setCursor(0, 3);
+  // Row 1: Smoke status (simple, non-technical)
+  char buf[21];
   String smokeStatus = "Safe";
-  if (smokePercent >= smokeThreshold * 0.9) smokeStatus = "Warning";
-  if (smokePercent >= smokeThreshold) smokeStatus = "DANGER";
+  if (smokePercent >= smokeThreshold * 0.5) smokeStatus = "Detected";
+  if (smokePercent >= smokeThreshold * 0.8) smokeStatus = "Warning!";
+  if (smokePercent >= smokeThreshold) smokeStatus = "DANGER!";
+  snprintf(buf, 21, "Smoke: %s", smokeStatus.c_str());
+  lcdWriteLine(1, buf);
   
-  float margin = smokeThreshold - smokePercent;
-  if (margin > 0) {
-    snprintf(buf, 21, "%s (%.1f%% margin)", smokeStatus.c_str(), margin);
+  // Row 2: Simple description
+  if (smokePercent < smokeThreshold * 0.5) {
+    lcdWriteLine(2, "No smoke detected   ");
+  } else if (smokePercent < smokeThreshold * 0.8) {
+    lcdWriteLine(2, "Small amount of smoke");
+  } else if (smokePercent < smokeThreshold) {
+    lcdWriteLine(2, "Smoke increasing!   ");
   } else {
-    snprintf(buf, 21, "%s (EXCEEDED!)", smokeStatus.c_str());
+    lcdWriteLine(2, "Heavy smoke!        ");
   }
-  lcd.print(buf);
+  
+  // Row 3: Action message
+  if (smokePercent >= smokeThreshold * 0.8) {
+    lcdWriteLine(3, "Check for fire!     ");
+  } else {
+    lcdWriteLine(3, "Everything OK       ");
+  }
 }
 
 // Display Mode 4: System & WiFi Info
@@ -2284,40 +2302,37 @@ void displayHotspotInfo() {
 
 // Display Mode 5: Carbon Monoxide Detail
 void displayCO() {
-  char buf[25];
-  
   // Row 0: Header
-  lcd.setCursor(0, 0);
-  lcd.print("====================");
-  lcd.setCursor(4, 0);
-  lcd.print("CARBON MONOXIDE");
+  lcdWriteLine(0, "====  FireWire  ====");
   
-  // Row 1: CO Level in PPM
-  lcd.setCursor(0, 1);
-  snprintf(buf, 21, "CO Level: %.1f PPM", coPpm);
-  lcd.print(buf);
+  // Row 1: CO status (simple, non-technical)
+  char buf[21];
+  String coStatusText = "Safe";
+  if (coPpm >= 35) coStatusText = "Caution";
+  if (coPpm >= 100) coStatusText = "Warning!";
+  if (coPpm >= 400) coStatusText = "DANGER!";
+  snprintf(buf, 21, "Carbon Monoxide:%s", coStatusText.c_str());
+  lcdWriteLine(1, buf);
   
-  // Row 2: CO Status and Raw ADC
-  lcd.setCursor(0, 2);
-  lcd.print("                    ");  // Clear line first
-  lcd.setCursor(0, 2);
-  snprintf(buf, 21, "Status: %s (%d)", coStatus.c_str(), coRaw);
-  lcd.print(buf);
-  
-  // Row 3: Safety thresholds info
-  lcd.setCursor(0, 3);
-  lcd.print("                    ");  // Clear line first
-  lcd.setCursor(0, 3);
-  if (coPpm < 9) {
-    snprintf(buf, 21, "Safe: <9PPM Normal");
-  } else if (coPpm < 35) {
-    snprintf(buf, 21, "Caution: 9-35PPM");
-  } else if (coPpm < 200) {
-    snprintf(buf, 21, "Warning: 35-200PPM");
+  // Row 2: Simple description
+  if (coPpm < 35) {
+    lcdWriteLine(2, "Air is clean        ");
+  } else if (coPpm < 100) {
+    lcdWriteLine(2, "Open windows        ");
+  } else if (coPpm < 400) {
+    lcdWriteLine(2, "Leave the area!     ");
   } else {
-    snprintf(buf, 21, "DANGER: >200PPM!");
+    lcdWriteLine(2, "EVACUATE NOW!       ");
   }
-  lcd.print(buf);
+  
+  // Row 3: Safety message
+  if (coPpm >= 100) {
+    lcdWriteLine(3, "Poisonous gas!      ");
+  } else if (coPpm >= 35) {
+    lcdWriteLine(3, "Ventilate room      ");
+  } else {
+    lcdWriteLine(3, "Everything OK       ");
+  }
 }
 
 // Low Battery Warning Screen
