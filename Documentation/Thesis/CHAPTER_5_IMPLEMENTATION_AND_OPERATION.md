@@ -151,6 +151,7 @@ Display returns to default after 15 seconds of inactivity.
 
 - Use only 2.4GHz WiFi (NOT 5GHz)
 - ESP32 does not support 5GHz networks
+- Phone hotspot works if set to 2.4GHz mode
 - Check WiFi password is correct
 - Move device closer to router if signal is weak
 - Restart router if other devices cannot connect
